@@ -1,3 +1,6 @@
+# Der Server ist reines Go. Alles, was nur die App oder die Werkbank angeht,
+# gehoert nicht in den Build-Kontext: Es macht ihn gross und macht bei jeder
+# Aenderung an der App den Docker-Cache kaputt.
 .git
 .env
 *.db*
@@ -6,3 +9,14 @@ harness.py
 lauf.py
 pruefe-prompts.py
 beispiele-*.json
+app/
+build/
+gradle/
+gradlew
+gradlew.bat
+*.gradle.kts
+gradle.properties
+local.properties
+*.apk
+*.md
+.github/

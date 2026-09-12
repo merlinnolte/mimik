@@ -136,7 +136,13 @@ Ehrlichkeitshalber:
   schreibt.
 - **Keine Verschlüsselung der Datenbank.** Wer das Volume hat, hat das Dossier.
   Sicherung ist ein `cp` – Zugriff darauf auch.
-- **Der Behälter ist ungetestet gehärtet.** Die Einstellungen oben sind
-  geschrieben, aber nicht gefahren: Auf dem Rechner, an dem sie entstanden,
-  lief kein Docker. Beim ersten `docker compose up` gehört ein Blick ins
-  Protokoll, ob SQLite mit `read_only` und der `tmpfs`-Größe zurechtkommt.
+Der Behälter ist inzwischen gefahren, nicht nur geschrieben: `read_only`,
+`cap_drop: ALL`, `no-new-privileges`, `pids_limit`, `mem_limit` und das
+16-MB-`tmpfs` sind im laufenden Container nachgewiesen, `touch /probe` scheitert
+am schreibgeschützten Wurzeldateisystem, und SQLite legt seine Dateien als uid
+10001 im Volume an.
+
+Dabei kam heraus, dass `VOLUME /daten` allein nicht reicht: Docker legt das
+Verzeichnis sonst als root mit 0755 an, und der Dienst als uid 10001 bekommt
+`unable to open database file (14)`. Das Dockerfile erzeugt `/daten` deshalb
+selbst und übergibt es an `spiel`, bevor `VOLUME` kommt.
