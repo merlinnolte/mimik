@@ -1,0 +1,71 @@
+{
+  "_hinweis": "VORLAGE, noch zu füllen. Eine Datei je Spieler, benenne sie wie du magst. Zehn Fragen beantworten lassen – roh getippt, mit allen Tippfehlern und der echten Schreibweise – und Frage samt Antwort hier eintragen. Ausgefülltes Beispiel: beispiele-kim.json (erfunden).",
+  "spieler": "Zweiter Spieler",
+  "tags": [
+    "mindestens",
+    "zehn",
+    "interessen",
+    "dieser",
+    "person",
+    "hier",
+    "eintragen",
+    "je",
+    "ein",
+    "begriff"
+  ],
+  "verdichtung": {
+    "themen": [],
+    "haltungen": [],
+    "wiederkehrende_bezuege": [],
+    "humor": "",
+    "sprachliche_eigenheiten": []
+  },
+  "dossier_fakten": [],
+  "gesperrte_themen": [],
+  "anti_beispiele": [
+    "Das ist eine spannende Frage! Ich würde sagen ...",
+    "Am Ende zählt doch, dass man glücklich ist."
+  ],
+  "runden": [
+    {
+      "frage": "Was ist das Unvernünftigste, das du dir in den letzten zwei Jahren gekauft hast – und bereust du es?",
+      "antwort_roh": ""
+    },
+    {
+      "frage": "Wofür nimmst du dir zu wenig Zeit?",
+      "antwort_roh": ""
+    },
+    {
+      "frage": "Bei welchem Thema merkst du, dass du dich schneller aufregst, als du möchtest?",
+      "antwort_roh": ""
+    },
+    {
+      "frage": "Was machst du regelmäßig, obwohl du weißt, dass es nichts bringt?",
+      "antwort_roh": ""
+    },
+    {
+      "frage": "Was steht bei dir herum, das du nie benutzt, aber auch nie weggeben würdest?",
+      "antwort_roh": ""
+    },
+    {
+      "frage": "Welchen Rat hast du schon oft gegeben und selbst nie befolgt?",
+      "antwort_roh": ""
+    },
+    {
+      "frage": "Was würdest du an einem völlig freien Samstag tun, wenn niemand etwas von dir will?",
+      "antwort_roh": ""
+    },
+    {
+      "frage": "Worüber hast du zuletzt laut gelacht, als niemand dabei war?",
+      "antwort_roh": ""
+    },
+    {
+      "frage": "Was hast du als Kind gemacht, worüber du heute den Kopf schüttelst?",
+      "antwort_roh": ""
+    },
+    {
+      "frage": "Was würdest du an deiner Wohnung sofort ändern, wenn Geld keine Rolle spielte?",
+      "antwort_roh": ""
+    }
+  ]
+}

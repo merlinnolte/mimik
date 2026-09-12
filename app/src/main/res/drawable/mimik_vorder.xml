@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MIMIK als Startsymbol, gefüllte Fassung. Dieselbe Figur wie im Spiel, nur als
+  Vektor statt als Zeichenmatrix: Die Blockzeichen wären in einem Symbol vom
+  Rasterzufall der jeweiligen Schrift abhängig.
+
+  Das Gesichtsfeld ist hier ausgefüllt und die Züge darin sind dunkel – nur im
+  Symbol, nicht im Spiel. Als Strichzeichnung verschwindet die Figur auf einem
+  kleinen Startbildschirm; als Fläche liest sie sich auch als Daumennagel.
+
+  108x108 ist die Fläche eines adaptiven Symbols. Sicher ist der Kreis mit
+  Radius 33 um die Mitte, denn manche Oberflächen beschneiden rund. Die Figur
+  bleibt hier vollständig innerhalb von Radius 25, damit sie den Rand auch dann
+  nicht berührt.
+
+  Die Miene ist das selbstzufriedene Grinsen: ein halb geschlossenes Auge, ein
+  einseitig hochgezogener Mund. MIMIK weiß mehr über dich, als dir lieb ist.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+
+    <!-- Antenne -->
+    <path android:pathData="M54,38 L54,32.5" android:strokeColor="#7aa2f7"
+        android:strokeWidth="2.4" android:strokeLineCap="round" />
+    <path android:pathData="M54,30 m-2.4,0 a2.4,2.4 0 1,0 4.8,0 a2.4,2.4 0 1,0 -4.8,0"
+        android:fillColor="#7aa2f7" />
+
+    <!-- Beine, hinter dem Gesichtsfeld beginnend -->
+    <path android:pathData="M45.5,68 L45.5,75" android:strokeColor="#7aa2f7"
+        android:strokeWidth="2.4" android:strokeLineCap="round" />
+    <path android:pathData="M62.5,68 L62.5,75" android:strokeColor="#7aa2f7"
+        android:strokeWidth="2.4" android:strokeLineCap="round" />
+
+    <!-- Gesichtsfeld als Fläche -->
+    <path android:pathData="M36,39 L72,39 L72,70.5 L36,70.5 Z" android:fillColor="#7aa2f7" />
+
+    <!-- Augen, dunkel im Feld: links halb geschlossen, rechts offen -->
+    <path android:pathData="M43.5,50.5 L48.75,50.5 L48.75,53 L43.5,53 Z"
+        android:fillColor="#1a1b26" />
+    <path android:pathData="M59.25,48.75 L64.5,48.75 L64.5,54 L59.25,54 Z"
+        android:fillColor="#1a1b26" />
+
+    <!-- Nase -->
+    <path android:pathData="M54,58 m-1.1,0 a1.1,1.1 0 1,0 2.2,0 a1.1,1.1 0 1,0 -2.2,0"
+        android:fillColor="#1a1b26" />
+
+    <!-- Mund: einseitig hochgezogen -->
+    <path android:pathData="M45,63.5 Q54,67.5 63,60.5" android:strokeColor="#1a1b26"
+        android:strokeWidth="2.2" android:strokeLineCap="round" />
+</vector>

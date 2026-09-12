@@ -1,0 +1,88 @@
+{
+  "_hinweis": "ERFUNDEN. „Kim“ ist keine reale Person; jede Antwort hier ist ausgedacht. Die echten Antworten, an denen die Prompts entwickelt wurden, stehen nicht im Repo. Nachgebaut ist nur die Form: Länge (9 bis 58 Zeichen, Median 45), kein Schlusspunkt, Satzfragmente ohne Subjekt, Gedankenstrich mit nachgeschobener Einschränkung, Doppelpunkt statt Nebensatz, eine sehr kurze Antwort. Genau daran hängen die Messungen der Werkbank – deshalb nicht glätten.",
+  "spieler": "Kim",
+  "tags": [
+    "kaffee",
+    "kochen",
+    "zugfahren",
+    "nachrichten",
+    "handarbeit",
+    "kartenspiele",
+    "einkaufen",
+    "kindheit",
+    "wohnen",
+    "pflanzen"
+  ],
+  "verdichtung": {
+    "themen": [
+      "Essen und Zubereitung",
+      "Alltagsgegenstände, die bleiben",
+      "Kindheit draußen",
+      "die eigene Wohnung"
+    ],
+    "haltungen": [
+      "verteidigt kleine Anschaffungen mit dem Nutzen",
+      "benennt eigene Gewohnheiten, ohne sie zu ändern",
+      "wenig Geduld mit Lärm von anderen"
+    ],
+    "wiederkehrende_bezuege": [
+      "Dinge, die herumstehen und bleiben dürfen",
+      "Vorsätze, die abends scheitern"
+    ],
+    "humor": "trocken, stellt den eigenen Widerspruch nebeneinander und lässt ihn stehen",
+    "sprachliche_eigenheiten": [
+      "setzt oft einen Gedankenstrich und schiebt die Einschränkung nach",
+      "antwortet häufig als Satzfragment ohne Subjekt",
+      "Doppelpunkt statt Nebensatz",
+      "sehr kurze Antworten sind möglich, bis hinunter zu zwei Wörtern"
+    ]
+  },
+  "dossier_fakten": [],
+  "gesperrte_themen": [],
+  "anti_beispiele": [
+    "Das ist eine spannende Frage! Ich würde sagen ...",
+    "Am Ende zählt doch, dass man glücklich ist."
+  ],
+  "runden": [
+    {
+      "frage": "Was ist das Unvernünftigste, das du dir in den letzten zwei Jahren gekauft hast – und bereust du es?",
+      "antwort_roh": "Eine zweite Kaffeemühle – aber die erste mahlt zu grob"
+    },
+    {
+      "frage": "Wofür nimmst du dir zu wenig Zeit?",
+      "antwort_roh": "Kochen, richtig kochen, nicht nur aufwärmen"
+    },
+    {
+      "frage": "Bei welchem Thema merkst du, dass du dich schneller aufregst, als du möchtest?",
+      "antwort_roh": "Leute, die im Zug laut telefonieren"
+    },
+    {
+      "frage": "Was machst du regelmäßig, obwohl du weißt, dass es nichts bringt?",
+      "antwort_roh": "Vor dem Schlafen noch Nachrichten lesen"
+    },
+    {
+      "frage": "Was steht bei dir herum, das du nie benutzt, aber auch nie weggeben würdest?",
+      "antwort_roh": "Eine Nähmaschine: benutze ich nie, sieht aber ernsthaft aus"
+    },
+    {
+      "frage": "Welchen Rat hast du schon oft gegeben und selbst nie befolgt?",
+      "antwort_roh": "Geh raus!"
+    },
+    {
+      "frage": "Was würdest du an einem völlig freien Samstag tun, wenn niemand etwas von dir will?",
+      "antwort_roh": "Einen ganzen Tag lang Kartenspiele lernen"
+    },
+    {
+      "frage": "Worüber hast du zuletzt laut gelacht, als niemand dabei war?",
+      "antwort_roh": "Über meine eigene Einkaufsliste, drei Mal Butter"
+    },
+    {
+      "frage": "Was hast du als Kind gemacht, worüber du heute den Kopf schüttelst?",
+      "antwort_roh": "Regenwürmer gesammelt und in die Jackentasche gesteckt"
+    },
+    {
+      "frage": "Was würdest du an deiner Wohnung sofort ändern, wenn Geld keine Rolle spielte?",
+      "antwort_roh": "Ein Fenster in der Küche – irgendeins, egal wie klein"
+    }
+  ]
+}

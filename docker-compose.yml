@@ -1,0 +1,50 @@
+# Ein Dienst, ein Volume. Die Härtung darunter ist kein Zierrat: Der Server
+# nimmt Text von zwei Telefonen an, reicht ihn an ein fremdes Modell weiter und
+# schreibt zurück, was von dort kommt. Der Behälter ist die Grenze, hinter der
+# das folgenlos bleibt.
+services:
+  mimik:
+    build: .
+    restart: unless-stopped
+    ports:
+      # Nur an das Loopback gebunden. Von außen erreichbar wird der Server über
+      # einen Reverse Proxy mit TLS – nicht dadurch, dass hier ein Port offen
+      # im Netz steht. Für einen Test im eigenen WLAN reicht "8080:8080".
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - daten:/daten
+    # Schreiben darf der Dienst genau an einer Stelle: dem Volume.
+    read_only: true
+    tmpfs:
+      # SQLite legt Zwischendateien an, wenn eine Abfrage nicht in den Speicher
+      # passt. Ohne beschreibbares /tmp bricht sie dann ab.
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      # Verhindert, dass ein Prozess im Behälter durch setuid mehr Rechte
+      # bekommt, als der Behälter selbst hat.
+      - no-new-privileges:true
+    # Der Dienst ist ein Go-Binary mit ein paar Goroutinen. Was darüber
+    # hinausgeht, ist ein Fehler und soll den Wirt nicht mitnehmen.
+    pids_limit: 128
+    mem_limit: 512m
+    environment:
+      MIMIK_DB: /daten/mimik.db
+      MIMIK_ADDR: ":8080"
+      MIMIK_BASE_URL: ${MIMIK_BASE_URL:-https://opencode.ai/zen/go/v1}
+      MIMIK_MODEL: ${MIMIK_MODEL:-deepseek-v4-flash}
+      MIMIK_API_KEY: ${MIMIK_API_KEY:?MIMIK_API_KEY fehlt - lege eine .env an}
+      MIMIK_HEADERS: ${MIMIK_HEADERS:-x-opencode-session: mimik}
+      # Wer sich anmelden darf. Leer lassen heißt: jeder, der den Server
+      # erreicht – und jede Anmeldung kann Modellaufrufe auf deine Rechnung
+      # auslösen.
+      MIMIK_EINLADUNG: ${MIMIK_EINLADUNG:-}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  daten:

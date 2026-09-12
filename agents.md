@@ -1,0 +1,322 @@
+# agents.md
+
+Regeln dieses Projekts für alle, die daran weiterarbeiten – Mensch wie Agent.
+Was hier steht, ist an echtem Material gemessen oder aus einem Fehler gelernt.
+Wenn du etwas davon änderst, ändere auch die Begründung.
+
+---
+
+## 1. Was MIMIK ist
+
+Ein rundenbasiertes Spiel für **genau zwei** Personen, die sich gut kennen.
+Beide beantworten dieselbe Frage; ein Sprachmodell schreibt drei Fälschungen im
+Stil der schreibenden Person; jede Seite bekommt vier Karten über die **andere**
+Person und sucht die echte. Treffer = Punkt für die Menschen, Fehlgriff = Punkt
+für MIMIK. Erster auf zehn gewinnt. Kooperativ, zeitunabhängig, kein Timer.
+
+**MIMIK ist der Name des Spiels, der Figur und des Gegners.** Die erfundene
+Antwort heißt **Fälschung**, nie „Doppelgänger“ – dieser Name ist vollständig
+abgeschafft, auch als Untertitel.
+
+### Was das Spiel schwer macht
+
+Nicht der Inhalt, sondern der **Abstand**. Zwei Fehler ruinieren eine Runde:
+
+- **Umkreisen** – eine Fälschung liegt zu nah an der echten Antwort. Dann gibt
+  es zwei richtige Karten.
+- **Ausreißer** – die drei Fälschungen liegen enger beieinander als an der
+  echten. Dann ist die echte erkennbar, ohne die Person zu kennen.
+
+Das misst `internal/mimik.Abstandsfenster` nach jedem Erzeugen. Verstoß heißt:
+neu schreiben lassen, höchstens `MaxVersuche` (3) mal. Danach gilt der beste
+Satz – eine schwache Karte ist besser als eine Runde, die hängt.
+
+---
+
+## 2. Sprache im Code
+
+**Alle Bezeichner, Kommentare und Texte auf Deutsch.** Das ist keine Marotte:
+Die Spielbegriffe (Runde, Party, Dossier, Fälschung, Abstandsfenster,
+Themensperre, Normalform, Anker) sind der Fachwortschatz des Projekts, und eine
+halbe Übersetzung erzeugt zwei Vokabulare für dieselbe Sache.
+
+Bezeichner ohne Umlaute (`Aufloesung`, `Faelschungen`, `gewaehlt`), Kommentare
+und Nutzertexte **mit** (`Auflösung`).
+
+Kommentare erklären **warum**, nicht was. Ein Kommentar, der den danebenstehenden
+Code nacherzählt, gehört gelöscht. Ein Kommentar, der eine Entscheidung, eine
+Messung oder einen Fehler festhält, gehört hin – und bleibt stehen.
+
+---
+
+## 3. Aufbau
+
+```
+cmd/server/          Kommando, liest Umgebung, startet HTTP und Worker
+internal/game/       Reine Spielregeln. Kein HTTP, keine Datenbank, kein Modell.
+internal/store/      SQLite. Ein Schema, eingebettet per go:embed.
+internal/mimik/      Modellklient, Prompts, Prüfungen, Normalform
+internal/sicher/     Putzt alles, was von außen kommt
+internal/api/        HTTP-Schicht, Worker
+internal/seed/       Fragen- und Tagvorrat als JSON, eingebettet
+app/                 Android, Jetpack Compose
+harness.py           Prompt-Werkbank, Python, ohne Server
+pruefe-prompts.py    Hält harness.py und internal/mimik deckungsgleich
+```
+
+`internal/game` kennt weder Datenbank noch HTTP noch Modell. Das ist die
+wichtigste Grenze im Projekt: Die Regeln lassen sich ohne alles andere testen.
+
+### Zustand wird abgeleitet, nie gesetzt
+
+`Runde.Ableiten(Party)` rechnet den Zustand aus dem aus, was vorliegt –
+Antworten, Karten, Tipps. Es gibt keinen Übergang, den jemand vergessen könnte.
+Genauso in der App: `AppModel.bildschirm` ist eine Funktion des Zustands, keine
+Navigation.
+
+### Richtungskonvention
+
+Merkt man sich einmal, sonst dreht man sie ständig um:
+
+| Feld | Bedeutung |
+|---|---|
+| `Antworten[p]` | die Antwort, die **p selbst** geschrieben hat |
+| `Karten[p]` | die vier Karten **über p** – gezeigt werden sie dem anderen |
+| `Tipps[p]` | der Tipp, den **p abgegeben** hat |
+
+---
+
+## 4. Die Prompts
+
+Zwei Prompts, beide in `internal/mimik/prompts.go` **und** in `harness.py`.
+`pruefe-prompts.py` vergleicht sie zeichenweise. **Nach jeder Prompt-Änderung
+laufen lassen:**
+
+```bash
+python3 pruefe-prompts.py
+```
+
+### Prompt B (Fälschungen)
+
+Gibt `fakt` → `sperre` → `antworten` aus, **in dieser Reihenfolge**. Das ist
+keine Kosmetik: Ein autoregressives Modell, das das gesperrte Thema erst nennt,
+vermeidet es danach messbar besser. **Die Feldreihenfolge im Schema nie
+umstellen.**
+
+Drei Regeln stehen darin, weil Läufe an echtem Material sie erzwungen haben:
+
+| Regel | Befund |
+|---|---|
+| Satzgerüst der echten Antwort nicht wiederverwenden | Bei „Snoozen, danach bin ich nur noch kaputter“ hatten alle vier Karten denselben Rahmen. Ähnlichkeit danach 0.44 → 0.04 |
+| Mindestens eine Fälschung kürzer als die echte Antwort | Die echte war in 5 von 9 Runden die kürzeste (p = 0.049), Fälschungen im Schnitt 1.15× so lang |
+| Jede Fälschung an einem **anderen** Tag verankert | Sonst klingen die drei wie Varianten derselben Idee |
+
+### Prompt D (Normalform)
+
+Vereinheitlicht die Schreibweise der echten Antwort, damit nicht schon ein
+fehlendes Komma verrät, wer getippt hat. **Läuft standardmäßig nicht.** Gemessen
+am 12.09.2026 antwortet der Endpunkt nach 15 bis 190 Sekunden; darauf kann
+niemand warten, der gerade auf Absenden getippt hat, und der regelbasierte Weg
+lieferte dasselbe Ergebnis. `MIMIK_NORMALFORM=modell` schaltet ihn zu.
+
+Der regelbasierte Weg (`ErsatzNormalform`) enthält eine **Positivliste von 128
+Wörtern** für die Umlautrückbildung (`hoer` → `hör`). Eine allgemeine Regel
+`oe → ö` zerstört *Poesie*, *Michael*, *Abenteuer*, *aktuell*, *Duell*. Die
+Liste steht doppelt, in `umlaute.go` und in `harness.py`; `pruefe-prompts.py`
+vergleicht sie.
+
+### Schwellen
+
+Zwei Sätze, weil die Werkbank Zeichen-n-Gramme rechnet und der Betrieb
+Embeddings vorsieht:
+
+| Prüfung | n-Gramme (heute) | Embeddings (geplant) |
+|---|---|---|
+| Nähe zur echten Antwort | `0.35` | `0.72` |
+| Streuung der Fälschungen | `0.15` | `0.15` |
+| Anker-Streichung | `0.60` gerichtet | `0.60` |
+
+Antwort gegen Antwort ist **symmetrisch** (Jaccard über Vierergramme). Tag gegen
+Antwort ist **gerichtet**: Gefragt ist, wie viel vom Tag in der Antwort steckt.
+Symmetrisch gerechnet geht ein Ein-Wort-Tag gegen einen Dreizeiler immer gegen
+null, und die Anker-Streichung feuert nie.
+
+---
+
+## 5. Das Modell
+
+| Einstellung | Wert |
+|---|---|
+| Endpunkt | OpenAI-kompatibel, `MIMIK_BASE_URL` + `/chat/completions` |
+| Vorgabe | `https://opencode.ai/zen/go/v1` |
+| Modell | `deepseek-v4-flash` |
+| Nötige Kopfzeile | `x-opencode-session: …`, sonst HTTP 400 `MissingSessionID` |
+| Nötiger User-Agent | irgendeiner außer dem Standard von `urllib`, sonst Cloudflare 1010 |
+
+**Dauer, gemessen an neun Runden echten Materials:** 15, 19, 22, 35, 43, 105,
+155, 165, 191 Sekunden, dazu ein HTTP 500 und drei Zeitüberschreitungen. Eine
+volle Runde gegen den fertigen Server brauchte fünf Minuten.
+
+Deshalb wartet **niemand synchron**. Die Runde steht auf `MIMIK_ARBEITET`, ein
+Worker versucht es alle 20 Sekunden erneut, der nächste `GET /v1/state` sieht
+die Karten. Wer diese Architektur „vereinfacht“, baut eine App, die minutenlang
+einen Ladebalken zeigt.
+
+**Das Modell bekommt keine Werkzeuge.** Kein `tools`, `functions`,
+`tool_choice`, `function_call`. `TestModellBekommtKeineWerkzeuge` sichert diese
+Abwesenheit ab.
+
+---
+
+## 6. Sicherheit
+
+Vollständig in [SICHERHEIT.md](SICHERHEIT.md). Die drei Sätze, die beim
+Weiterbauen zählen:
+
+1. **Spielertext und Modellausgabe sind dieselbe Sorte Quelle.** Beides geht
+   durch `internal/sicher`, bevor es gespeichert, angezeigt oder protokolliert
+   wird. Auch der Anfragepfad – er landet im Protokoll des Betreibers und kann
+   prozentkodierte Steuerzeichen tragen.
+2. **Nichts in der App öffnet etwas.** Kein `WebView`, kein `Linkify`, kein
+   `autoLink`, kein `UriHandler`, kein `startActivity` aus Inhalten. Wer das
+   ändert, hebt die zugesagte Eigenschaft auf.
+3. **Der Schlüssel bleibt beim Server.** Die App spricht nie direkt mit dem
+   Modellanbieter.
+
+---
+
+## 7. Gestaltung
+
+Übernommen aus dem DungeonMaster-Projekt (`src/ui/theme/`), unverändert.
+
+**Vier Paletten**, alle dunkel: tokyo-night (Vorgabe), gruvbox, nord,
+catppuccin. Rollennamen bleiben gleich wie im Web-Projekt:
+`bg bgAlt bgInset fg fgDim accent accent2 border success warn error selection`.
+
+**Zwei Farben tragen Bedeutung und dürfen nicht getauscht werden:**
+
+- `accent2` = **Mensch**
+- `accent` = **MIMIK**
+
+**Schrift:** JetBrains Mono, gebündelt, 14sp, Zeilenhöhe 1.5. Nicht die
+System-Monospace von Android: Ihr fehlen U+2500–U+259F, sie weicht still auf
+eine andere Schrift mit anderen Metriken aus, und MIMIKs Gesicht zerfällt. Auch
+Antworttexte laufen im Monospace – sonst fiele eine Karte schon durch den Satz
+aus der Reihe. Material3 zieht die Knopfbeschriftung aus `labelLarge`; ohne
+diese Zeile in `Theme.kt` läuft sie in Roboto.
+
+**Keine Rundungen, keine Schatten.** `RectangleShape`, 1px Rahmen.
+
+**Jeder Bildschirm ist eine mittig stehende Spalte** (`Huelle` in `Screens.kt`).
+`fillMaxSize` steht vor `verticalScroll`, damit `Arrangement.Center` wirklich
+zentriert und der Inhalt trotzdem wachsen kann. Nichts klebt oben.
+
+**MIMIKs Gesicht** ist eine Zeichenmatrix aus sieben Zeilen zu elf Spalten,
+zusammengesetzt aus vier beweglichen Teilen (Antenne, Stiel, Auge, Mund) plus
+Mittelzeile. Vier Mienen: `Bereit`, `Denkt`, `Triumph`, `Getroffen`. Triumph und
+Getroffen sind **Einmalfiguren** – hinein, kurz stehen, zurück in den Leerlauf.
+Nur auf Ergebnisbildschirmen hält `haltend = true` das längste Bild fest; dort
+ist die Miene eine Aussage über den Ausgang, keine flüchtige Reaktion.
+
+Auf Seitenköpfen steht das Gesicht **ohne Rahmen**, horizontal zentriert, mit
+einer Zeile darunter – als frage man MIMIK, was ansteht.
+
+**In Symbolen** (Startsymbol, Statusleiste) ist die Figur ein Vektor, keine
+Zeichenmatrix: Blockzeichen hingen dort vom Rasterzufall der jeweiligen Schrift
+ab. Das Startsymbol zeigt die Figur **gefüllt** mit dunklen Zügen und dem
+selbstzufriedenen Grinsen; die einfarbige Ebene (themed icons) und das
+Statusleistensymbol zeigen die **Strichfassung**, weil das System sie einfärbt
+und eine Fläche dort zum Klotz würde. Alles bleibt innerhalb von Radius 25 um
+die Mitte der 108×108-Fläche, damit ein runder Zuschnitt nichts abschneidet.
+
+---
+
+## 8. Versionierung
+
+Eine Version für alles: Server, App, Werkbank. Sie steht an **zwei** Stellen:
+
+- `internal/version.go` → `const Version`
+- `app/build.gradle.kts` → `versionName` (und `versionCode` hochzählen)
+
+Beim Anheben beide ändern.
+
+Der Paketname ist **`app.mimik`**. Nicht `mimik`: Android verlangt für die
+`applicationId` mindestens zwei durch Punkte getrennte Teile.
+
+---
+
+## 9. Werkzeuge
+
+| Werkzeug | Fassung |
+|---|---|
+| Go | 1.26 |
+| Kotlin | 2.1.20 |
+| AGP | 8.13.0 |
+| Gradle | 9.3.1 |
+| Compose BOM | 2024.12.01 |
+| minSdk / compileSdk | 26 / 36 |
+| Java | 17 |
+
+Bewusste Verzichte, bitte nicht „nachrüsten“:
+
+- **Keine Netzwerkbibliothek.** `HttpURLConnection` reicht für zwölf Endpunkte
+  mit demselben Muster. (Folge: kein `PATCH`, und `DELETE` bekommt keinen Rumpf
+  – deshalb heißen die Konto-Endpunkte `POST /v1/me/name` und
+  `POST /v1/me/delete`.)
+- **Kein Push-Dienst.** Benachrichtigungen laufen über WorkManager, der selbst
+  beim Server nachfragt (`Melder.kt`). Kein Firebase, kein Google-Konto, keine
+  dritte Partei – der Server bleibt das Einzige, was erreichbar sein muss. Preis
+  ist die Latenz: frühestens alle 15 Minuten. Für ein zeitunabhängiges Spiel der
+  richtige Tausch.
+- **Kein cgo.** `modernc.org/sqlite`, damit das Binary ohne Systembibliotheken
+  läuft.
+- **Go-Regexp kennt keine Rückverweise.** `([!?.,])\1+` gibt es nicht;
+  `entdoppeln` in `erzeugen.go` ist deshalb von Hand geschrieben.
+- **`--` in XML-Kommentaren bricht das Zusammenführen der Ressourcen.** In
+  Kommentaren also `Rolle bg` statt `--bg`.
+
+---
+
+## 10. Vor dem Abgeben
+
+```bash
+go build ./... && go vet ./... && go test ./...
+python3 pruefe-prompts.py
+./gradlew :app:assembleDebug
+```
+
+Alle vier müssen durchlaufen. `pruefe-prompts.py` schweigt nicht – es meldet
+jede Zeile, die auseinandergelaufen ist.
+
+---
+
+## 11. Was schon einmal schiefging
+
+Damit es nicht noch einmal passiert:
+
+- **`MinAntwort = 25`** hätte „Kündige!“ (8 Zeichen) abgewiesen. Echte Antworten
+  sind kurz. Jetzt 4, mit einem weichen Hinweis ab 20.
+- **`/v1/state` verlor beendete Matches**, weil nur nach `ergebnis='OFFEN'`
+  gesucht wurde. Der Endstand war damit unsichtbar. `LetztesMatch` behebt das,
+  ein Test hält es fest.
+- **Go marshalt nil-Slices zu `null`.** Die App brach an `"tags":null` ab.
+  `nichtNil()` in `runde.go`, zwei Regressionstests.
+- **Compose abonniert nur, was gelesen wird.** `bildschirm` kehrte bei fehlendem
+  Token zurück, ohne `zustand` je anzufassen – nach dem Anmelden rendete nichts
+  neu. Der Token ist deshalb Compose-State.
+- **Eine erfundene Person als Platzhalter.** In einem früheren Entwurf tauchte
+  ein Name auf, der nach einer realen Person aussah, ohne als erfunden
+  gekennzeichnet zu sein. `beispiele-kim.json` sagt in der ersten Zeile, dass
+  „Kim“ erfunden ist. **Erfundenes immer als solches kennzeichnen.**
+- **`mimik` in `.gitignore` ohne Schrägstrich** hätte `internal/mimik/`
+  verschluckt. Jetzt `/mimik`.
+
+---
+
+## 12. Was noch aussteht
+
+- Release-Signierung der App – braucht einen Keystore mit Passwort.
+- Docker-Abbild in eine Registry – braucht `write:packages` am GitHub-Token.
+- Der gehärtete Behälter ist geschrieben, aber noch nie gefahren.
+- Embeddings statt Zeichen-n-Grammen für die Abstandsprüfung.
+- Bildstrecke der Bildschirme neu aufnehmen.

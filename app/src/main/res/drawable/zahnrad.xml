@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Zahnrad für die Einstellungen. Als Vektor und nicht als Zeichen: ⚙ steht nicht
+  in JetBrains Mono, und die App würde dafür still auf eine andere Schrift
+  ausweichen – ein einzelnes Zeichen in fremder Schrift mitten im Monospace.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24"
+    android:tint="#FFFFFF">
+    <path android:pathData="M12,12 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0"
+        android:strokeColor="#FFFFFF" android:strokeWidth="1.9" />
+    <path android:pathData="M12,12 m-2.2,0 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0"
+        android:strokeColor="#FFFFFF" android:strokeWidth="1.5" />
+    <group>
+        <path android:pathData="M18,12 L20.5,12" android:strokeColor="#FFFFFF"
+            android:strokeWidth="2" android:strokeLineCap="round" />
+        <path android:pathData="M16.24,16.24 L18.01,18.01" android:strokeColor="#FFFFFF"
+            android:strokeWidth="2" android:strokeLineCap="round" />
+        <path android:pathData="M12,18 L12,20.5" android:strokeColor="#FFFFFF"
+            android:strokeWidth="2" android:strokeLineCap="round" />
+        <path android:pathData="M7.76,16.24 L5.99,18.01" android:strokeColor="#FFFFFF"
+            android:strokeWidth="2" android:strokeLineCap="round" />
+        <path android:pathData="M6,12 L3.5,12" android:strokeColor="#FFFFFF"
+            android:strokeWidth="2" android:strokeLineCap="round" />
+        <path android:pathData="M7.76,7.76 L5.99,5.99" android:strokeColor="#FFFFFF"
+            android:strokeWidth="2" android:strokeLineCap="round" />
+        <path android:pathData="M12,6 L12,3.5" android:strokeColor="#FFFFFF"
+            android:strokeWidth="2" android:strokeLineCap="round" />
+        <path android:pathData="M16.24,7.76 L18.01,5.99" android:strokeColor="#FFFFFF"
+            android:strokeWidth="2" android:strokeLineCap="round" />
+    </group>
+</vector>

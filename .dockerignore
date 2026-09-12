@@ -1,0 +1,8 @@
+.git
+.env
+*.db*
+lauf-*
+harness.py
+lauf.py
+pruefe-prompts.py
+beispiele-*.json

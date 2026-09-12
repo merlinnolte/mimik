@@ -1,0 +1,29 @@
+# Zugangsdaten gehoeren nie ins Repo.
+.env
+keystore.properties
+*.jks
+*.keystore
+
+# Daten und Laufspuren des Servers.
+*.db
+*.db-shm
+*.db-wal
+# Nur das gebaute Binary im Wurzelverzeichnis - ohne Schraegstrich wuerde das
+# Muster auch internal/mimik/ verschlucken.
+/mimik
+
+# Ausgaben der Prompt-Werkbank: Rohmaterial zweier echter Personen.
+lauf-*.json
+lauf-*.log
+
+# Bauartefakte.
+build/
+.gradle/
+local.properties
+.kotlin/
+*.apk
+*.aab
+
+# Betriebssystem und Werkzeuge.
+.DS_Store
+.idea/

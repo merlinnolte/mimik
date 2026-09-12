@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug: Klartext erlaubt, damit man gegen einen Server im Emulator
+  (10.0.2.2) oder im Heimnetz testen kann, bevor TLS steht. Diese Datei
+  überschreibt die gleichnamige aus src/main und landet nie im Release.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
