@@ -9,6 +9,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"mimik/internal/game"
@@ -228,15 +229,20 @@ func (s *Server) partyBeitreten(w http.ResponseWriter, r *http.Request) {
 
 // ------------------------------------------------------------------- Tags ---
 
+// tagsVorschlagen blättert durch den Vorrat. "ab" sagt, wie viele Vorschläge
+// der Klient schon gesehen hat; "mehr" sagt ihm, ob sich ein weiterer Griff
+// lohnt.
 func (s *Server) tagsVorschlagen(w http.ResponseWriter, r *http.Request) {
-	v, err := s.S.TagVorschlaege(spieler(r).ID, 20)
+	ab, _ := strconv.Atoi(r.URL.Query().Get("ab"))
+	v, mehr, err := s.S.TagVorschlaege(spieler(r).ID, ab, 20)
 	if err != nil {
 		fehler(w, 500, err.Error())
 		return
 	}
 	gewaehlt, _ := s.S.Tags(spieler(r).ID)
 	json_(w, 200, map[string]any{
-		"vorschlaege": nichtNil(v), "gewaehlt": nichtNil(gewaehlt), "mindestens": 10,
+		"vorschlaege": nichtNil(v), "gewaehlt": nichtNil(gewaehlt),
+		"mindestens": 10, "mehr": mehr,
 	})
 }
 

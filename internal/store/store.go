@@ -10,6 +10,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash/fnv"
+	mrand "math/rand/v2"
 	"strings"
 	"time"
 
@@ -287,26 +289,53 @@ func (s *Store) TagsSetzen(pid string, tags []string) error {
 	return tx.Commit()
 }
 
-// TagVorschlaege liefert n Vorschläge, die der Spieler noch nicht gewählt hat.
-func (s *Store) TagVorschlaege(pid string, n int) ([]string, error) {
+// TagVorschlaege liefert bis zu n Begriffe aus dem Vorrat, beginnend bei ab.
+// Bereits gespeicherte fallen heraus. Der zweite Rückgabewert sagt, ob danach
+// noch etwas kommt.
+//
+// Das "ab" ist der Grund, warum es diese Fassung gibt: Vorher lieferte die
+// Funktion immer die ersten n und filterte nur nach dem, was schon GESPEICHERT
+// war. Im Onboarding ist aber noch nichts gespeichert – der Knopf "Weitere"
+// holte also jedes Mal dieselben zwanzig.
+func (s *Store) TagVorschlaege(pid string, ab, n int) ([]string, bool, error) {
 	gewaehlt, err := s.Tags(pid)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	hat := map[string]bool{}
 	for _, t := range gewaehlt {
 		hat[t] = true
 	}
-	var out []string
+	frei := make([]string, 0, len(seed.Tags()))
 	for _, t := range seed.Tags() {
 		if !hat[t] {
-			out = append(out, t)
-		}
-		if len(out) >= n {
-			break
+			frei = append(frei, t)
 		}
 	}
-	return out, nil
+	// Je Spieler eine eigene, aber stabile Reihenfolge.
+	//
+	// Der Vorrat ist alphabetisch sortiert. Ohne Mischen bekäme jeder Mensch
+	// dieselben zwanzig Begriffe von "aberglaube" bis "backen" zu sehen und
+	// würde daraus wählen – dreihundert weitere lägen unerreicht dahinter.
+	// Gemischt wird aus der Spieler-ID heraus, nicht aus dem Zufall: Sonst
+	// verschöbe sich die Reihenfolge zwischen zwei Seiten und "Weitere" zeigte
+	// Begriffe doppelt oder gar nicht.
+	h := fnv.New64a()
+	h.Write([]byte(pid))
+	misch := mrand.New(mrand.NewPCG(h.Sum64(), 0x9E3779B97F4A7C15))
+	misch.Shuffle(len(frei), func(i, j int) { frei[i], frei[j] = frei[j], frei[i] })
+
+	if ab < 0 {
+		ab = 0
+	}
+	if ab > len(frei) {
+		ab = len(frei)
+	}
+	ende := ab + n
+	if ende > len(frei) {
+		ende = len(frei)
+	}
+	return frei[ab:ende], ende < len(frei), nil
 }
 
 // ---------------------------------------------------------------- Dossier ---

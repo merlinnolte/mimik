@@ -26,8 +26,26 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     var zustand by mutableStateOf<Spielzustand?>(null); private set
     var laden by mutableStateOf(false); private set
     var fehler by mutableStateOf<String?>(null)
-    var tagsAuswahl by mutableStateOf<TagsAus?>(null); private set
+    /**
+     * Die Tagauswahl besteht aus drei Teilen, und sie getrennt zu halten ist
+     * der Grund, warum "Weitere" jetzt funktioniert.
+     *
+     * gespeicherteTags  was der Server kennt
+     * vorschlaege       was dieses Gerät bisher angeboten bekommen hat, wachsend
+     * gewaehlteTags     was der Finger angetippt hat, noch nicht abgeschickt
+     *
+     * Vorher gab es nur eine Antwort vom Server, und jedes Nachladen setzte die
+     * Auswahl auf den Stand des Servers zurück – im Onboarding also auf leer.
+     */
+    var gespeicherteTags by mutableStateOf<List<String>>(emptyList()); private set
+    var vorschlaege by mutableStateOf<List<String>>(emptyList()); private set
+    var mehrTags by mutableStateOf(false); private set
+    var tagsGeladen by mutableStateOf(false); private set
     var gewaehlteTags by mutableStateOf<Set<String>>(emptySet())
+
+    /** Was auf dem Bildschirm steht: Gespeichertes zuerst, dann Vorschläge. */
+    val sichtbareTags: List<String>
+        get() = (gespeicherteTags + vorschlaege).distinct()
     var letzterTreffer by mutableStateOf<Boolean?>(null)
 
     /**
@@ -202,16 +220,38 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         withContext(Dispatchers.Main) { zustandUebernehmen(z) }
     }
 
+    /** Erster Griff: Stand vom Server holen, Auswahl daraus übernehmen. */
     fun tagsLaden() = imHintergrund {
-        val t = netz.tags()
-        tagsAuswahl = t
-        gewaehlteTags = t.gewaehlt.toSet()
+        val t = netz.tags(0)
+        withContext(Dispatchers.Main) {
+            gespeicherteTags = t.gewaehlt
+            vorschlaege = t.vorschlaege
+            gewaehlteTags = t.gewaehlt.toSet()
+            mehrTags = t.mehr
+            tagsGeladen = true
+        }
+    }
+
+    /**
+     * "Weitere": hängt an, statt zu ersetzen – und fasst die Auswahl nicht an.
+     * Das Antippen von zehn Begriffen soll nicht dadurch verfallen, dass man
+     * noch einmal in den Vorrat greift.
+     */
+    fun tagsNachladen() = imHintergrund {
+        val t = netz.tags(vorschlaege.size)
+        withContext(Dispatchers.Main) {
+            vorschlaege = (vorschlaege + t.vorschlaege).distinct()
+            mehrTags = t.mehr
+        }
     }
 
     fun tagsSpeichern() = imHintergrund {
         netz.tagsSetzen(gewaehlteTags.toList())
         val z = netz.zustand()
-        withContext(Dispatchers.Main) { zustandUebernehmen(z) }
+        withContext(Dispatchers.Main) {
+            gespeicherteTags = gewaehlteTags.toList().sorted()
+            zustandUebernehmen(z)
+        }
     }
 
     fun matchStarten() = imHintergrund {
@@ -273,8 +313,10 @@ class AppModel(app: Application) : AndroidViewModel(app) {
             netz.setze(adresse, "")
             tokenState = ""
             zustand = null
-            tagsAuswahl = null
+            gespeicherteTags = emptyList()
+            vorschlaege = emptyList()
             gewaehlteTags = emptySet()
+            tagsGeladen = false
             zeigeAufloesung = null
             gesehenBis = 0
             einstellungenOffen = false

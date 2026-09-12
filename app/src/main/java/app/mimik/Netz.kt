@@ -91,6 +91,8 @@ data class TagsAus(
     val vorschlaege: List<String> = emptyList(),
     val gewaehlt: List<String> = emptyList(),
     val mindestens: Int = 10,
+    /** Ob nach diesen Vorschlägen noch weitere im Vorrat liegen. */
+    val mehr: Boolean = false,
 )
 
 @Serializable
@@ -173,7 +175,8 @@ class Netz(private var basis: String, private var token: String) {
     fun partyBeitreten(code: String): PartyNeu =
         sende("POST", "/v1/parties/join", buildJsonObject { put("code", code) }.toString())
 
-    fun tags(): TagsAus = hole("/v1/tags")
+    /** ab = wie viele Vorschläge dieses Gerät schon gesehen hat. */
+    fun tags(ab: Int = 0): TagsAus = hole("/v1/tags?ab=$ab")
 
     fun tagsSetzen(tags: List<String>): TagsAus = sende(
         "PUT", "/v1/tags",

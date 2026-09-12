@@ -304,8 +304,7 @@ fun PartyBildschirm(modell: AppModel) {
 @Composable
 fun TagsBildschirm(modell: AppModel) {
     val p = LokalePalette.current
-    LaunchedEffect(Unit) { if (modell.tagsAuswahl == null) modell.tagsLaden() }
-    val vorrat = modell.tagsAuswahl
+    LaunchedEffect(Unit) { if (!modell.tagsGeladen) modell.tagsLaden() }
     val gewaehlt = modell.gewaehlteTags
     Huelle(modell) {
         MimikKopf(Miene.Bereit, "Woran soll ich mich bei dir festhalten?")
@@ -314,8 +313,7 @@ fun TagsBildschirm(modell: AppModel) {
             fontSize = 15.sp,
         )
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            val alle = ((vorrat?.gewaehlt ?: emptyList()) + (vorrat?.vorschlaege ?: emptyList())).distinct()
-            alle.chunked(2).forEach { paar ->
+            modell.sichtbareTags.chunked(2).forEach { paar ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     paar.forEach { t ->
                         val an = t in gewaehlt
@@ -339,10 +337,13 @@ fun TagsBildschirm(modell: AppModel) {
             }
         }
         Aktionen {
-            Knopf("Weitere", aktiv = !modell.laden) { modell.tagsLaden() }
+            Knopf("Weitere", aktiv = modell.mehrTags && !modell.laden) { modell.tagsNachladen() }
             Knopf("Speichern", betont = true, aktiv = gewaehlt.size >= 10 && !modell.laden) {
                 modell.tagsSpeichern()
             }
+        }
+        if (!modell.mehrTags && modell.tagsGeladen) {
+            Zeile("Das war der ganze Vorrat.", p.fgDim, 11)
         }
     }
 }

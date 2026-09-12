@@ -16,6 +16,7 @@ import (
 
 	"mimik/internal/game"
 	"mimik/internal/mimik"
+	"mimik/internal/seed"
 	"mimik/internal/store"
 )
 
@@ -548,4 +549,91 @@ func TestNormalformKommtVomModell(t *testing.T) {
 		}
 	}
 	_ = s
+}
+
+// TestTagsWeitere hält fest, was der Knopf "Weitere" im Onboarding tun muss.
+//
+// Vorher tat er nichts Sinnvolles: TagVorschlaege filterte nur nach GESPEICHERTEN
+// Tags, und im Onboarding ist noch nichts gespeichert – also kamen jedes Mal
+// dieselben zwanzig. Auf dem Gerät gefunden.
+func TestTagsWeitere(t *testing.T) {
+	srv, _, _ := aufbauen(t)
+	k := &klient{t: t, basis: srv.URL}
+	var an struct {
+		Token string `json:"token"`
+	}
+	k.ruf("POST", "/v1/devices", map[string]string{"spitzname": "A"}, &an)
+	k.token = an.Token
+
+	type aus struct {
+		Vorschlaege []string `json:"vorschlaege"`
+		Gewaehlt    []string `json:"gewaehlt"`
+		Mehr        bool     `json:"mehr"`
+	}
+
+	var erste, zweite aus
+	k.ruf("GET", "/v1/tags", nil, &erste)
+	k.ruf("GET", "/v1/tags?ab=20", nil, &zweite)
+
+	if len(erste.Vorschlaege) != 20 {
+		t.Fatalf("erste Seite hat %d Vorschläge", len(erste.Vorschlaege))
+	}
+	if !erste.Mehr {
+		t.Fatal("nach der ersten Seite soll es weitergehen")
+	}
+	if len(zweite.Vorschlaege) == 0 {
+		t.Fatal("die zweite Seite ist leer")
+	}
+	// Der eigentliche Fehler: zweimal dasselbe.
+	schnitt := map[string]bool{}
+	for _, x := range erste.Vorschlaege {
+		schnitt[x] = true
+	}
+	for _, x := range zweite.Vorschlaege {
+		if schnitt[x] {
+			t.Fatalf("%q steht auf beiden Seiten", x)
+		}
+	}
+
+	// Bis ans Ende blättern: Der Vorrat muss sich erschöpfen, sonst dreht der
+	// Knopf sich im Kreis.
+	gesehen, ab, runden := map[string]bool{}, 0, 0
+	for {
+		runden++
+		if runden > 20 {
+			t.Fatal("der Vorrat hört nicht auf")
+		}
+		var seite aus
+		k.ruf("GET", fmt.Sprintf("/v1/tags?ab=%d", ab), nil, &seite)
+		for _, x := range seite.Vorschlaege {
+			if gesehen[x] {
+				t.Fatalf("%q kam zweimal", x)
+			}
+			gesehen[x] = true
+		}
+		ab += len(seite.Vorschlaege)
+		if !seite.Mehr {
+			break
+		}
+	}
+	// Gegen den echten Vorrat prüfen, nicht gegen eine Zahl im Test: Sonst
+	// schlägt dieser Test jedes Mal fehl, wenn jemand Begriffe hinzufügt.
+	if len(gesehen) != len(seed.Tags()) {
+		t.Fatalf("%d von %d Begriffen erreichbar", len(gesehen), len(seed.Tags()))
+	}
+
+	// Gespeicherte Tags dürfen nicht noch einmal vorgeschlagen werden.
+	k.ruf("PUT", "/v1/tags", map[string]any{"tags": zehnTags()}, nil)
+	var nachher aus
+	k.ruf("GET", "/v1/tags", nil, &nachher)
+	for _, x := range nachher.Vorschlaege {
+		for _, g := range zehnTags() {
+			if x == g {
+				t.Fatalf("%q ist gewählt und wird trotzdem vorgeschlagen", x)
+			}
+		}
+	}
+	if len(nachher.Gewaehlt) != 10 {
+		t.Fatalf("gewaehlt hat %d Einträge", len(nachher.Gewaehlt))
+	}
 }

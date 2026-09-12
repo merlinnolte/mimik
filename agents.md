@@ -337,6 +337,15 @@ Damit es nicht noch einmal passiert:
 - **Compose abonniert nur, was gelesen wird.** `bildschirm` kehrte bei fehlendem
   Token zurück, ohne `zustand` je anzufassen – nach dem Anmelden rendete nichts
   neu. Der Token ist deshalb Compose-State.
+- **„Weitere" im Onboarding tat nichts.** `TagVorschlaege` filterte nur nach
+  GESPEICHERTEN Tags – im Onboarding ist aber noch nichts gespeichert, also kamen
+  jedes Mal dieselben zwanzig. Und die App setzte bei jedem Laden
+  `gewaehlteTags` auf den Stand des Servers, löschte also die Auswahl. Jetzt
+  blättert der Server (`?ab=`) und die App hängt an, statt zu ersetzen.
+- **Ein sortierter Vorrat zeigt sich nie ganz.** Bei 352 Begriffen und zwanzig
+  pro Seite sähe alphabetisch jeder Mensch dieselben zwanzig. Die Reihenfolge
+  wird deshalb je Spieler aus dessen ID gemischt – stabil, sonst verschöbe sich
+  die Seitengrenze zwischen zwei Griffen.
 - **Eine erfundene Person als Platzhalter.** In einem früheren Entwurf tauchte
   ein Name auf, der nach einer realen Person aussah, ohne als erfunden
   gekennzeichnet zu sein. `beispiele-kim.json` sagt in der ersten Zeile, dass
