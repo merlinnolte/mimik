@@ -69,6 +69,7 @@ def parse_headers(raw):
 # andere ist, und braucht deshalb eigene, hier kalibrierte Werte. Beim Wechsel auf
 # ein Embedding-Modell gehören die Dossier-Werte hierher.
 SIM_MAX_ECHT = 0.35      # Fälschung darf der echten Antwort nicht näher kommen
+SIM_ENTHALTEN = 0.75     # ab hier steckt der eine Text im anderen
 SIM_STREUUNG = 0.15      # Fälschungen dürfen nicht enger beieinander liegen
 SIM_ANKER = 0.60         # Tag, der zu nah an der echten Antwort liegt, fliegt raus
 MAX_VERSUCHE = 3
@@ -274,6 +275,21 @@ def aehnlichkeit(a, b):
     return len(ga & gb) / float(len(ga | gb))
 
 
+def enthalten(a, b):
+    """Gerichtet: Wie viel von a steckt in b? Bestraft Laengenunterschiede nicht.
+
+    Jaccard teilt durch die Vereinigung. Steht die echte Antwort vollstaendig in
+    einer viel laengeren Faelschung, ist die Vereinigung gross und die
+    Aehnlichkeit trotzdem klein - gemessen am 12.09.2026 ergab
+    "Der Stapel Zei." gegen "Der Stapel Zeitschriften neben dem Sofa"
+    symmetrisch 0.31 und waere durchgegangen. Genau der Fall, den Umkreisen
+    verhindern soll."""
+    ga = gramme(a)
+    if not ga:
+        return 0.0
+    return len(ga & gramme(b)) / float(len(ga))
+
+
 def tag_naehe(tag, text):
     """Tag gegen Antwort: sehr ungleiche Längen, also gerichtet.
     Gefragt ist, wie viel vom Tag in der Antwort steckt - nicht umgekehrt.
@@ -409,15 +425,22 @@ def abstandsfenster(echt, fakes):
             peers.append(aehnlichkeit(fakes[i], fakes[j]))
     mean_peers = sum(peers) / len(peers) if peers else 0.0
     max_echt = max(zu_echt) if zu_echt else 0.0
-    naehe_ok = max_echt <= SIM_MAX_ECHT
+    # Zwei Masse, weil sie verschiedene Fehler sehen: Jaccard findet zwei
+    # aehnlich lange Texte, die dasselbe sagen; die gerichtete Enthaltung findet
+    # den Text, der im anderen steckt. Beide Richtungen, denn beide Seiten
+    # koennen die kuerzere sein.
+    steckt = [max(enthalten(echt, f), enthalten(f, echt)) for f in fakes]
+    naehe_ok = max_echt <= SIM_MAX_ECHT and max(steckt or [0.0]) <= SIM_ENTHALTEN
     streuung_ok = (mean_peers - max_echt) <= SIM_STREUUNG
     schuldig = []
     if not naehe_ok:
-        schuldig = [i for i, s in enumerate(zu_echt) if s > SIM_MAX_ECHT]
+        schuldig = [i for i, s in enumerate(zu_echt)
+                    if s > SIM_MAX_ECHT or steckt[i] > SIM_ENTHALTEN]
     elif not streuung_ok:
         schuldig = [max(range(len(fakes)), key=lambda i: sum(
             aehnlichkeit(fakes[i], fakes[j]) for j in range(len(fakes)) if j != i))]
     return {"zu_echt": zu_echt, "mean_peers": mean_peers, "max_echt": max_echt,
+            "max_steckt": max(steckt or [0.0]),
             "naehe_ok": naehe_ok, "streuung_ok": streuung_ok, "schuldig": schuldig}
 
 
@@ -479,6 +502,9 @@ def runde(profil, r, nr):
     if mess:
         print(GRAU("  max sim(echt, F) = %.2f  (Grenze %.2f)  %s" % (
             mess["max_echt"], SIM_MAX_ECHT, "ok" if mess["naehe_ok"] else "VERLETZT")))
+        print(GRAU("  max steckt drin  = %.2f  (Grenze %.2f)  %s" % (
+            mess["max_steckt"], SIM_ENTHALTEN,
+            "ok" if mess["max_steckt"] <= SIM_ENTHALTEN else "VERLETZT")))
         print(GRAU("  ⌀ sim(F, F)      = %.2f  Abstand %.2f (Grenze %.2f)  %s" % (
             mess["mean_peers"], mess["mean_peers"] - mess["max_echt"], SIM_STREUUNG,
             "ok" if mess["streuung_ok"] else "VERLETZT")))

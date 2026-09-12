@@ -14,6 +14,7 @@ import (
 // Embedding-Modell gehören die Dossier-Werte hierher.
 const (
 	SimMaxEcht    = 0.35 // Fälschung darf der echten Antwort nicht näher kommen
+	SimEnthalten  = 0.75 // ab hier steckt der eine Text im anderen
 	SimStreuung   = 0.15 // Fälschungen dürfen nicht enger beieinander liegen
 	SperrSchwelle = 0.60 // ab hier gilt ein gesperrtes Thema als berührt
 )
@@ -66,6 +67,24 @@ func Aehnlichkeit(a, b string) float64 {
 	return float64(s) / float64(len(ga)+len(gb)-s)
 }
 
+// Enthalten ist gerichtet: Wie viel von a steckt in b? Anders als Aehnlichkeit
+// bestraft es einen Längenunterschied nicht.
+//
+// Warum es das braucht: Jaccard teilt durch die Vereinigung. Steht die echte
+// Antwort vollständig in einer viel längeren Fälschung, ist die Vereinigung
+// groß und die Ähnlichkeit trotzdem klein. Gemessen an einem echten Durchlauf
+// am 12.09.2026: "Der Stapel Zei." gegen "Der Stapel Zeitschriften neben dem
+// Sofa" ergibt symmetrisch 0.31 – unter der Schwelle, die Karte wäre
+// durchgegangen – während die echte Antwort Zeichen für Zeichen in der
+// Fälschung steht. Genau der Fall, den "Umkreisen" verhindern soll.
+func Enthalten(a, b string) float64 {
+	ga := gramme(a, 4)
+	if len(ga) == 0 {
+		return 0
+	}
+	return float64(schnitt(ga, gramme(b, 4))) / float64(len(ga))
+}
+
 // SperrNaehe vergleicht ein gesperrtes Thema mit einer Antwort. Die Längen sind
 // sehr ungleich, deshalb gerichtet: gefragt ist, wie viel vom Thema in der
 // Antwort steckt, nicht umgekehrt. Symmetrisch gemessen ginge ein Ein-Wort-Thema
@@ -103,7 +122,11 @@ func Abstandsfenster(echt string, faelschungen []string) Befund {
 		if s > b.MaxZuEcht {
 			b.MaxZuEcht = s
 		}
-		if s > SimMaxEcht {
+		// Zwei Maße, weil sie verschiedene Fehler sehen: Jaccard findet zwei
+		// ähnlich lange Texte, die dasselbe sagen; die gerichtete Enthaltung
+		// findet den Text, der im anderen steckt. In beide Richtungen geprüft,
+		// denn beide Seiten können die kürzere sein.
+		if s > SimMaxEcht || Enthalten(echt, f) > SimEnthalten || Enthalten(f, echt) > SimEnthalten {
 			b.NaeheOK = false
 			b.Schuldig = append(b.Schuldig, i)
 		}

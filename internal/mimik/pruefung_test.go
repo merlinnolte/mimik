@@ -243,3 +243,54 @@ func TestNormalformMitUmlauten(t *testing.T) {
 		t.Fatalf("bekam %q, erwartet %q", got, will)
 	}
 }
+
+// TestUmkreisenDurchEnthaltung hält den Fall fest, der beim Durchspielen am
+// 12.09.2026 durchgerutscht ist: Die echte Antwort steckt vollständig in einer
+// viel längeren Fälschung. Symmetrisch gemessen sind das 0.31 und damit
+// unauffällig – trotzdem hätte die Karte dieselbe Antwort zweimal gezeigt.
+func TestUmkreisenDurchEnthaltung(t *testing.T) {
+	echt := "Der Stapel Zei."
+	umkreisend := "Der Stapel Zeitschriften neben dem Sofa"
+
+	if s := Aehnlichkeit(echt, umkreisend); s > SimMaxEcht {
+		t.Fatalf("der Fall ist nicht mehr der beschriebene: symmetrisch %.2f", s)
+	}
+	b := Abstandsfenster(echt, []string{
+		umkreisend,
+		"Kartenspiele lernen, alleine, den ganzen Nachmittag",
+		"Regenwuermer in der Jackentasche, frag nicht",
+	})
+	if b.NaeheOK {
+		t.Fatal("eine Fälschung, welche die echte Antwort enthält, ist durchgegangen")
+	}
+	if len(b.Schuldig) != 1 || b.Schuldig[0] != 0 {
+		t.Fatalf("falsche Karte beschuldigt: %v", b.Schuldig)
+	}
+}
+
+// Und die Gegenrichtung: eine Fälschung, die kürzer ist als die echte Antwort
+// und darin steckt.
+func TestUmkreisenAndersherum(t *testing.T) {
+	echt := "Eine zweite Kaffeemuehle, aber die erste mahlt zu grob"
+	b := Abstandsfenster(echt, []string{
+		"Ein Fenster in der Kueche, irgendeins",
+		"Eine zweite Kaffeemuehle",
+		"Regenwuermer in der Jackentasche, frag nicht",
+	})
+	if b.NaeheOK {
+		t.Fatal("eine Fälschung, die in der echten Antwort steckt, ist durchgegangen")
+	}
+}
+
+// Gegenprobe: gestreute Fälschungen dürfen nicht plötzlich an der neuen
+// Prüfung hängenbleiben, auch wenn sie sehr unterschiedlich lang sind.
+func TestKurzeAntwortBleibtDurchlaessig(t *testing.T) {
+	b := Abstandsfenster("Geh raus!", []string{
+		"Kochen, richtig kochen, nicht nur aufwaermen",
+		"Der Stapel Zeitschriften neben dem Sofa",
+		"Regenwuermer gesammelt und eingesteckt",
+	})
+	if !b.OK() {
+		t.Fatalf("harmloser Satz abgelehnt: %s (max %.2f)", b.Grund, b.MaxZuEcht)
+	}
+}
