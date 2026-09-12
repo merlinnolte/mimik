@@ -309,9 +309,16 @@ Bewusste Verzichte, bitte nicht „nachrüsten“:
 go build ./... && go vet ./... && go test ./...
 python3 pruefe-prompts.py
 ./gradlew :app:assembleDebug
+python3 -c "import yaml; yaml.safe_load(open('docker-compose.yml'))"
 ```
 
-Alle vier müssen durchlaufen. `pruefe-prompts.py` schweigt nicht – es meldet
+Alle müssen durchlaufen.
+
+Die letzte Zeile steht da, weil `docker-compose.yml` beim ersten echten Start an
+einer Kleinigkeit zerbrach: `MIMIK_HEADERS: ${MIMIK_HEADERS:-x-opencode-session:
+mimik}` – der Vorgabewert enthält `": "`, und YAML liest das als verschachtelte
+Zuordnung. Hier lief kein Docker, also fiel es erst auf dem Server auf. Werte in
+dieser Datei gehören in Anführungszeichen. `pruefe-prompts.py` schweigt nicht – es meldet
 jede Zeile, die auseinandergelaufen ist.
 
 ---

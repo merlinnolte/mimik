@@ -30,16 +30,20 @@ services:
     pids_limit: 128
     mem_limit: 512m
     environment:
-      MIMIK_DB: /daten/mimik.db
+      MIMIK_DB: "/daten/mimik.db"
       MIMIK_ADDR: ":8080"
-      MIMIK_BASE_URL: ${MIMIK_BASE_URL:-https://opencode.ai/zen/go/v1}
-      MIMIK_MODEL: ${MIMIK_MODEL:-deepseek-v4-flash}
-      MIMIK_API_KEY: ${MIMIK_API_KEY:?MIMIK_API_KEY fehlt - lege eine .env an}
-      MIMIK_HEADERS: ${MIMIK_HEADERS:-x-opencode-session: mimik}
+      # Alle Werte in Anführungszeichen. Ein Vorgabewert kann einen Doppelpunkt
+      # enthalten – "x-opencode-session: mimik" ist genau so einer – und YAML
+      # liest ein unmaskiertes ": " als verschachtelte Zuordnung. Genau daran
+      # ist diese Datei beim ersten echten Start gescheitert.
+      MIMIK_BASE_URL: "${MIMIK_BASE_URL:-https://opencode.ai/zen/go/v1}"
+      MIMIK_MODEL: "${MIMIK_MODEL:-deepseek-v4-flash}"
+      MIMIK_API_KEY: "${MIMIK_API_KEY:?MIMIK_API_KEY fehlt - lege eine .env an}"
+      MIMIK_HEADERS: "${MIMIK_HEADERS:-x-opencode-session: mimik}"
       # Wer sich anmelden darf. Leer lassen heißt: jeder, der den Server
       # erreicht – und jede Anmeldung kann Modellaufrufe auf deine Rechnung
       # auslösen.
-      MIMIK_EINLADUNG: ${MIMIK_EINLADUNG:-}
+      MIMIK_EINLADUNG: "${MIMIK_EINLADUNG:-}"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
       interval: 30s
