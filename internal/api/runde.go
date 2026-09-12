@@ -1,12 +1,11 @@
 package api
 
 import (
-	"context"
 	"errors"
 	"net/http"
-	"time"
 
 	"mimik/internal/game"
+	"mimik/internal/mimik"
 	"mimik/internal/sicher"
 	"mimik/internal/store"
 )
@@ -142,41 +141,17 @@ func (s *Server) zustand(w http.ResponseWriter, r *http.Request) {
 
 // ------------------------------------------------------------------- Züge ---
 
-func (s *Server) normalisieren(w http.ResponseWriter, r *http.Request) {
-	var in struct {
-		Text string `json:"text"`
-	}
-	lies(r, &in)
-	// Vor der Prüfung putzen, nicht danach: Sonst zählt die Längengrenze
-	// Zeichen mit, die anschließend wegfallen, und der Text geht ungeputzt
-	// zum Modell.
-	in.Text = sicher.Text(in.Text, game.MaxAntwort)
-	if err := game.PruefeAntwort(in.Text); err != nil {
-		fehler(w, 422, err.Error())
-		return
-	}
-	ctx, abbruch := context.WithTimeout(r.Context(), 25*time.Second)
-	defer abbruch()
-	n, ersatz := s.M.Normalform(ctx, in.Text)
-	json_(w, 200, map[string]any{
-		"original": in.Text, "normalform": n,
-		"regelbasiert": ersatz, "knapp": game.Knapp(n),
-	})
-}
-
 func (s *Server) antworten(w http.ResponseWriter, r *http.Request) {
 	p := spieler(r)
 	rid := r.PathValue("id")
 	var in struct {
-		Original   string `json:"original"`
-		Normalform string `json:"normalform"`
+		Original string `json:"original"`
 	}
 	lies(r, &in)
+	// Der Klient schickt nur noch den rohen Text. Die saubere Fassung entsteht
+	// im Worker, zusammen mit den Fälschungen – bis dahin steht die
+	// regelbasierte Notfassung da, damit der Wartebildschirm nicht leer ist.
 	in.Original = sicher.Text(in.Original, game.MaxAntwort)
-	in.Normalform = sicher.Text(in.Normalform, game.MaxAntwort)
-	if in.Normalform == "" {
-		in.Normalform = in.Original
-	}
 	pa, _, err := s.S.PartyVonRunde(rid)
 	if err != nil || !pa.Mitglied(game.PlayerID(p.ID)) {
 		fehler(w, 404, "runde nicht gefunden")
@@ -187,7 +162,7 @@ func (s *Server) antworten(w http.ResponseWriter, r *http.Request) {
 		fehler(w, 404, "runde nicht gefunden")
 		return
 	}
-	a := game.Antwort{Original: in.Original, Normalform: in.Normalform}
+	a := game.Antwort{Original: in.Original, Normalform: mimik.ErsatzNormalform(in.Original)}
 	if err := rd.AntwortAbgeben(pa, game.PlayerID(p.ID), a); err != nil {
 		code := 409
 		if errors.Is(err, game.ErrZuKurz) || errors.Is(err, game.ErrZuLang) {

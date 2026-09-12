@@ -59,11 +59,12 @@ die.
 ## Wie eine Runde abläuft
 
 1. Beide bekommen dieselbe Frage und antworten für sich.
-2. Vor dem Absenden zeigt die App die **Normalform**: dieselben Worte, nur
-   vereinheitlicht geschrieben. Sonst verriete schon ein fehlendes Komma, wer
-   getippt hat.
-3. Sobald beide geantwortet haben, arbeitet MIMIK. Das dauert – gemessen 15
+2. Sobald beide geantwortet haben, arbeitet MIMIK. Das dauert – gemessen 15
    Sekunden bis über fünf Minuten. Die Runde steht solange auf `MIMIK_ARBEITET`.
+3. In **einem** Aufruf entstehen alle vier Karten: MIMIK schreibt die echte
+   Antwort sauber und die drei Fälschungen gleich mit. Vier Texte aus einer
+   Hand, in derselben Rechtschreibung – sonst verriete schon ein fehlendes Komma,
+   wer getippt hat.
 4. Jede Seite bekommt **vier Karten über die andere Person** und wählt eine.
 5. Sobald beide getippt haben, löst die Runde auf, die Punkte fallen, die
    nächste Frage steht.

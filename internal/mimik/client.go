@@ -20,10 +20,7 @@ type Client struct {
 	Model    string
 	Headers  map[string]string
 	JSONMode bool
-	// NormalformPerModell schaltet Prompt D im Zugpfad zu. Aus gutem Grund
-	// standardmäßig aus, siehe Normalform().
-	NormalformPerModell bool
-	HTTP                *http.Client
+	HTTP     *http.Client
 }
 
 func NeuAusUmgebung() *Client {
@@ -34,8 +31,7 @@ func NeuAusUmgebung() *Client {
 		Headers:  ParseHeaders(os.Getenv("MIMIK_HEADERS")),
 		JSONMode: os.Getenv("MIMIK_JSON_MODE") != "0",
 
-		NormalformPerModell: os.Getenv("MIMIK_NORMALFORM") == "modell",
-		HTTP:                &http.Client{Timeout: 300 * time.Second},
+		HTTP: &http.Client{Timeout: 300 * time.Second},
 	}
 	return c
 }

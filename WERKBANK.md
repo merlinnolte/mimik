@@ -1,15 +1,24 @@
 # MIMIK · Prompt-Werkbank
 
 > Teil des Projekts [MIMIK](README.md). Diese Datei beschreibt nur die Werkbank,
-> mit der die beiden Prompts ohne Server und ohne App getestet werden.
+> mit der der Prompt ohne Server und ohne App getestet wird.
 
-Testet die beiden Prompts, an denen das Spiel hängt – ohne Server, ohne App, ohne
+Testet den Prompt, an dem das Spiel hängt – ohne Server, ohne App, ohne
 Abhängigkeiten außer Python 3.
 
-| Prompt | Aufgabe |
+Ein Aufruf tut vier Dinge:
+
+| Schritt | Aufgabe |
 |---|---|
-| **D** Normalform | Vereinheitlicht die echte Antwort (Rechtschreibung, Emoji, Zeichensetzung) |
-| **B** MIMIK | Nennt einen Fakt fürs Dossier, sperrt das Thema, schreibt drei Fälschungen |
+| **1** Normalform | Schreibt die echte Antwort sauber: Rechtschreibung, Zeichensetzung, Emoji raus |
+| **2** Fakt | Was die Antwort über die Person verrät, ein Satz fürs Dossier |
+| **3** Sperre | Das Thema, das in dieser Runde nicht mehr vorkommen darf |
+| **4** Antworten | Drei Fälschungen im Stil der Person |
+
+Dass die Normalform **in demselben Aufruf** entsteht wie die Fälschungen, ist
+kein Sparen von Aufrufen, sondern der Punkt: Vier Texte aus einer Hand stehen in
+derselben Schreibweise. Fiele einer aus der Reihe, wäre er erkannt, bevor jemand
+seinen Inhalt gelesen hätte.
 
 Danach läuft die **Abstandsprüfung**: Keine Fälschung darf der echten Antwort zu nah
 kommen (sonst gäbe es zwei richtige Karten), und die drei dürfen nicht enger

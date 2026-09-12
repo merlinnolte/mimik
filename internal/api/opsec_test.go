@@ -24,15 +24,14 @@ func TestModellBekommtKeineWerkzeuge(t *testing.T) {
 		roh, _ := io.ReadAll(r.Body)
 		json.Unmarshal(roh, &gesehen)
 		json_(w, 200, map[string]any{
-			"choices": []map[string]any{{"message": map[string]string{"content": `{"normalform":"x"}`}}},
+			"choices": []map[string]any{{"message": map[string]string{"content": `{}`}}},
 		})
 	}))
 	defer modell.Close()
 
 	c := mimik.NeuAusUmgebung()
 	c.BaseURL, c.APIKey, c.Model, c.JSONMode = modell.URL, "test", "stub", false
-	c.NormalformPerModell = true
-	c.Normalform(t.Context(), "irgendwas")
+	c.Faelschungen(t.Context(), "Eine Frage?", "irgendwas", []string{"a"}, mimik.Dossier{})
 
 	if gesehen == nil {
 		t.Fatal("das modell wurde gar nicht gerufen")

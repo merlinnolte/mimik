@@ -11,9 +11,9 @@ import io
 import re
 import sys
 
+# Es gibt nur noch einen Prompt: Die Normalform steckt als Schritt 1 darin.
 PAARE = [
     ("PROMPT_B", "PromptFaelschungen"),
-    ("PROMPT_D", "PromptNormalform"),
 ]
 
 

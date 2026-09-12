@@ -88,7 +88,7 @@ Merkt man sich einmal, sonst dreht man sie ständig um:
 
 ## 4. Die Prompts
 
-Zwei Prompts, beide in `internal/mimik/prompts.go` **und** in `harness.py`.
+**Ein** Prompt, in `internal/mimik/prompts.go` **und** in `harness.py`.
 `pruefe-prompts.py` vergleicht sie zeichenweise. **Nach jeder Prompt-Änderung
 laufen lassen:**
 
@@ -96,12 +96,16 @@ laufen lassen:**
 python3 pruefe-prompts.py
 ```
 
-### Prompt B (Fälschungen)
+### Prompt B
 
-Gibt `fakt` → `sperre` → `antworten` aus, **in dieser Reihenfolge**. Das ist
-keine Kosmetik: Ein autoregressives Modell, das das gesperrte Thema erst nennt,
-vermeidet es danach messbar besser. **Die Feldreihenfolge im Schema nie
-umstellen.**
+Gibt `normalform` → `fakt` → `sperre` → `antworten` aus, **in dieser
+Reihenfolge**. Das ist keine Kosmetik: Ein autoregressives Modell, das das
+gesperrte Thema erst nennt, vermeidet es danach messbar besser. **Die
+Feldreihenfolge im Schema nie umstellen.**
+
+`normalform` steht vorn, weil das Modell den Text erst sauber schreiben soll und
+dann alles Weitere gegen diese Fassung tut – die Fälschungen imitieren die
+Normalform, nicht den rohen Text.
 
 Drei Regeln stehen darin, weil Läufe an echtem Material sie erzwungen haben:
 
@@ -111,19 +115,39 @@ Drei Regeln stehen darin, weil Läufe an echtem Material sie erzwungen haben:
 | Mindestens eine Fälschung kürzer als die echte Antwort | Die echte war in 5 von 9 Runden die kürzeste (p = 0.049), Fälschungen im Schnitt 1.15× so lang |
 | Jede Fälschung an einem **anderen** Tag verankert | Sonst klingen die drei wie Varianten derselben Idee |
 
-### Prompt D (Normalform)
+### Die Normalform gehört in denselben Aufruf
 
-Vereinheitlicht die Schreibweise der echten Antwort, damit nicht schon ein
-fehlendes Komma verrät, wer getippt hat. **Läuft standardmäßig nicht.** Gemessen
-am 12.09.2026 antwortet der Endpunkt nach 15 bis 190 Sekunden; darauf kann
-niemand warten, der gerade auf Absenden getippt hat, und der regelbasierte Weg
-lieferte dasselbe Ergebnis. `MIMIK_NORMALFORM=modell` schaltet ihn zu.
+Sie war einmal ein eigener Prompt (D) und lief **vor** dem Absenden. Das ging
+zweimal nicht auf:
 
-Der regelbasierte Weg (`ErsatzNormalform`) enthält eine **Positivliste von 128
-Wörtern** für die Umlautrückbildung (`hoer` → `hör`). Eine allgemeine Regel
-`oe → ö` zerstört *Poesie*, *Michael*, *Abenteuer*, *aktuell*, *Duell*. Die
-Liste steht doppelt, in `umlaute.go` und in `harness.py`; `pruefe-prompts.py`
-vergleicht sie.
+1. Der Endpunkt antwortet nach 15 bis 190 Sekunden. So lange wartet niemand, der
+   gerade getippt hat.
+2. Deshalb lief sie regelbasiert – und eine Regel kann im Deutschen keine
+   Substantive großschreiben. `ein kochbuch` wurde `Ein kochbuch`. Damit stand
+   die echte Karte in einer Schreibweise da, die weder ein sorgfältiger Mensch
+   noch ein Modell erzeugt, und war **an der Form erkennbar statt am Inhalt**.
+
+Jetzt schreibt ein Aufruf alle vier Texte. Das Modell sieht den rohen Text (gut
+für die Imitation), schreibt ihn sauber und schreibt die Fälschungen gleich mit.
+Der Aufruf lief ohnehin – es kostet nichts.
+
+Danach laufen alle vier Texte noch durch dieselbe **mechanische Glättung**
+(`ErsatzNormalform`): großer Satzanfang, ein Satzzeichen am Ende, keine
+Mehrfachzeichen, keine Emoji. Das ist billiger als ein neuer Aufruf und behebt
+genau die Mängel, die eine Regel beheben *kann*. `Formmangel` prüft danach nach.
+
+Was eine Regel **nicht** kann, ist die Großschreibung mitten im Satz – dafür
+bräuchte es Wortarten, nicht ein Wörterbuch: `essen`/`Essen`, `laufen`/`Laufen`,
+`recht`/`Recht`. Genau deshalb schreibt das Modell alle vier Texte selbst.
+
+Die mechanische Glättung enthält eine **Positivliste von 128 Wörtern** für die
+Umlautrückbildung (`hoer` → `hör`). Eine allgemeine Regel `oe → ö` zerstört
+*Poesie*, *Michael*, *Abenteuer*, *aktuell*, *Duell*. Die Liste steht doppelt,
+in `umlaute.go` und in `harness.py`; `pruefe-prompts.py` vergleicht sie.
+
+Die Notfassung beim Absenden ist ebenfalls `ErsatzNormalform` – sie hält den
+Wartebildschirm gefüllt, bis der Worker durch ist, und wird dann ersetzt. Die
+App sagt das im Paneltitel, statt den Wechsel klammheimlich passieren zu lassen.
 
 ### Schwellen
 
@@ -263,6 +287,8 @@ Bewusste Verzichte, bitte nicht „nachrüsten“:
   mit demselben Muster. (Folge: kein `PATCH`, und `DELETE` bekommt keinen Rumpf
   – deshalb heißen die Konto-Endpunkte `POST /v1/me/name` und
   `POST /v1/me/delete`.)
+- **Kein zweiter Prompt für die Normalform.** Zwei Prompts, die beide Text
+  glätten, sind zwei Vokabulare für dieselbe Sache. Siehe §4.
 - **Kein Push-Dienst.** Benachrichtigungen laufen über WorkManager, der selbst
   beim Server nachfragt (`Melder.kt`). Kein Firebase, kein Google-Konto, keine
   dritte Partei – der Server bleibt das Einzige, was erreichbar sein muss. Preis

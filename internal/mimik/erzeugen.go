@@ -27,8 +27,12 @@ type Dossier struct {
 	AntiBeispiele []string
 }
 
-// Ergebnis eines Doppelgaenger-Aufrufs samt Diagnose.
+// Ergebnis eines Aufrufs samt Diagnose.
 type Ergebnis struct {
+	// Normalform ist die echte Antwort in sauberer Schreibweise. Sie kommt aus
+	// demselben Aufruf wie die Fälschungen, damit alle vier Karten dieselbe
+	// Hand haben.
+	Normalform   string
 	Fakt         string
 	Sperre       []string
 	Faelschungen []game.Faelschung
@@ -37,40 +41,13 @@ type Ergebnis struct {
 }
 
 type antwortB struct {
-	Fakt      string   `json:"fakt"`
-	Sperre    []string `json:"sperre"`
-	Antworten []struct {
+	Normalform string   `json:"normalform"`
+	Fakt       string   `json:"fakt"`
+	Sperre     []string `json:"sperre"`
+	Antworten  []struct {
 		Anker string `json:"anker"`
 		Text  string `json:"text"`
 	} `json:"antworten"`
-}
-
-// Normalform glättet eine getippte Antwort. Der zweite Rückgabewert sagt, ob
-// der regelbasierte Weg genommen wurde.
-//
-// Standardmäßig fragt sie das Modell NICHT. Gemessen am 12.09.2026 antwortet
-// der Endpunkt nach 15 bis 190 Sekunden – darauf kann niemand warten, der
-// gerade auf Absenden getippt hat, und im Versuch lieferte der regelbasierte
-// Weg dasselbe Ergebnis. Mit MIMIK_NORMALFORM=modell lässt sich Prompt D
-// zuschalten, sobald ein schnellerer Endpunkt zur Verfügung steht.
-func (c *Client) Normalform(ctx context.Context, roh string) (string, bool) {
-	if !c.NormalformPerModell {
-		return ErsatzNormalform(roh), true
-	}
-	mat := Huelle(roh)
-	inhalt, err := c.Chat(ctx, PromptNormalform, mat, 0.1)
-	if err == nil {
-		var z struct {
-			Normalform string `json:"normalform"`
-		}
-		if LiesJSON(inhalt, &z) == nil {
-			n := sicher.Text(z.Normalform, MaxKarte)
-			if NormalformPlausibel(roh, n) {
-				return n, false
-			}
-		}
-	}
-	return ErsatzNormalform(roh), true
 }
 
 var (
@@ -116,11 +93,15 @@ func ErsatzNormalform(roh string) string {
 // als eine Runde, die hängt.
 const MaxVersuche = 3
 
-func (c *Client) Faelschungen(ctx context.Context, frage, echt string, anker []string, d Dossier) (Ergebnis, error) {
+// roh ist die Antwort, wie die Person sie getippt hat. Das Modell bekommt sie
+// ungeglättet: Es soll den Stil sehen, bevor es ihn nachmacht – und es schreibt
+// die saubere Fassung selbst, damit alle vier Karten in derselben Schreibweise
+// stehen.
+func (c *Client) Faelschungen(ctx context.Context, frage, roh string, anker []string, d Dossier) (Ergebnis, error) {
 	var best Ergebnis
 	var letzterFehler error
 	for versuch := 1; versuch <= MaxVersuche; versuch++ {
-		erg, err := c.einDurchgang(ctx, frage, echt, anker, d)
+		erg, err := c.einDurchgang(ctx, frage, roh, anker, d)
 		if err != nil {
 			letzterFehler = err
 			continue
@@ -130,16 +111,23 @@ func (c *Client) Faelschungen(ctx context.Context, frage, echt string, anker []s
 		for i, f := range erg.Faelschungen {
 			texte[i] = f.Text
 		}
-		erg.Befund = Abstandsfenster(echt, texte)
+		// Gemessen wird gegen die Normalform, nicht gegen den rohen Text: Die
+		// Normalform ist es, die als Karte danebensteht.
+		erg.Befund = Abstandsfenster(erg.Normalform, texte)
 		bruch := Sperrbruch(texte, erg.Sperre)
-		if erg.Befund.OK() && len(bruch) == 0 {
+		form := FormPruefen(erg.Normalform, texte)
+		if erg.Befund.OK() && len(bruch) == 0 && form.OK() {
 			return erg, nil
 		}
-		if !erg.Befund.OK() {
+		switch {
+		case !erg.Befund.OK():
 			letzterFehler = fmt.Errorf("abstandsfenster: %s", erg.Befund.Grund)
-		} else {
+		case len(bruch) > 0:
 			letzterFehler = fmt.Errorf("themensperre verletzt in %v", bruch)
 			erg.Befund.Grund = "Sperrbruch"
+		default:
+			letzterFehler = fmt.Errorf("form: %s", form.Grund())
+			erg.Befund.Grund = "Form"
 		}
 		if best.Fakt == "" || erg.Befund.MaxZuEcht < best.Befund.MaxZuEcht {
 			best = erg
@@ -151,9 +139,9 @@ func (c *Client) Faelschungen(ctx context.Context, frage, echt string, anker []s
 	return Ergebnis{}, fmt.Errorf("keine brauchbaren fälschungen: %w", letzterFehler)
 }
 
-func (c *Client) einDurchgang(ctx context.Context, frage, echt string, anker []string, d Dossier) (Ergebnis, error) {
+func (c *Client) einDurchgang(ctx context.Context, frage, roh string, anker []string, d Dossier) (Ergebnis, error) {
 	var b strings.Builder
-	fmt.Fprintf(&b, "[frage]\n%s\n\n[echte_antwort]\n%s\n\n[anker]\n", frage, echt)
+	fmt.Fprintf(&b, "[frage]\n%s\n\n[echte_antwort_roh]\n%s\n\n[anker]\n", frage, roh)
 	for i, a := range anker {
 		fmt.Fprintf(&b, "%d: %s   ", i+1, a)
 	}
@@ -180,7 +168,19 @@ func (c *Client) einDurchgang(ctx context.Context, frage, echt string, anker []s
 	}
 	// Einziger Ort, an dem Modellausgabe das Programm betritt – hier wird sie
 	// geputzt, danach fasst sie niemand mehr an.
-	erg := Ergebnis{Fakt: sicher.Text(a.Fakt, MaxFakt)}
+	// Die Normalform darf glätten, aber nicht umschreiben. Hält sie sich nicht
+	// daran, gilt die regelbasierte Fassung – lieber eine Karte mit kleinem
+	// Substantiv als eine, die etwas anderes sagt als die Person.
+	norm := sicher.Text(a.Normalform, MaxKarte)
+	if !NormalformPlausibel(roh, norm) {
+		norm = roh
+	}
+	// Alle vier Texte laufen durch dieselbe mechanische Glättung: großer
+	// Satzanfang, ein Satzzeichen am Ende, keine Mehrfachzeichen, keine Emoji.
+	// Das ist billiger als ein neuer Aufruf und behebt genau die Mängel, die
+	// eine Regel beheben KANN. Was sie nicht kann - Substantive mitten im Satz -
+	// hat das Modell schon erledigt.
+	erg := Ergebnis{Normalform: ErsatzNormalform(norm), Fakt: sicher.Text(a.Fakt, MaxFakt)}
 	for _, t := range a.Sperre {
 		if t = sicher.Text(t, MaxThema); t != "" {
 			erg.Sperre = append(erg.Sperre, t)
@@ -191,6 +191,7 @@ func (c *Client) einDurchgang(ctx context.Context, frage, echt string, anker []s
 		if t == "" {
 			return Ergebnis{}, fmt.Errorf("leere fälschung an stelle %d", i+1)
 		}
+		t = ErsatzNormalform(t)
 		ank := sicher.Text(a.Antworten[i].Anker, MaxThema)
 		if ank == "" && i < len(anker) {
 			ank = anker[i]

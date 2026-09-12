@@ -183,24 +183,6 @@ func TestAntwortlaenge(t *testing.T) {
 
 // Aus echtem Material: "Kündige!" ist acht Zeichen lang, unverwechselbar und
 // muss durchgehen. Die frühere Untergrenze von 25 hätte es abgewiesen.
-func TestKurzeAntwortIstGueltig(t *testing.T) {
-	for _, s := range []string{"Kündige!", "Nie.", "Auf jeden Fall (rechte) Politik"} {
-		if err := PruefeAntwort(s); err != nil {
-			t.Errorf("%q wurde abgewiesen: %v", s, err)
-		}
-	}
-	if !Knapp("Kündige!") {
-		t.Error("acht zeichen sollten einen hinweis auslösen")
-	}
-	if Knapp("Bücher: Die lese ich nicht mehr, aber ich finde sie dekorativ") {
-		t.Error("60 zeichen brauchen keinen hinweis")
-	}
-	r := &Runde{ID: "r1"}
-	if err := r.AntwortAbgeben(party, party.A, antwort("Kündige!")); err != nil {
-		t.Fatalf("runde nimmt kurze antwort nicht an: %v", err)
-	}
-}
-
 func TestVerbuchenUndDoppeltreffer(t *testing.T) {
 	r := bauen(t)
 	echtUeberB := r.EchteKarte(party.B)

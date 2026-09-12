@@ -28,7 +28,6 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     var fehler by mutableStateOf<String?>(null)
     var tagsAuswahl by mutableStateOf<TagsAus?>(null); private set
     var gewaehlteTags by mutableStateOf<Set<String>>(emptySet())
-    var vorschau by mutableStateOf<NormalformAus?>(null)
     var letzterTreffer by mutableStateOf<Boolean?>(null)
 
     /**
@@ -221,17 +220,10 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         withContext(Dispatchers.Main) { zustandUebernehmen(z) }
     }
 
-    fun vorschauHolen(runde: String, text: String) = imHintergrund {
-        vorschau = netz.normalform(runde, text)
-    }
-
-    fun antwortSenden(runde: String, original: String, normalform: String) = imHintergrund {
-        netz.antworten(runde, original, normalform)
+    fun antwortSenden(runde: String, original: String) = imHintergrund {
+        netz.antworten(runde, original)
         val z = netz.zustand()
-        withContext(Dispatchers.Main) {
-            vorschau = null
-            zustandUebernehmen(z)
-        }
+        withContext(Dispatchers.Main) { zustandUebernehmen(z) }
     }
 
     fun tippSenden(runde: String, pos: Int) = imHintergrund {
@@ -250,7 +242,6 @@ class AppModel(app: Application) : AndroidViewModel(app) {
             speicher.gesehenBis = gesehenBis
         }
         zeigeAufloesung = null
-        vorschau = null
         aktualisieren()
     }
 

@@ -207,7 +207,7 @@ func AnkerWaehlen(tags []string, verbraucht map[string]bool, echt string, mische
 	return frei, gestrichen
 }
 
-// NormalformPlausibel prüft die Ausgabe von Prompt D. Die Normalform darf
+// NormalformPlausibel prüft die Normalform aus dem Modellaufruf. Sie darf
 // Rechtschreibung glätten, aber nicht umschreiben: Länge höchstens zehn Prozent
 // daneben, Satzzahl höchstens um eins verschoben.
 func NormalformPlausibel(original, normalform string) bool {

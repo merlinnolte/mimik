@@ -1,7 +1,6 @@
 package mimik
 
 import (
-	"context"
 	"strings"
 	"testing"
 )
@@ -184,16 +183,65 @@ func TestErsatzNormalform(t *testing.T) {
 	}
 }
 
-// Der Standardweg der Normalform kommt ohne Modell aus - der Aufruf darf also
-// auch dann funktionieren, wenn gar kein Endpunkt erreichbar ist.
-func TestNormalformOhneModell(t *testing.T) {
-	c := &Client{} // kein BaseURL, kein Key
-	got, regelbasiert := c.Normalform(context.Background(), "bereuen tu ich nix!!! 😄")
-	if !regelbasiert {
-		t.Fatal("ohne MIMIK_NORMALFORM=modell darf kein aufruf stattfinden")
+// Die Formprüfung hält fest, was ohne Wörterbuch objektiv falsch ist. Sie
+// ersetzt das Modell nicht - Substantive mitten im Satz kann sie nicht beurteilen
+// -, aber sie fängt die deutlichen Brüche.
+func TestFormmangel(t *testing.T) {
+	schlecht := []struct{ text, grund string }{
+		{"kleingeschrieben, aber sonst in Ordnung.", "beginnt klein"},
+		{"Ohne Punkt am Ende", "ohne Satzzeichen am Ende"},
+		{"Das nervt total!!!", "verdoppelte Satzzeichen"},
+		{"Ein schöner Tag 😄.", "Emoji"},
+		{"   ", "leer"},
 	}
-	if got != "Bereuen tu ich nix!" {
-		t.Fatalf("bekam %q", got)
+	for _, f := range schlecht {
+		if got := Formmangel(f.text); got != f.grund {
+			t.Errorf("%q -> %q, erwartet %q", f.text, got, f.grund)
+		}
+	}
+	gut := []string{
+		"Ein selbstgemachtes Kochbuch, handgeschrieben.",
+		"Kündige!",
+		"Wirklich? Ich weiß es nicht.",
+		"3 Tage am Stück durchgemacht.",
+		"Der Stapel Zeitschriften neben dem Sofa …",
+	}
+	for _, t2 := range gut {
+		if got := Formmangel(t2); got != "" {
+			t.Errorf("%q abgelehnt: %s", t2, got)
+		}
+	}
+}
+
+// Ein Satz, in dem nur EINE Karte aus der Form fällt, ist der Fall, um den es
+// geht: Sie ist erkannt, bevor jemand ihren Inhalt gelesen hat.
+func TestFormPruefenFindetDieEineKarte(t *testing.T) {
+	b := FormPruefen("Ein selbstgemachtes Kochbuch, handgeschrieben.", []string{
+		"Eine Postkarte aus Lissabon, ohne Anlass.",
+		"der stapel zeitschriften neben dem sofa.",
+		"Ein Fenster in der Küche, irgendeins.",
+	})
+	if b.OK() {
+		t.Fatal("die kleingeschriebene Karte ist durchgegangen")
+	}
+	if s := b.Schuldig(); len(s) != 1 || s[0] != 1 {
+		t.Fatalf("falsche Karte beschuldigt: %v", s)
+	}
+}
+
+// Und die echte Karte: Ein Mangel dort wird gemeldet, aber sie steht nicht auf
+// der Liste der neu zu schreibenden - die schreibt man nicht neu.
+func TestFormPruefenMeldetDieEchteKarte(t *testing.T) {
+	b := FormPruefen("ein selbstgemachtes kochbuch", []string{
+		"Eine Postkarte aus Lissabon, ohne Anlass.",
+		"Der Stapel Zeitschriften neben dem Sofa.",
+		"Ein Fenster in der Küche, irgendeins.",
+	})
+	if b.OK() {
+		t.Fatal("die echte Karte ging ungeprüft durch")
+	}
+	if len(b.Schuldig()) != 0 {
+		t.Fatalf("die echte Karte soll nicht neu geschrieben werden: %v", b.Schuldig())
 	}
 }
 

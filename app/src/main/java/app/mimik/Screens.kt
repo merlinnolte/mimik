@@ -208,10 +208,21 @@ fun IntroBildschirm(modell: AppModel) {
         modell.introBeenden()
     }
 
+    // Den Index EINMAL am Anfang lesen und danach nur noch ihn benutzen.
+    //
+    // "bis" ist Snapshot-State: Ein Zugriff darauf im Coroutinenrumpf liest den
+    // Wert von jetzt, nicht den der Komposition. "fertig" dagegen ist ein
+    // gewöhnliches val und steht auf dem Stand der Komposition. Zwischen dem
+    // Start der Coroutine und ihrer ersten Zeile passt ein Tipp – dann war
+    // fertig noch false, bis aber schon INTRO_WORTE.size, und der Zugriff lief
+    // über das Ende der Liste. Auf dem Gerät gefunden: IndexOutOfBounds,
+    // Absturz beim Überspringen, zeitabhängig und deshalb nicht immer.
     LaunchedEffect(bis) {
-        if (fertig) return@LaunchedEffect
-        delay(pause(INTRO_WORTE[bis]))
-        bis += 1
+        val i = bis
+        if (i >= INTRO_WORTE.size) return@LaunchedEffect
+        delay(pause(INTRO_WORTE[i]))
+        // Nur weiterrücken, wenn in der Zwischenzeit niemand übersprungen hat.
+        if (bis == i) bis = i + 1
     }
 
     Box(
@@ -371,30 +382,25 @@ fun SchreibenBildschirm(modell: AppModel) {
     val p = LokalePalette.current
     val r = modell.aktuelleRunde ?: return
     var text by remember(r.id) { mutableStateOf("") }
-    val vorschau = modell.vorschau
+    val laenge = text.trim().length
 
     Huelle(modell) {
-        if (vorschau == null) {
-            MimikKopf(Miene.Bereit, "Runde ${r.nummer} · beantwortet das mal ehrlich.")
-            Frage(r.frage)
-            Feld(text, { text = it }, hinweis = "Ein bis drei Sätze reichen", zeilen = 4)
-            Aktionen {
-                Knopf("Weiter", betont = true, aktiv = text.trim().length >= 4 && !modell.laden) {
-                    modell.vorschauHolen(r.id, text.trim())
-                }
-            }
-        } else {
-            MimikKopf(Miene.Denkt, "So zeige ich deine Antwort.")
-            Frage(r.frage)
-            Panel(titel = "Deine Antwort", betont = true) {
-                Text(vorschau.normalform, color = p.fg, fontSize = 14.sp, lineHeight = 22.sp)
-            }
-            Zeile("Rechtschreibung wird vereinheitlicht, deine Worte bleiben.", p.fgDim, 11)
-            Aktionen {
-                Knopf("Ändern") { modell.vorschau = null }
-                Knopf("Passt", betont = true, aktiv = !modell.laden) {
-                    modell.antwortSenden(r.id, vorschau.original, vorschau.normalform)
-                }
+        MimikKopf(Miene.Bereit, "Runde ${r.nummer} · beantwortet das mal ehrlich.")
+        Frage(r.frage)
+        Feld(text, { text = it }, hinweis = "Ein bis drei Sätze reichen", zeilen = 4)
+        // Ein weicher Hinweis, kein Riegel: Kurze Antworten sind erlaubt und oft
+        // die besseren. Erst unter vier Zeichen weist der Server sie ab.
+        Zeile(
+            if (laenge in 1 until 20)
+                "Kurz ist erlaubt – MIMIK hat dann aber auch wenig zu imitieren."
+            else
+                "Rechtschreibung und Zeichensetzung bringt MIMIK in Ordnung, " +
+                    "bei allen vier Karten gleich. Deine Worte bleiben.",
+            p.fgDim, 11,
+        )
+        Aktionen {
+            Knopf("Absenden", betont = true, aktiv = laenge >= 4 && !modell.laden) {
+                modell.antwortSenden(r.id, text.trim())
             }
         }
     }
@@ -414,7 +420,10 @@ fun WartenBildschirm(modell: AppModel) {
             schrift = 19,
         )
         Frage(r.frage)
-        Panel(titel = "Deine Antwort") {
+        // Solange MIMIK arbeitet, steht hier die regelbasierte Notfassung. Die
+        // endgültige schreibt sie selbst, zusammen mit den Fälschungen – der
+        // Titel sagt das, statt den Wechsel klammheimlich passieren zu lassen.
+        Panel(titel = if (arbeitet) "Deine Antwort · wird noch geglättet" else "Deine Antwort") {
             Text(
                 r.meineAntwort, color = LokalePalette.current.fg,
                 fontSize = 14.sp, lineHeight = 22.sp,

@@ -40,19 +40,18 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("POST /v1/devices", s.geraetAnlegen)
 
 	geschuetzt := map[string]http.HandlerFunc{
-		"POST /v1/parties":               s.partyAnlegen,
-		"POST /v1/parties/join":          s.partyBeitreten,
-		"GET /v1/tags":                   s.tagsVorschlagen,
-		"PUT /v1/tags":                   s.tagsSetzen,
-		"GET /v1/state":                  s.zustand,
-		"POST /v1/matches":               s.matchAnlegen,
-		"POST /v1/rounds/{id}/normalize": s.normalisieren,
-		"POST /v1/rounds/{id}/answer":    s.antworten,
-		"POST /v1/rounds/{id}/guess":     s.raten,
-		"GET /v1/dossier":                s.dossier,
-		"DELETE /v1/dossier":             s.dossierLoeschen,
-		"POST /v1/me/name":               s.umbenennen,
-		"POST /v1/me/delete":             s.kontoLoeschen,
+		"POST /v1/parties":            s.partyAnlegen,
+		"POST /v1/parties/join":       s.partyBeitreten,
+		"GET /v1/tags":                s.tagsVorschlagen,
+		"PUT /v1/tags":                s.tagsSetzen,
+		"GET /v1/state":               s.zustand,
+		"POST /v1/matches":            s.matchAnlegen,
+		"POST /v1/rounds/{id}/answer": s.antworten,
+		"POST /v1/rounds/{id}/guess":  s.raten,
+		"GET /v1/dossier":             s.dossier,
+		"DELETE /v1/dossier":          s.dossierLoeschen,
+		"POST /v1/me/name":            s.umbenennen,
+		"POST /v1/me/delete":          s.kontoLoeschen,
 	}
 	for muster, h := range geschuetzt {
 		mux.Handle(muster, s.auth(h))

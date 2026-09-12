@@ -24,7 +24,6 @@ MIMIK_API_KEY=... MIMIK_BASE_URL=https://opencode.ai/zen/go/v1 MIMIK_HEADERS="x-
 | `MIMIK_API_KEY` | – | Pflicht, sonst bleiben Runden auf `MIMIK_ARBEITET` |
 | `MIMIK_MODEL` | `deepseek-v4-flash` | |
 | `MIMIK_HEADERS` | – | `Name: Wert` je Zeile, z. B. `x-opencode-session: mimik` |
-| `MIMIK_NORMALFORM` | `regeln` | `modell` schaltet Prompt D im Zugpfad zu |
 | `MIMIK_EINLADUNG` | – | Geheimnis fürs Anmelden. Leer = offener Server, siehe [SICHERHEIT.md](SICHERHEIT.md) |
 
 ## Endpunkte
@@ -40,7 +39,6 @@ Alles außer `POST /v1/devices` braucht `Authorization: Bearer <token>`.
 | `PUT /v1/tags` | Auswahl setzen, 422 unter 10 |
 | `GET /v1/state` | Kompletter Spielzustand |
 | `POST /v1/matches` | Match starten |
-| `POST /v1/rounds/{id}/normalize` | Vorschau der Normalform |
 | `POST /v1/rounds/{id}/answer` | Antwort abgeben |
 | `POST /v1/rounds/{id}/guess` | Karte wählen |
 | `GET /v1/dossier` | Eigenes Dossier lesen |
@@ -67,9 +65,11 @@ Wiederholungen. Deshalb wartet niemand synchron – die Runde steht auf
 nächste `GET /v1/state` sieht die Karten. Bei Runden, die über Tage laufen,
 fällt das nicht auf.
 
-Aus demselben Grund läuft die Normalform standardmäßig **ohne** Modell: Auf das
-Absenden folgt sonst eine Minute Warten, und der regelbasierte Weg lieferte im
-Test dasselbe Ergebnis.
+Aus demselben Grund gibt es keine Vorschau mehr vor dem Absenden. Die saubere
+Fassung der echten Antwort entsteht in **demselben** Aufruf wie die Fälschungen,
+also im Worker: vier Texte, eine Hand, eine Rechtschreibung. Bis der Worker
+durch ist, steht in der Datenbank eine regelbasierte Notfassung, damit der
+Wartebildschirm nicht leer ist – die App sagt dazu, dass sie noch geglättet wird.
 
 ## Tests
 

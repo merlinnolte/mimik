@@ -67,6 +67,18 @@ führen, dass Compose den Spielzustand nie liest – sonst abonniert es die
 Änderung nicht und rendert nach dem Anmelden nicht neu. Deshalb ist das Token
 selbst Compose-State.
 
+## Warum es keine Vorschau vor dem Absenden gibt
+
+Es gab einmal einen Zwischenschritt: tippen, „Weiter", die geglättete Fassung
+ansehen, „Passt". Der ist entfallen, weil die Glättung jetzt das Modell macht –
+im selben Aufruf wie die Fälschungen, also im Worker. Synchron ginge es nicht:
+Der Endpunkt braucht 15 bis 190 Sekunden.
+
+Eine Vorschau, die etwas anderes zeigt als später auf der Karte steht, wäre
+schlimmer als keine. Stattdessen sagt eine Zeile unter dem Feld, was passiert,
+und der Wartebildschirm zeigt die Fassung, sobald sie da ist – mit dem Zusatz
+„wird noch geglättet", solange MIMIK arbeitet.
+
 ## Benachrichtigungen
 
 Ohne Push-Dienst: Ein wiederkehrender WorkManager-Auftrag holt `/v1/state` und

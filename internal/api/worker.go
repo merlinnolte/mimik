@@ -93,7 +93,9 @@ func (w *Worker) rundeBearbeiten(ctx context.Context, rid string) {
 }
 
 func (w *Worker) kartenBauen(ctx context.Context, rd game.Runde, pa game.Party, ueber game.PlayerID) error {
-	echt := rd.Antworten[ueber].Normalform
+	// Das Modell bekommt den rohen Text: Es soll den Stil sehen, bevor es ihn
+	// nachmacht. Die saubere Fassung schreibt es selbst und liefert sie zurück.
+	roh := rd.Antworten[ueber].Original
 	tags, err := w.S.Tags(string(ueber))
 	if err != nil {
 		return err
@@ -102,7 +104,7 @@ func (w *Worker) kartenBauen(ctx context.Context, rd game.Runde, pa game.Party, 
 	if err != nil {
 		return err
 	}
-	anker, gestrichen := mimik.AnkerWaehlen(tags, gesperrt, echt, func(xs []string) {
+	anker, gestrichen := mimik.AnkerWaehlen(tags, gesperrt, roh, func(xs []string) {
 		rand.Shuffle(len(xs), func(i, j int) { xs[i], xs[j] = xs[j], xs[i] })
 	})
 	if len(anker) == 0 {
@@ -116,7 +118,7 @@ func (w *Worker) kartenBauen(ctx context.Context, rd game.Runde, pa game.Party, 
 
 	ctx, abbruch := context.WithTimeout(ctx, 4*time.Minute)
 	defer abbruch()
-	erg, err := w.M.Faelschungen(ctx, rd.Frage, echt, anker, mimik.Dossier{
+	erg, err := w.M.Faelschungen(ctx, rd.Frage, roh, anker, mimik.Dossier{
 		Fakten:   fakten,
 		Gesperrt: verbraucht,
 		AntiBeispiele: []string{
@@ -126,6 +128,18 @@ func (w *Worker) kartenBauen(ctx context.Context, rd game.Runde, pa game.Party, 
 	})
 	if err != nil {
 		return err
+	}
+
+	// Die vom Modell geschriebene Normalform ersetzt die regelbasierte
+	// Notfassung, die beim Absenden gespeichert wurde. Erst danach die Karten
+	// bauen – die echte Karte IST die Normalform.
+	if erg.Normalform != "" && erg.Normalform != rd.Antworten[ueber].Normalform {
+		if err := w.S.NormalformSetzen(rd.ID, string(ueber), erg.Normalform); err != nil {
+			return err
+		}
+		a := rd.Antworten[ueber]
+		a.Normalform = erg.Normalform
+		rd.Antworten[ueber] = a
 	}
 
 	// Karten mischen und die Reihenfolge einfrieren.

@@ -222,6 +222,16 @@ func (s *Store) AntwortSpeichern(rid, pid string, a game.Antwort) error {
 	return err
 }
 
+// NormalformSetzen trägt die vom Modell geschriebene Fassung nach. Beim
+// Absenden stand hier die regelbasierte Notfassung – sie hält den
+// Wartebildschirm gefüllt, bis der Worker durch ist.
+func (s *Store) NormalformSetzen(rid, pid, text string) error {
+	_, err := s.db.Exec(
+		`UPDATE answers SET normalform = ? WHERE round_id = ? AND player_id = ?`,
+		text, rid, pid)
+	return err
+}
+
 func (s *Store) KartenSpeichern(rid, ueber string, karten []game.Karte) error {
 	tx, err := s.db.Begin()
 	if err != nil {

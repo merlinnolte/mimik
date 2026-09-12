@@ -31,28 +31,26 @@ func stubModell(t *testing.T) *httptest.Server {
 			Messages []struct{ Role, Content string } `json:"messages"`
 		}
 		json.Unmarshal(roh, &in)
-		system, user := in.Messages[0].Content, in.Messages[1].Content
+		user := in.Messages[1].Content
+		n++
 
-		var inhalt string
-		if strings.Contains(system, "einheitliche Schreibweise") {
-			// Prompt D: Wir geben den Text unverändert zurück.
-			i := strings.Index(user, "<material>\n")
-			j := strings.LastIndex(user, "\n</material>")
-			text := user[i+len("<material>\n") : j]
-			inhalt, _ = jsonString(map[string]any{"normalform": text})
-		} else {
-			n++
-			// Prompt B: drei klar verschiedene Fälschungen, weit weg vom Original.
-			inhalt, _ = jsonString(map[string]any{
-				"fakt":   fmt.Sprintf("Hat in Runde %d etwas über sich verraten.", n),
-				"sperre": []string{"stubthema"},
-				"antworten": []map[string]string{
-					{"anker": "a", "text": fmt.Sprintf("Zitronenfalter beobachten, %d Stück.", n)},
-					{"anker": "b", "text": fmt.Sprintf("Rathausturm besteigen, ganz oben %d.", n)},
-					{"anker": "c", "text": fmt.Sprintf("Werkzeugkisten sortieren bei Nummer %d.", n)},
-				},
-			})
-		}
+		// Die rohe Antwort steht im Material. Das Stubmodell "schreibt sie
+		// sauber", indem es den Satzanfang großmacht - genug, um zu prüfen,
+		// dass die Normalform aus diesem Aufruf bis auf die Karte durchläuft.
+		i := strings.Index(user, "[echte_antwort_roh]\n")
+		antwort := user[i+len("[echte_antwort_roh]\n"):]
+		antwort = antwort[:strings.Index(antwort, "\n")]
+
+		inhalt, _ := jsonString(map[string]any{
+			"normalform": "Sauber: " + antwort,
+			"fakt":       fmt.Sprintf("Hat in Runde %d etwas über sich verraten.", n),
+			"sperre":     []string{"stubthema"},
+			"antworten": []map[string]string{
+				{"anker": "a", "text": fmt.Sprintf("Zitronenfalter beobachten, %d Stück.", n)},
+				{"anker": "b", "text": fmt.Sprintf("Rathausturm besteigen, ganz oben %d.", n)},
+				{"anker": "c", "text": fmt.Sprintf("Werkzeugkisten sortieren bei Nummer %d.", n)},
+			},
+		})
 		json_(w, 200, map[string]any{
 			"choices": []map[string]any{{"message": map[string]string{"content": inhalt}}},
 		})
@@ -467,4 +465,87 @@ func TestPartyMitLoeschen(t *testing.T) {
 	if _, err := s.PartyVon(idB); err == nil {
 		t.Fatal("die party steht noch, obwohl eine seite gelöscht wurde")
 	}
+}
+
+// TestNormalformKommtVomModell hält den Weg fest, den die saubere Fassung
+// nimmt: Beim Absenden steht die regelbasierte Notfassung in der Datenbank,
+// nach dem Worker die vom Modell geschriebene – und genau die ist die echte
+// Karte. Liefe das auseinander, stünde auf der Karte etwas anderes als in der
+// Chronik.
+func TestNormalformKommtVomModell(t *testing.T) {
+	srv, s, w := aufbauen(t)
+
+	machen := func(name string) *klient {
+		k := &klient{t: t, basis: srv.URL}
+		var an struct {
+			Token string `json:"token"`
+		}
+		k.ruf("POST", "/v1/devices", map[string]string{"spitzname": name}, &an)
+		k.token = an.Token
+		k.ruf("PUT", "/v1/tags", map[string]any{"tags": zehnTags()}, nil)
+		return k
+	}
+	a, b := machen("A"), machen("B")
+	var pa struct {
+		Code string `json:"code"`
+	}
+	a.ruf("POST", "/v1/parties", nil, &pa)
+	b.ruf("POST", "/v1/parties/join", map[string]string{"code": pa.Code}, nil)
+	a.ruf("POST", "/v1/matches", nil, nil)
+
+	var st struct {
+		Runden []RundeAus `json:"runden"`
+	}
+	a.ruf("GET", "/v1/state", nil, &st)
+	rid := st.Runden[0].ID
+
+	// Klein getippt, ohne Punkt – genau das, was eine Regel nicht reparieren
+	// kann, weil sie kein Substantiv erkennt.
+	roh := "ein selbstgemachtes kochbuch"
+	if code := a.ruf("POST", "/v1/rounds/"+rid+"/answer",
+		map[string]string{"original": roh}, nil); code != 200 && code != 201 {
+		t.Fatalf("antwort: %d", code)
+	}
+
+	// Vor dem Worker: die regelbasierte Notfassung, damit der Wartebildschirm
+	// nicht leer ist.
+	a.ruf("GET", "/v1/state", nil, &st)
+	if got := st.Runden[0].MeineAntwort; got != "Ein selbstgemachtes kochbuch." {
+		t.Fatalf("Notfassung ist %q", got)
+	}
+
+	b.ruf("POST", "/v1/rounds/"+rid+"/answer",
+		map[string]string{"original": "eine postkarte aus lissabon"}, nil)
+	w.durchgang(context.Background())
+
+	// Nach dem Worker: die Fassung aus dem Aufruf, in dem auch die Fälschungen
+	// entstanden sind.
+	a.ruf("GET", "/v1/state", nil, &st)
+	if got := st.Runden[0].MeineAntwort; got != "Sauber: ein selbstgemachtes kochbuch." {
+		t.Fatalf("nach dem Worker steht da %q", got)
+	}
+
+	// Und dieselbe Fassung steht auf der Karte, die das Gegenüber sieht.
+	var stB struct {
+		Runden []RundeAus `json:"runden"`
+	}
+	b.ruf("GET", "/v1/state", nil, &stB)
+	gefunden := false
+	for _, k := range stB.Runden[0].Karten {
+		if k.Text == "Sauber: ein selbstgemachtes kochbuch." {
+			gefunden = true
+		}
+	}
+	if !gefunden {
+		t.Fatalf("die Karte trägt nicht die Normalform: %+v", stB.Runden[0].Karten)
+	}
+
+	// Alle vier Karten müssen die Formprüfung bestehen - sonst fällt eine schon
+	// durch ihre Schreibweise auf.
+	for _, k := range stB.Runden[0].Karten {
+		if m := mimik.Formmangel(k.Text); m != "" {
+			t.Errorf("Karte %d (%q): %s", k.Pos, k.Text, m)
+		}
+	}
+	_ = s
 }

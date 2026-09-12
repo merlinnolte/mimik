@@ -17,9 +17,8 @@ import (
 // harte Grenze schützt nur noch vor dem leeren Feld; alles darüber ist eine
 // Gestaltungsfrage und gehört in einen Hinweis, nicht in eine Sperre.
 const (
-	MinAntwort     = 4
-	MaxAntwort     = 400
-	HinweisAntwort = 20 // darunter blendet die App einen Hinweis ein, blockt aber nicht
+	MinAntwort = 4
+	MaxAntwort = 400
 )
 
 var (
@@ -35,12 +34,6 @@ var (
 type Faelschung struct {
 	Text     string
 	AnkerTag string
-}
-
-// Knapp sagt, ob eine Antwort so kurz ist, dass ein Hinweis angebracht ist.
-// Kein Fehler: Die Antwort bleibt gültig.
-func Knapp(text string) bool {
-	return utf8.RuneCountInString(strings.TrimSpace(text)) < HinweisAntwort
 }
 
 // PruefeAntwort prüft eine Spielerantwort gegen die Längengrenzen.

@@ -94,14 +94,6 @@ data class TagsAus(
 )
 
 @Serializable
-data class NormalformAus(
-    val original: String = "",
-    val normalform: String = "",
-    val regelbasiert: Boolean = false,
-    val knapp: Boolean = false,
-)
-
-@Serializable
 data class TippAus(
     val richtig: Boolean = false,
     @SerialName("runde_beendet") val rundeBeendet: Boolean = false,
@@ -192,16 +184,14 @@ class Netz(private var basis: String, private var token: String) {
 
     fun matchAnlegen(): String = ruf("POST", "/v1/matches", "{}")
 
-    fun normalform(runde: String, text: String): NormalformAus =
-        sende("POST", "/v1/rounds/$runde/normalize", buildJsonObject { put("text", text) }.toString())
-
-    fun antworten(runde: String, original: String, normalform: String): String =
+    /**
+     * Nur der rohe Text. Die saubere Fassung schreibt MIMIK, zusammen mit den
+     * Fälschungen – damit alle vier Karten dieselbe Schreibweise haben.
+     */
+    fun antworten(runde: String, original: String): String =
         ruf(
             "POST", "/v1/rounds/$runde/answer",
-            buildJsonObject {
-                put("original", original)
-                put("normalform", normalform)
-            }.toString(),
+            buildJsonObject { put("original", original) }.toString(),
         )
 
     fun raten(runde: String, pos: Int): TippAus =
