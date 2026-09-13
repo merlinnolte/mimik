@@ -81,14 +81,30 @@ func (s *Server) zustand(w http.ResponseWriter, r *http.Request) {
 	aus := map[string]any{
 		"spieler": p,
 		"tags":    nichtNil(tags),
+		"name":    s.nameStand(p.ID),
 		"runden":  []RundeAus{},
 		"dran":    []map[string]string{},
 	}
 
-	pa, err := s.S.PartyVon(p.ID)
-	if err != nil {
-		json_(w, 200, aus)
-		return
+	// Mit Partie-ID im Pfad genau diese, ohne Pfad die einzige. Wer in
+	// mehreren Partien ist und den alten Weg nimmt, bekommt hier KEINE
+	// geratene Partie, sondern eine leere Antwort - die App merkt daran, dass
+	// sie ueber die Lobby gehen muss.
+	var pa game.Party
+	if x := r.PathValue("id"); x != "" {
+		var err error
+		pa, err = s.S.PartyVon(p.ID, x)
+		if err != nil {
+			fehler(w, 404, "party nicht gefunden")
+			return
+		}
+	} else {
+		xs, err := s.S.PartienVon(p.ID)
+		if err != nil || len(xs) != 1 {
+			json_(w, 200, aus)
+			return
+		}
+		pa = xs[0]
 	}
 	party := map[string]any{"id": pa.ID, "tags": nichtNil(tags), "code": s.S.PartyCode(pa.ID)}
 	gegner := pa.Gegner(game.PlayerID(p.ID))
@@ -115,6 +131,7 @@ func (s *Server) zustand(w http.ResponseWriter, r *http.Request) {
 	}
 	ich := game.PlayerID(p.ID)
 	liste := []RundeAus{}
+	aufgeloeste := false
 	dran := []map[string]string{}
 	for _, rd := range runden {
 		z := rd.Ableiten(pa)
@@ -129,6 +146,9 @@ func (s *Server) zustand(w http.ResponseWriter, r *http.Request) {
 			dran = append(dran, map[string]string{"was": "schreiben", "runde": rd.ID})
 		}
 		aufgedeckt := z == game.Aufgeloest
+		if aufgedeckt {
+			aufgeloeste = true
+		}
 		ra.Karten = []KarteAus{}
 		for _, k := range rd.KartenFuer(pa, ich) {
 			ka := KarteAus{Pos: k.Pos, Text: k.Text}
@@ -161,6 +181,13 @@ func (s *Server) zustand(w http.ResponseWriter, r *http.Request) {
 	}
 	aus["runden"] = liste
 	aus["dran"] = dran
+	aus["party_id"] = pa.ID
+	// Wer den Zustand einer Partie abruft, hat ihre Auflösungen vor Augen.
+	// Damit faellt der Zaehler in der Lobby genau dann, wenn der Mensch
+	// hingeschaut hat - und nicht schon, wenn die Runde aufgeloest wurde.
+	if aufgeloeste {
+		s.S.PartieGesehen(p.ID, pa.ID)
+	}
 	json_(w, 200, aus)
 }
 

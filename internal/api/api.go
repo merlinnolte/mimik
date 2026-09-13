@@ -46,20 +46,35 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("POST /v1/devices", s.geraetAnlegen)
 
 	geschuetzt := map[string]http.HandlerFunc{
-		"POST /v1/parties":            s.partyAnlegen,
-		"POST /v1/parties/join":       s.partyBeitreten,
-		"POST /v1/parties/verlassen":  s.partyVerlassen,
-		"GET /v1/tags":                s.tagsVorschlagen,
-		"PUT /v1/tags":                s.tagsSetzen,
-		"GET /v1/state":               s.zustand,
-		"POST /v1/matches":            s.matchAnlegen,
-		"POST /v1/matches/abbrechen":  s.matchAbbrechen,
-		"POST /v1/rounds/{id}/answer": s.antworten,
-		"POST /v1/rounds/{id}/guess":  s.raten,
-		"GET /v1/dossier":             s.dossier,
-		"DELETE /v1/dossier":          s.dossierLoeschen,
-		"POST /v1/me/name":            s.umbenennen,
-		"POST /v1/me/delete":          s.kontoLoeschen,
+		"POST /v1/parties":           s.partyAnlegen,
+		"POST /v1/parties/join":      s.partyBeitreten,
+		"POST /v1/parties/verlassen": s.partyVerlassen,
+		// Partie-adressiert. Die Muster ohne {id} darueber sind spezifischer
+		// und gewinnen beim ServeMux von Go 1.22 - "join" und "verlassen"
+		// werden also nie fuer eine Partie-ID gehalten.
+		"GET /v1/parties/{id}/state":         s.zustand,
+		"POST /v1/parties/{id}/verlassen":    s.partyVerlassen,
+		"POST /v1/parties/{id}/matches":      s.matchAnlegen,
+		"POST /v1/parties/{id}/abbrechen":    s.matchAbbrechen,
+		"POST /v1/parties/{id}/gesehen":      s.partieGesehen,
+		"GET /v1/lobby":                      s.lobby,
+		"GET /v1/spieler":                    s.spielerSuchen,
+		"GET /v1/namen/frei":                 s.nameFrei,
+		"POST /v1/einladungen":               s.einladen,
+		"POST /v1/einladungen/{id}/annehmen": s.einladungAnnehmen,
+		"POST /v1/einladungen/{id}/ablehnen": s.einladungAblehnen,
+		"DELETE /v1/einladungen/{id}":        s.einladungZurueckziehen,
+		"GET /v1/tags":                       s.tagsVorschlagen,
+		"PUT /v1/tags":                       s.tagsSetzen,
+		"GET /v1/state":                      s.zustand,
+		"POST /v1/matches":                   s.matchAnlegen,
+		"POST /v1/matches/abbrechen":         s.matchAbbrechen,
+		"POST /v1/rounds/{id}/answer":        s.antworten,
+		"POST /v1/rounds/{id}/guess":         s.raten,
+		"GET /v1/dossier":                    s.dossier,
+		"DELETE /v1/dossier":                 s.dossierLoeschen,
+		"POST /v1/me/name":                   s.umbenennen,
+		"POST /v1/me/delete":                 s.kontoLoeschen,
 	}
 	for muster, h := range geschuetzt {
 		mux.Handle(muster, s.auth(h))
@@ -142,6 +157,14 @@ func (s *Server) geraetAnlegen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p, token, err := s.S.SpielerAnlegen(name)
+	if errors.Is(err, store.ErrNameVergeben) {
+		// 409 statt stiller Umbenennung: Wer sich anmeldet, sitzt gerade davor
+		// und kann einen anderen Namen waehlen. Ihm ungefragt eine Ziffer
+		// anzuhaengen hiesse, ihn unter einem Namen spielen zu lassen, den er
+		// nicht gewaehlt hat.
+		fehler(w, 409, "dieser name ist vergeben")
+		return
+	}
 	if err != nil {
 		fehler(w, 500, err.Error())
 		return
@@ -202,11 +225,46 @@ func (s *Server) kontoLoeschen(w http.ResponseWriter, r *http.Request) {
 
 // ------------------------------------------------------------------ Party ---
 
+// partie loest die Partie auf, auf die sich ein Aufruf bezieht.
+//
+// Steht eine ID im Pfad, gilt sie - mit Mitgliedspruefung. Steht keine da, ist
+// der Aufruf von einer aelteren App: Dann gilt die juengste Partie, aber NUR
+// solange es genau eine gibt. Bei mehreren wird nicht geraten, sondern
+// abgelehnt. Stilles Raten waere hier die schlimmste Wahl: Es sieht aus wie ein
+// Bedienfehler, wird deshalb nie gemeldet, und der Zug landet in der falschen
+// Partie.
+func (s *Server) partie(w http.ResponseWriter, r *http.Request) (game.Party, bool) {
+	pid := spieler(r).ID
+	if x := r.PathValue("id"); x != "" {
+		pa, err := s.S.PartyVon(pid, x)
+		if err != nil {
+			fehler(w, 404, "party nicht gefunden")
+			return game.Party{}, false
+		}
+		return pa, true
+	}
+	xs, err := s.S.PartienVon(pid)
+	if err != nil {
+		fehler(w, 500, err.Error())
+		return game.Party{}, false
+	}
+	switch len(xs) {
+	case 0:
+		fehler(w, 409, "du bist in keiner party")
+		return game.Party{}, false
+	case 1:
+		return xs[0], true
+	default:
+		fehler(w, 409, "du bist in mehreren partien – nimm den partie-pfad")
+		return game.Party{}, false
+	}
+}
+
 func (s *Server) partyAnlegen(w http.ResponseWriter, r *http.Request) {
 	pa, code, err := s.S.PartyAnlegen(spieler(r).ID)
 	switch {
 	case errors.Is(err, store.ErrSchonDrin):
-		fehler(w, 409, "du bist bereits in einer party")
+		fehler(w, 409, "du hast schon genug offene codes")
 	case err != nil:
 		fehler(w, 500, err.Error())
 	default:
@@ -228,7 +286,7 @@ func (s *Server) partyBeitreten(w http.ResponseWriter, r *http.Request) {
 		pa, err := s.S.TestpartyAnlegen(spieler(r).ID)
 		switch {
 		case errors.Is(err, store.ErrSchonDrin):
-			fehler(w, 409, "du bist bereits in einer party")
+			fehler(w, 409, "du hast schon genug testpartien offen")
 		case err != nil:
 			fehler(w, 500, err.Error())
 		default:
@@ -244,8 +302,10 @@ func (s *Server) partyBeitreten(w http.ResponseWriter, r *http.Request) {
 		fehler(w, 404, "einladungscode ungültig oder abgelaufen")
 	case errors.Is(err, store.ErrPartyVoll):
 		fehler(w, 409, "diese party ist voll")
-	case errors.Is(err, store.ErrSchonDrin):
-		fehler(w, 409, "du bist bereits in einer party")
+	case errors.Is(err, store.ErrSchonMitglied):
+		fehler(w, 409, "in dieser party bist du schon dabei")
+	case errors.Is(err, store.ErrSchonPartner):
+		fehler(w, 409, "mit dieser person läuft schon eine partie")
 	case err != nil:
 		fehler(w, 500, err.Error())
 	default:
@@ -255,9 +315,13 @@ func (s *Server) partyBeitreten(w http.ResponseWriter, r *http.Request) {
 
 // partyVerlassen löst die Party auf. Die Rückfrage stellt die App.
 func (s *Server) partyVerlassen(w http.ResponseWriter, r *http.Request) {
-	err := s.S.PartyVerlassen(spieler(r).ID)
+	pa, ok := s.partie(w, r)
+	if !ok {
+		return
+	}
+	err := s.S.PartyVerlassen(spieler(r).ID, pa.ID)
 	switch {
-	case errors.Is(err, store.ErrNichtGefunden):
+	case errors.Is(err, store.ErrNichtGefunden), errors.Is(err, store.ErrKeinZugriff):
 		fehler(w, 409, "du bist in keiner party")
 	case err != nil:
 		fehler(w, 500, err.Error())
@@ -323,8 +387,20 @@ func (s *Server) dossier(w http.ResponseWriter, r *http.Request) {
 		themen = append(themen, t)
 	}
 	tags, _ := s.S.Tags(spieler(r).ID)
+	// Das Profil steht nur hier - nie in /v1/state. Es ist eine Einschaetzung
+	// ueber einen Menschen, und die geht niemanden ausser ihn selbst etwas an,
+	// schon gar nicht sein Gegenueber.
+	profil, _ := s.S.Profil(spieler(r).ID)
+	verlauf, _ := s.S.ProfilVerlauf(spieler(r).ID, 40)
+	if profil == nil {
+		profil = []store.Merkmal{}
+	}
+	if verlauf == nil {
+		verlauf = []store.Verlaufseintrag{}
+	}
 	json_(w, 200, map[string]any{
 		"fakten": nichtNil(f), "verbrauchte_themen": nichtNil(themen), "tags": nichtNil(tags),
+		"profil": profil, "profil_verlauf": verlauf,
 	})
 }
 
@@ -342,9 +418,8 @@ func (s *Server) dossierLoeschen(w http.ResponseWriter, r *http.Request) {
 // Server verlangt hier nichts weiter, weil beide Seiten ohnehin dasselbe Match
 // besitzen und jede es beenden darf.
 func (s *Server) matchAbbrechen(w http.ResponseWriter, r *http.Request) {
-	pa, err := s.S.PartyVon(spieler(r).ID)
-	if err != nil {
-		fehler(w, 409, "du bist in keiner party")
+	pa, ok := s.partie(w, r)
+	if !ok {
 		return
 	}
 	m, err := s.S.AktivesMatch(pa.ID)
@@ -360,10 +435,8 @@ func (s *Server) matchAbbrechen(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) matchAnlegen(w http.ResponseWriter, r *http.Request) {
-	p := spieler(r)
-	pa, err := s.S.PartyVon(p.ID)
-	if err != nil {
-		fehler(w, 409, "du bist in keiner party")
+	pa, ok := s.partie(w, r)
+	if !ok {
 		return
 	}
 	if pa.A == "" || pa.B == "" {
@@ -387,4 +460,144 @@ func (s *Server) matchAnlegen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json_(w, 201, map[string]any{"match_id": m.ID})
+}
+
+// ------------------------------------------------------------------ Lobby ---
+
+func (s *Server) lobby(w http.ResponseWriter, r *http.Request) {
+	p := spieler(r)
+	partien, err := s.S.Lobby(p.ID)
+	if err != nil {
+		fehler(w, 500, err.Error())
+		return
+	}
+	ein, aus, err := s.S.EinladungenFuer(p.ID)
+	if err != nil {
+		fehler(w, 500, err.Error())
+		return
+	}
+	tags, _ := s.S.Tags(p.ID)
+	json_(w, 200, map[string]any{
+		"spieler": p,
+		"tags":    nichtNil(tags),
+		"name":    s.nameStand(p.ID),
+		"partien": partien,
+		"einladungen": map[string]any{
+			"eingehend": nichtNilE(ein),
+			"ausgehend": nichtNilE(aus),
+		},
+	})
+}
+
+// nameStand sagt, ob dieser Spieler seinen Namen beansprucht hat.
+//
+// Steht "beansprucht" auf false, traegt jemand anders denselben Namen - der
+// Spieler kann weiterspielen, ist aber in keiner Suche zu finden, bis er sich
+// einen freien nimmt. Die Aufforderung dazu stellt die App aus diesem Feld;
+// der Server sperrt dafuer nichts. Ein Server, der eine ganze Schnittstelle
+// verriegelt, um eine Textaenderung zu erzwingen, nimmt Geiseln.
+func (s *Server) nameStand(pid string) map[string]any {
+	geklaert := s.S.NameGeklaert(pid)
+	return map[string]any{"eindeutig": geklaert, "beansprucht": geklaert}
+}
+
+func nichtNilE(xs []store.Einladung) []store.Einladung {
+	if xs == nil {
+		return []store.Einladung{}
+	}
+	return xs
+}
+
+func (s *Server) partieGesehen(w http.ResponseWriter, r *http.Request) {
+	pa, ok := s.partie(w, r)
+	if !ok {
+		return
+	}
+	if err := s.S.PartieGesehen(spieler(r).ID, pa.ID); err != nil {
+		fehler(w, 500, err.Error())
+		return
+	}
+	json_(w, 200, map[string]any{"gesehen": true})
+}
+
+// ---------------------------------------------------------- Namen · Suche ---
+
+func (s *Server) spielerSuchen(w http.ResponseWriter, r *http.Request) {
+	q := sicher.Text(r.URL.Query().Get("q"), MaxSpitzname)
+	treffer, err := s.S.SpielerSuchen(q, spieler(r).ID)
+	if err != nil {
+		fehler(w, 500, err.Error())
+		return
+	}
+	if treffer == nil {
+		treffer = []store.Player{}
+	}
+	json_(w, 200, map[string]any{"treffer": treffer})
+}
+
+func (s *Server) nameFrei(w http.ResponseWriter, r *http.Request) {
+	name := sicher.Text(r.URL.Query().Get("name"), MaxSpitzname)
+	frei, err := s.S.NameFrei(name, spieler(r).ID)
+	if err != nil {
+		fehler(w, 500, err.Error())
+		return
+	}
+	json_(w, 200, map[string]any{"frei": frei})
+}
+
+// ------------------------------------------------------------ Einladungen ---
+
+func (s *Server) einladen(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		An string `json:"an"`
+	}
+	lies(r, &in)
+	e, err := s.S.EinladungAnlegen(spieler(r).ID, sicher.Text(in.An, 64))
+	switch {
+	case errors.Is(err, store.ErrSelbst):
+		fehler(w, 422, "dich selbst kannst du nicht einladen")
+	case errors.Is(err, store.ErrNichtGefunden):
+		fehler(w, 404, "diese person gibt es nicht")
+	case errors.Is(err, store.ErrSchonPartner):
+		fehler(w, 409, "mit dieser person läuft schon eine partie")
+	case errors.Is(err, store.ErrSchonEingeladen):
+		fehler(w, 409, "die einladung steht schon")
+	case err != nil:
+		fehler(w, 500, err.Error())
+	default:
+		json_(w, 201, map[string]any{"einladung": e})
+	}
+}
+
+func (s *Server) einladungAnnehmen(w http.ResponseWriter, r *http.Request) {
+	pa, err := s.S.EinladungAnnehmen(r.PathValue("id"), spieler(r).ID)
+	switch {
+	case errors.Is(err, store.ErrNichtGefunden):
+		fehler(w, 404, "diese einladung steht nicht mehr offen")
+	case errors.Is(err, store.ErrSchonPartner):
+		fehler(w, 409, "mit dieser person läuft schon eine partie")
+	case err != nil:
+		fehler(w, 500, err.Error())
+	default:
+		json_(w, 200, map[string]any{"party_id": pa.ID})
+	}
+}
+
+func (s *Server) einladungAblehnen(w http.ResponseWriter, r *http.Request) {
+	s.einladungSchliessen(w, s.S.EinladungAblehnen(r.PathValue("id"), spieler(r).ID))
+}
+
+func (s *Server) einladungZurueckziehen(w http.ResponseWriter, r *http.Request) {
+	s.einladungSchliessen(w, s.S.EinladungZurueckziehen(r.PathValue("id"), spieler(r).ID))
+}
+
+func (s *Server) einladungSchliessen(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, store.ErrNichtGefunden):
+		fehler(w, 404, "diese einladung steht nicht mehr offen")
+	case err != nil:
+		fehler(w, 500, err.Error())
+	default:
+		json_(w, 200, map[string]any{"geschlossen": true})
+	}
 }

@@ -158,6 +158,13 @@ Arbeite in dieser Reihenfolge und gib sie in dieser Reihenfolge aus.
    erfunden – lieber eine Antwort, die zur Frage passt und nur im Ton zu dieser
    Person, als eine, die ein Interesse unterbringt, das niemand gefragt hat.
 
+   Unter [dossier · profil] stehen Annahmen über diese Person, keine Tatsachen.
+   Sie färben den Ton und die Lebenslage, in der eine Antwort spielt – mehr
+   nicht. Nenne sie nie ausdrücklich, und höchstens EINE deiner drei Antworten
+   darf auf einer dieser Annahmen aufbauen. Stünden alle drei auf derselben
+   Annahme und die echte nicht, wäre die echte daran erkennbar, ohne dass
+   jemand die Person kennen müsste.
+
    Nenne zu jeder Antwort erst die Richtung in ein bis drei Wörtern, dann die
    Antwort selbst. Die drei Richtungen müssen wirklich auseinanderliegen, nicht
    drei Spielarten derselben Idee.

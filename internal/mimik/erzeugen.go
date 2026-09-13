@@ -29,8 +29,12 @@ type Dossier struct {
 	// "schlaf" landete bei "Wofür gibst du zu viel Geld aus?" durch reinen
 	// Zufall, und das Modell musste eine Verbindung erfinden, die es nicht gibt.
 	// Jetzt sucht es sich selbst aus, was zur Frage passt.
-	Interessen    []string
-	Fakten        []string
+	Interessen []string
+	Fakten     []string
+	// Profil sind vorgeformte Zeilen aus ProfilZeilen - Annahmen ueber den
+	// Menschen, nicht seine Saetze. Als []string und nicht als []Merkmal, damit
+	// einDurchgang nichts von Konfidenzarithmetik wissen muss.
+	Profil        []string
 	Gesperrt      []string
 	AntiBeispiele []string
 }
@@ -189,6 +193,9 @@ func (c *Client) einDurchgang(ctx context.Context, frage, roh string, d Dossier)
 	if len(d.Fakten) > 0 {
 		b.WriteString("\n\n[dossier · fakten]\n- " + strings.Join(d.Fakten, "\n- "))
 	}
+	if len(d.Profil) > 0 {
+		b.WriteString("\n\n[dossier · profil]\n- " + strings.Join(d.Profil, "\n- "))
+	}
 	if len(d.Gesperrt) > 0 {
 		b.WriteString("\n\n[dossier · verbrauchte themen]\n" + strings.Join(d.Gesperrt, ", "))
 	}
@@ -238,5 +245,86 @@ func (c *Client) einDurchgang(ctx context.Context, frage, roh string, d Dossier)
 			Richtung: sicher.Text(a.Antworten[i].Richtung, MaxThema),
 		})
 	}
+	return erg, nil
+}
+
+// ---------------------------------------------------------------- Review ---
+
+// Reviewmaterial ist, was ein Review ueber EINEN Spieler zu sehen bekommt.
+// Die Antwort des Partners steht bewusst nicht darin: Das Profil, das dieser
+// Spieler spaeter selbst lesen kann, darf nichts ueber den anderen enthalten.
+type Reviewmaterial struct {
+	Frage    string
+	Antwort  string // Normalform des Spielers
+	Karten   []game.Karte
+	Gewaehlt int // Position, auf die das Gegenueber getippt hat
+	Richtig  bool
+	Profil   []Merkmal
+}
+
+// Reviewergebnis ist, was das Modell zurueckgibt.
+type Reviewergebnis struct {
+	Gewaehlt  string   `json:"gewaehlt"`
+	Verworfen string   `json:"verworfen"`
+	Urteile   []Urteil `json:"merkmale"`
+}
+
+// Review wertet eine gespielte Runde aus.
+func (c *Client) Review(ctx context.Context, m Reviewmaterial) (Reviewergebnis, error) {
+	var b strings.Builder
+	fmt.Fprintf(&b, "[frage]\n%s", m.Frage)
+	b.WriteString("\n\n[echte_antwort]\n" + m.Antwort)
+	b.WriteString("\n\n[karten]")
+	for _, k := range m.Karten {
+		marke := ""
+		// Die Marken stehen an der Karte und nicht in einem eigenen Feld: Ein
+		// Modell, das die Zuordnung aus zwei getrennten Listen rekonstruieren
+		// muss, dreht sie gelegentlich um.
+		if k.IstEcht {
+			marke += " (echt)"
+		}
+		if k.Pos == m.Gewaehlt {
+			marke += " (gewählt)"
+		}
+		fmt.Fprintf(&b, "\n%d %s%s", k.Pos, k.Text, marke)
+	}
+	fmt.Fprintf(&b, "\n\n[ergebnis]\nDas Gegenüber hat auf %d getippt und lag %s.",
+		m.Gewaehlt, map[bool]string{true: "richtig", false: "falsch"}[m.Richtig])
+	if zeilen := ProfilZeilen(m.Profil, 0); len(zeilen) > 0 {
+		b.WriteString("\n\n[profil]\n- " + strings.Join(zeilen, "\n- "))
+	}
+
+	inhalt, err := c.Chat(ctx, PromptReview, Huelle(b.String()), 0.4)
+	if err != nil {
+		return Reviewergebnis{}, err
+	}
+	var erg Reviewergebnis
+	if err := LiesJSON(inhalt, &erg); err != nil {
+		return Reviewergebnis{}, err
+	}
+	erg.Gewaehlt = sicher.Text(erg.Gewaehlt, MaxBeleg)
+	erg.Verworfen = sicher.Text(erg.Verworfen, MaxBeleg)
+	sauber := make([]Urteil, 0, len(erg.Urteile))
+	for _, u := range erg.Urteile {
+		u.Merkmal = MerkmalSchluessel(sicher.Text(u.Merkmal, MaxMerkmalName))
+		u.Wert = sicher.Text(u.Wert, MaxMerkmalWert)
+		u.Beobachtung = sicher.Text(u.Beobachtung, MaxBeleg)
+		switch strings.ToUpper(strings.TrimSpace(u.Urteil)) {
+		case "NEU", "BESTAETIGT", "REVIDIERT", "VERWORFEN":
+			u.Urteil = strings.ToUpper(strings.TrimSpace(u.Urteil))
+		default:
+			// Ein Urteil, das keins ist, ist kein Grund, die ganze Runde
+			// wegzuwerfen - aber es wird auch nicht geraten.
+			continue
+		}
+		if u.Merkmal == "" {
+			continue
+		}
+		sauber = append(sauber, u)
+		if len(sauber) >= MaxJeReview {
+			break
+		}
+	}
+	erg.Urteile = sauber
 	return erg, nil
 }

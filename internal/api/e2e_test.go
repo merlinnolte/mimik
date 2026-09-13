@@ -24,6 +24,13 @@ import (
 // stubModell ahmt den OpenAI-kompatiblen Endpunkt nach. Es unterscheidet die
 // beiden Prompts am System-Text und antwortet deterministisch – damit prüft der
 // Test die Mechanik, nicht die Laune eines Modells.
+// Die beiden Antworten aus TestReviewBautProfil. Stehen sie je zusammen in
+// einem Reviewmaterial, ist die Trennung zwischen den Seiten kaputt.
+const (
+	geheimEineSeite      = "schwester hat den tisch gebaut"
+	geheimDerAndereSeite = "zwetschgenkuchen im august"
+)
+
 func stubModell(t *testing.T) *httptest.Server {
 	t.Helper()
 	// Atomar, weil der Worker beide Kartensätze einer Runde nebenläufig baut
@@ -42,6 +49,27 @@ func stubModell(t *testing.T) *httptest.Server {
 		if strings.Contains(system, "Du bist ein Mensch mit den unten genannten") {
 			json_(w, 200, map[string]any{"choices": []map[string]any{{"message": map[string]string{
 				"content": fmt.Sprintf(`{"antwort":"Der Zug um sieben, Runde %d."}`, lauf)}}}})
+			return
+		}
+
+		// Das Review laeuft nach der Aufloesung und hat einen eigenen Prompt.
+		// Das Material darueber wird hier gleich mitgeprueft: Es darf NICHTS
+		// vom Partner enthalten - das Profil, das ein Mensch selbst lesen kann,
+		// waere sonst ein Fenster in die Antworten des anderen.
+		if strings.Contains(system, "Eine Runde ist vorbei.") {
+			// Jede Seite hat ihr eigenes Review. Im Material darf immer nur
+			// EINE der beiden echten Antworten stehen - stuenden beide darin,
+			// waere das Profil, das ein Mensch selbst lesen kann, ein Fenster
+			// in die Antworten des anderen.
+			if strings.Contains(user, geheimDerAndereSeite) && strings.Contains(user, geheimEineSeite) {
+				t.Errorf("das review sieht beide antworten:\n%s", user)
+			}
+			json_(w, 200, map[string]any{"choices": []map[string]any{{"message": map[string]string{
+				"content": `{"gewaehlt":"Die zweite, sie war am knappsten.",` +
+					`"verworfen":"Zu rund, zu erklaerend.",` +
+					`"merkmale":[{"beobachtung":"spricht von ihrer Schwester",` +
+					`"merkmal":"Geschwister?","wert":"hat eine Schwester",` +
+					`"urteil":"NEU","konfidenz":0.9}]}`}}}})
 			return
 		}
 
@@ -101,6 +129,23 @@ func (k *klient) ruf(methode, pfad string, koerper any, ziel any) int {
 	return res.StatusCode
 }
 
+// rohtext holt eine Antwort als Text - fuer Pruefungen, die nicht nach einem
+// Feld suchen, sondern nach einer Zeichenkette, die NIRGENDS stehen darf.
+func (k *klient) rohtext(methode, pfad string) string {
+	k.t.Helper()
+	req, _ := http.NewRequest(methode, k.basis+pfad, nil)
+	if k.token != "" {
+		req.Header.Set("Authorization", "Bearer "+k.token)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		k.t.Fatalf("%s %s: %v", methode, pfad, err)
+	}
+	defer res.Body.Close()
+	b, _ := io.ReadAll(res.Body)
+	return string(b)
+}
+
 func aufbauen(t *testing.T) (*httptest.Server, *store.Store, *Worker) {
 	return bauen(t, "")
 }
@@ -145,11 +190,14 @@ func TestGanzesMatch(t *testing.T) {
 	// Zwei Geräte anmelden.
 	a := &klient{t: t, basis: srv.URL}
 	b := &klient{t: t, basis: srv.URL}
-	for _, k := range []*klient{a, b} {
+	// Verschiedene Namen: Spitznamen sind eindeutig, und zwei Spieler "X"
+	// kommen gar nicht mehr zustande.
+	for i, k := range []*klient{a, b} {
 		var out struct {
 			Token string `json:"token"`
 		}
-		if code := k.ruf("POST", "/v1/devices", map[string]string{"spitzname": "X"}, &out); code != 201 {
+		name := fmt.Sprintf("Spieler%d", i+1)
+		if code := k.ruf("POST", "/v1/devices", map[string]string{"spitzname": name}, &out); code != 201 {
 			t.Fatalf("devices: %d", code)
 		}
 		k.token = out.Token
@@ -270,7 +318,7 @@ func TestGanzesMatch(t *testing.T) {
 	}
 
 	// Die Party hat jetzt Fakten im Dossier.
-	pAlle, _ := s.PartyVon(mussSpieler(t, s, a.token).ID)
+	pAlle, _ := s.ZuletztePartie(mussSpieler(t, s, a.token).ID)
 	f, _ := s.Fakten(string(pAlle.A), 100)
 	if len(f) == 0 {
 		t.Fatal("kein einziger Fakt im Dossier gelandet")
@@ -473,8 +521,8 @@ func TestPartyMitLoeschen(t *testing.T) {
 	if len(d.Fakten) != 1 || len(d.Tags) != 10 {
 		t.Fatalf("b verliert eigene daten: %d fakten, %d tags", len(d.Fakten), len(d.Tags))
 	}
-	if _, err := s.PartyVon(idB); err == nil {
-		t.Fatal("die party steht noch, obwohl eine seite gelöscht wurde")
+	if xs, _ := s.PartienVon(idB); len(xs) != 0 {
+		t.Fatalf("%d partien stehen noch, obwohl eine seite gelöscht wurde", len(xs))
 	}
 }
 
@@ -977,5 +1025,86 @@ func TestKartenLaufenVor(t *testing.T) {
 	}
 	if len(st.Runden[0].Karten) != 4 {
 		t.Fatalf("%d Karten", len(st.Runden[0].Karten))
+	}
+}
+
+// TestReviewBautProfil: Nach einer aufgeloesten Runde entsteht ein Profil, die
+// Konfidenz ist gedeckelt, und ein zweiter Durchlauf reviewt dieselbe Runde
+// nicht noch einmal.
+func TestReviewBautProfil(t *testing.T) {
+	srv, _, w := aufbauen(t)
+	ctx := context.Background()
+
+	a := &klient{t: t, basis: srv.URL}
+	b := &klient{t: t, basis: srv.URL}
+	for i, k := range []*klient{a, b} {
+		var out struct {
+			Token string `json:"token"`
+		}
+		k.ruf("POST", "/v1/devices", map[string]string{
+			"spitzname": fmt.Sprintf("Review%d", i)}, &out)
+		k.token = out.Token
+		k.ruf("PUT", "/v1/tags", map[string]any{"tags": zehnTags()}, nil)
+	}
+	var neu struct {
+		Code string `json:"code"`
+	}
+	a.ruf("POST", "/v1/parties", nil, &neu)
+	b.ruf("POST", "/v1/parties/join", map[string]string{"code": neu.Code}, nil)
+	a.ruf("POST", "/v1/matches", nil, nil)
+
+	var st struct {
+		Runden []RundeAus `json:"runden"`
+	}
+	a.ruf("GET", "/v1/state", nil, &st)
+	rid := st.Runden[0].ID
+	a.ruf("POST", "/v1/rounds/"+rid+"/answer",
+		map[string]string{"original": "meine schwester hat den tisch gebaut"}, nil)
+	b.ruf("POST", "/v1/rounds/"+rid+"/answer",
+		map[string]string{"original": geheimDerAndereSeite}, nil)
+	w.durchgang(ctx)
+	a.ruf("POST", "/v1/rounds/"+rid+"/guess", map[string]int{"pos": 1}, nil)
+	b.ruf("POST", "/v1/rounds/"+rid+"/guess", map[string]int{"pos": 1}, nil)
+
+	w.Reviews(ctx)
+
+	var d struct {
+		Profil []struct {
+			Merkmal string `json:"merkmal"`
+			Wert    string `json:"wert"`
+			Stand   string `json:"stand"`
+			Belege  int    `json:"belege"`
+		} `json:"profil"`
+		Verlauf []map[string]string `json:"profil_verlauf"`
+	}
+	a.ruf("GET", "/v1/dossier", nil, &d)
+	if len(d.Profil) != 1 {
+		t.Fatalf("%d merkmale im profil statt 1: %+v", len(d.Profil), d.Profil)
+	}
+	if d.Profil[0].Merkmal != "geschwister" {
+		t.Fatalf("schlüssel %q nicht normalisiert", d.Profil[0].Merkmal)
+	}
+	// Das Stubmodell schlägt 0.9 vor. Ein einzelner Beleg darf daraus keine
+	// Gewissheit machen - die Arithmetik steht in Go, nicht im Prompt.
+	if d.Profil[0].Stand != "wahrscheinlich" {
+		t.Fatalf("stand %q trotz nur eines belegs", d.Profil[0].Stand)
+	}
+	if len(d.Verlauf) == 0 {
+		t.Fatal("kein verlaufseintrag")
+	}
+
+	// Das Profil ist privat: Die Gegenseite sieht davon nichts.
+	roh := b.rohtext("GET", "/v1/state")
+	if strings.Contains(roh, "geschwister") || strings.Contains(roh, "Schwester") {
+		t.Fatalf("das profil steht im zustand der gegenseite:\n%s", roh)
+	}
+
+	// Zweiter Durchlauf: Die Runde ist abgehakt und wird nicht erneut geprüft.
+	vorher := len(d.Verlauf)
+	w.Reviews(ctx)
+	a.ruf("GET", "/v1/dossier", nil, &d)
+	if len(d.Verlauf) != vorher {
+		t.Fatalf("die runde wurde ein zweites mal reviewt: %d statt %d einträge",
+			len(d.Verlauf), vorher)
 	}
 }

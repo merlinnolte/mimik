@@ -51,6 +51,10 @@ func main() {
 
 	w := api.NeuerWorker(s, m)
 	go w.Laufen(ctx)
+	// Zweite Schleife: Sie wertet gespielte Runden aus und pflegt das Profil.
+	// Getrennt, weil ein Review Minuten dauern kann und den Kartenbau nicht
+	// aufhalten darf - auf den wartet ein Mensch.
+	go w.LernenLaufen(ctx)
 
 	srv := &http.Server{
 		Addr:              env("MIMIK_ADDR", ":8080"),

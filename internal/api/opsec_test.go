@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -83,11 +84,12 @@ func TestAnmeldungIstBegrenzt(t *testing.T) {
 	srv, _, _ := bauen(t, "")
 	k := &klient{t: t, basis: srv.URL}
 	for i := 0; i < MaxAnmeldungen; i++ {
-		if code := k.ruf("POST", "/v1/devices", map[string]string{"spitzname": "X"}, nil); code != 201 {
+		name := fmt.Sprintf("X%d", i)
+		if code := k.ruf("POST", "/v1/devices", map[string]string{"spitzname": name}, nil); code != 201 {
 			t.Fatalf("anmeldung %d: %d", i+1, code)
 		}
 	}
-	if code := k.ruf("POST", "/v1/devices", map[string]string{"spitzname": "X"}, nil); code != 429 {
+	if code := k.ruf("POST", "/v1/devices", map[string]string{"spitzname": "Xspaet"}, nil); code != 429 {
 		t.Fatalf("anmeldung %d: %d, erwartet 429", MaxAnmeldungen+1, code)
 	}
 }

@@ -244,6 +244,11 @@ func (w *Worker) kartenBauen(ctx context.Context, rid string, pa game.Party, ueb
 	// irgendwann den Kontext sprengen. Die jüngsten zwölf sagen über einen
 	// Menschen genug; was älter ist, steckt ohnehin in den gesperrten Themen.
 	fakten, _ := w.S.Fakten(string(ueber), 12)
+	// Nur, was mehr als eine beilaeufige Vermutung ist. Ein Merkmal mit 0.2
+	// Konfidenz in den Prompt zu geben heisst, drei Faelschungen auf einen
+	// Muenzwurf zu bauen.
+	merkmale, _ := w.S.ProfilFuerModell(string(ueber))
+	profil := mimik.ProfilZeilen(merkmale, mimik.ProfilSchwelle)
 	verbraucht := make([]string, 0, len(gesperrt))
 	for t := range gesperrt {
 		verbraucht = append(verbraucht, t)
@@ -254,6 +259,7 @@ func (w *Worker) kartenBauen(ctx context.Context, rid string, pa game.Party, ueb
 	erg, err := w.M.Faelschungen(ctx, rd.Frage, roh, mimik.Dossier{
 		Interessen: tags,
 		Fakten:     fakten,
+		Profil:     profil,
 		Gesperrt:   verbraucht,
 		AntiBeispiele: []string{
 			"Das ist eine spannende Frage! Ich würde sagen ...",
@@ -293,4 +299,110 @@ func (w *Worker) kartenBauen(ctx context.Context, rid string, pa game.Party, ueb
 	log.Printf("worker: %s über %s fertig (versuche=%d, abstand=%.2f, richtungen=%v)",
 		rd.ID[:8], ueber, erg.Versuche, erg.Befund.MaxZuEcht, richtungen)
 	return nil
+}
+
+// ----------------------------------------------------------------- Lernen ---
+
+// GleichzeitigeReviews ist absichtlich 1: Zwei Reviews ueber DENSELBEN Spieler
+// wuerden sonst gleichzeitig dasselbe Merkmal verrechnen, und ein Beleg zaehlte
+// doppelt. Nebenlaeufigkeit spart hier ohnehin nichts - auf ein Review wartet
+// niemand.
+const ReviewsJeTakt = 4
+
+// LernenLaufen wertet aufgeloeste Runden aus.
+//
+// Eine eigene Schleife statt eines Schritts in durchgang(): Ein Review kann
+// Minuten dauern und hielte dort den Kartenbau der naechsten Runde auf - und
+// auf den wartet ein Mensch. Auf ein Review wartet keiner, deshalb auch der
+// langsamere Takt.
+func (w *Worker) LernenLaufen(ctx context.Context) {
+	takt := time.NewTicker(60 * time.Second)
+	defer takt.Stop()
+	for {
+		w.Reviews(ctx)
+		select {
+		case <-ctx.Done():
+			return
+		case <-takt.C:
+		}
+	}
+}
+
+// Reviews arbeitet einen Schwung ab. Oeffentlich, damit ein Test ihn direkt
+// anstossen kann, statt auf den Takt zu warten.
+func (w *Worker) Reviews(ctx context.Context) {
+	auftraege, err := w.S.OffeneReviews(ReviewsJeTakt)
+	if err != nil {
+		log.Printf("worker: offene reviews: %v", err)
+		return
+	}
+	for _, a := range auftraege {
+		if err := w.review(ctx, a); err != nil {
+			log.Printf("worker: review %s: %v", kurz(a.RundeID), err)
+			w.S.ReviewGescheitert(a.RundeID, a.Ueber, err.Error())
+		}
+	}
+}
+
+func (w *Worker) review(ctx context.Context, a store.Reviewauftrag) error {
+	darf, err := w.S.ReviewBeanspruchen(a.RundeID, a.Ueber)
+	if err != nil {
+		return err
+	}
+	if !darf {
+		return nil
+	}
+	pa, _, err := w.S.PartyVonRunde(a.RundeID)
+	if err != nil {
+		return err
+	}
+	rd, err := w.S.Runde(a.RundeID)
+	if err != nil {
+		return err
+	}
+	ueber := game.PlayerID(a.Ueber)
+	gegner := pa.Gegner(ueber)
+	tipp, ok := rd.Tipps[gegner]
+	if !ok {
+		return nil
+	}
+	merkmale, err := w.S.ProfilFuerModell(a.Ueber)
+	if err != nil {
+		return err
+	}
+
+	// Kuerzer als die vier Minuten des Kartenbaus: Der Prompt ist deutlich
+	// kleiner, und ein haengendes Review kostet nur Rechenzeit.
+	ctx, abbruch := context.WithTimeout(ctx, 3*time.Minute)
+	defer abbruch()
+	erg, err := w.M.Review(ctx, mimik.Reviewmaterial{
+		Frage:    rd.Frage,
+		Antwort:  rd.Antworten[ueber].Normalform,
+		Karten:   rd.Karten[ueber],
+		Gewaehlt: tipp.Gewaehlt,
+		Richtig:  tipp.Richtig,
+		Profil:   merkmale,
+	})
+	if err != nil {
+		return err
+	}
+	aend := mimik.ProfilVerrechnen(merkmale, erg.Urteile, a.RundeID)
+	if err := w.S.ProfilAnwenden(a.Ueber, a.RundeID, aend); err != nil {
+		return err
+	}
+	// Nur die Schluessel ins Protokoll, nie die Werte: Das Betriebsprotokoll
+	// braucht die Vermutung ueber das Alter eines Menschen nicht.
+	namen := make([]string, 0, len(aend))
+	for _, x := range aend {
+		namen = append(namen, x.Merkmal.Merkmal+"/"+x.Urteil)
+	}
+	log.Printf("worker: review %s über %s: %v", kurz(a.RundeID), kurz(a.Ueber), namen)
+	return w.S.ReviewFertig(a.RundeID, a.Ueber)
+}
+
+func kurz(x string) string {
+	if len(x) > 8 {
+		return x[:8]
+	}
+	return x
 }

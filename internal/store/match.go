@@ -34,23 +34,41 @@ func (s *Store) MatchAnlegen(partyID string) (Match, error) {
 		m.ID, partyID, m.Ziel, m.Karten, jetzt()); err != nil {
 		return m, err
 	}
+	mit, err := mitgliederTx(tx, partyID)
+	if err != nil {
+		return m, err
+	}
 	for i := 1; i <= RundenProMatch; i++ {
-		if err := rundeAnlegenTx(tx, m.ID, partyID, i); err != nil {
+		if err := rundeAnlegenTx(tx, m.ID, partyID, mit, i); err != nil {
 			return m, err
 		}
 	}
 	return m, tx.Commit()
 }
 
-func rundeAnlegenTx(tx *sql.Tx, matchID, partyID string, nummer int) error {
+// rundeAnlegenTx zieht eine Frage, die noch KEINER DER BEIDEN hatte.
+//
+// Vorher haing das an fragen_pool.benutzt, und dort steht eine party_id.
+// Solange jeder nur eine Partie hatte, war das dasselbe; sobald jemand zwei
+// spielt, bekaeme er dieselbe Frage ein zweites Mal - und die zweite Antwort
+// waere die erste, nur schlechter.
+func rundeAnlegenTx(tx *sql.Tx, matchID, partyID string, mitglieder []string, nummer int) error {
 	var fid int
 	var text, rubrik string
-	// Eine noch nicht vergebene Frage ziehen; sind alle durch, die ältest
-	// benutzte recyceln, damit das Spiel nie stehenbleibt.
+	a, b := "", ""
+	if len(mitglieder) > 0 {
+		a = mitglieder[0]
+	}
+	if len(mitglieder) > 1 {
+		b = mitglieder[1]
+	}
 	err := tx.QueryRow(
-		`SELECT id, text, rubrik FROM fragen_pool WHERE benutzt IS NULL ORDER BY RANDOM() LIMIT 1`).
-		Scan(&fid, &text, &rubrik)
+		`SELECT id, text, rubrik FROM fragen_pool
+		  WHERE id NOT IN (SELECT frage_id FROM fragen_vergeben WHERE player_id IN (?,?))
+		  ORDER BY RANDOM() LIMIT 1`, a, b).Scan(&fid, &text, &rubrik)
 	if errors.Is(err, sql.ErrNoRows) {
+		// Vorrat leergespielt: irgendeine nehmen. Eine wiederholte Frage ist
+		// besser als eine Runde, die gar nicht erst entsteht.
 		err = tx.QueryRow(`SELECT id, text, rubrik FROM fragen_pool ORDER BY RANDOM() LIMIT 1`).
 			Scan(&fid, &text, &rubrik)
 	}
@@ -60,10 +78,39 @@ func rundeAnlegenTx(tx *sql.Tx, matchID, partyID string, nummer int) error {
 	if _, err := tx.Exec(`UPDATE fragen_pool SET benutzt = ? WHERE id = ?`, partyID, fid); err != nil {
 		return err
 	}
+	for _, x := range mitglieder {
+		if x == "" {
+			continue
+		}
+		if _, err := tx.Exec(
+			`INSERT OR IGNORE INTO fragen_vergeben (player_id, frage_id, party_id, vergeben_am)
+			 VALUES (?,?,?,?)`, x, fid, partyID, jetzt()); err != nil {
+			return err
+		}
+	}
 	_, err = tx.Exec(
 		`INSERT INTO rounds (id, match_id, nummer, frage, rubrik, geoeffnet_am) VALUES (?,?,?,?,?,?)`,
 		id(), matchID, nummer, text, rubrik, jetzt())
 	return err
+}
+
+// mitgliederTx liest die beiden Spieler einer Partie in der laufenden
+// Transaktion - rundeAnlegenTx braucht sie, um Fragen je Mensch zu vergeben.
+func mitgliederTx(tx *sql.Tx, partyID string) ([]string, error) {
+	rows, err := tx.Query(`SELECT player_id FROM party_members WHERE party_id = ?`, partyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var x string
+		if err := rows.Scan(&x); err != nil {
+			return nil, err
+		}
+		out = append(out, x)
+	}
+	return out, rows.Err()
 }
 
 // RundeNachlegen hängt eine weitere Runde an ein laufendes Match.
@@ -75,7 +122,11 @@ func (s *Store) RundeNachlegen(m Match) error {
 		return err
 	}
 	defer tx.Rollback()
-	if err := rundeAnlegenTx(tx, m.ID, m.PartyID, max+1); err != nil {
+	mit, err := mitgliederTx(tx, m.PartyID)
+	if err != nil {
+		return err
+	}
+	if err := rundeAnlegenTx(tx, m.ID, m.PartyID, mit, max+1); err != nil {
 		return err
 	}
 	return tx.Commit()
