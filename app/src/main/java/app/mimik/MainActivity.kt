@@ -7,9 +7,13 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 class MainActivity : ComponentActivity() {
@@ -51,10 +55,26 @@ private fun App() {
     BackHandler(enabled = modell.einstellungenOffen || modell.offenePartie != null) {
         if (modell.einstellungenOffen) modell.einstellungen(false) else modell.zurueckZurLobby()
     }
-    // Sichtbarkeit fuer den Takt: Im Hintergrund fragt die App gar nicht nach.
-    androidx.compose.runtime.DisposableEffect(Unit) {
-        modell.sichtbarkeit(true)
-        onDispose { modell.sichtbarkeit(false) }
+    // Sichtbarkeit am ECHTEN Lebenszyklus, nicht an der Komposition.
+    //
+    // Hier stand DisposableEffect(Unit) - und das loest erst aus, wenn die
+    // Komposition endet, also beim Zerstoeren der Activity. Wandert die App nur
+    // in den Hintergrund, bleibt sie bestehen: Der Abfragetakt lief mit
+    // ausgeschaltetem Bildschirm weiter, Android kappt dort die Verbindung, und
+    // die drei Fehlschlaege danach standen als "Unable to resolve host" auf dem
+    // Wartebildschirm, sobald man wieder hinsah. Genau dort ist es aufgefallen,
+    // weil nur dort ueberhaupt getaktet wird.
+    val lebenszyklus = LocalLifecycleOwner.current
+    DisposableEffect(lebenszyklus) {
+        val beobachter = LifecycleEventObserver { _, ereignis ->
+            when (ereignis) {
+                Lifecycle.Event.ON_START -> modell.sichtbarkeit(true)
+                Lifecycle.Event.ON_STOP -> modell.sichtbarkeit(false)
+                else -> {}
+            }
+        }
+        lebenszyklus.lifecycle.addObserver(beobachter)
+        onDispose { lebenszyklus.lifecycle.removeObserver(beobachter) }
     }
     MimikTheme(modell.palette) {
         Box(Modifier.fillMaxSize()) {

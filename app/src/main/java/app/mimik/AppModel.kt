@@ -235,7 +235,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
             } catch (e: NetzFehler) {
                 fehler = e.text
             } catch (e: Exception) {
-                fehler = e.message ?: "unbekannter Fehler"
+                fehler = "Keine Verbindung zum Server."
             } finally {
                 laden = false
             }
@@ -328,8 +328,13 @@ class AppModel(app: Application) : AndroidViewModel(app) {
                     // die Verbindung hakt - aber wer auf dem Ladebildschirm
                     // festsitzt, soll erfahren, warum. Ab dem dritten
                     // Fehlschlag steht es da.
-                    if (fehlschlaege >= 3 && fehler == null) {
-                        fehler = (e as? NetzFehler)?.text ?: e.message
+                    if (fehlschlaege >= 5 && fehler == null) {
+                        // Ein Java-Stapelsatz ("Unable to resolve host …") sagt
+                        // niemandem, was zu tun ist. Vom Server kommt eine
+                        // Begruendung, vom Netz nur ein Aussetzer - und der
+                        // heisst hier auch so.
+                        fehler = (e as? NetzFehler)?.text
+                            ?: "Keine Verbindung. Ich versuche es weiter."
                     }
                     // Die offene Partie gibt es nicht mehr (verlassen, vom
                     // Gegenueber aufgeloest): zurueck in die Uebersicht, statt
