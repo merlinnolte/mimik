@@ -463,10 +463,14 @@ fun SchreibenBildschirm(modell: AppModel) {
 fun WartenBildschirm(modell: AppModel) {
     val r = modell.aktuelleRunde ?: return
     val arbeitet = r.zustand == "MIMIK_ARBEITET"
+    // Die Karten sind da, der Balken läuft aber noch voll. Der Bildschirm
+    // bleibt so lange stehen; das Gesicht darf schon aufhören zu denken.
+    val fertig = modell.balkenLaeuftVoll == r.id
     Huelle(modell) {
         MimikKopf(
-            if (arbeitet) Miene.Denkt else Miene.Bereit,
-            if (arbeitet) "Ich baue gerade drei Fälschungen.\nDas dauert einen Moment."
+            if (arbeitet && !fertig) Miene.Denkt else Miene.Bereit,
+            if (fertig) "Fertig. Vier Karten, eine ist echt."
+            else if (arbeitet) "Ich baue gerade drei Fälschungen.\nDas dauert einen Moment."
             else "Deine Antwort steht. Jetzt ist die andere Seite dran.",
             schrift = 19,
         )
@@ -481,9 +485,15 @@ fun WartenBildschirm(modell: AppModel) {
             )
         }
         if (r.fehler.isNotBlank()) Zeile(r.fehler, LokalePalette.current.warn, 11)
-        if (arbeitet) {
-            Fortschritt(r.wartetSeit)
-            Wartezeile("Es geht von selbst weiter, du musst nicht warten.")
+        if (arbeitet || fertig) {
+            Fortschritt(r.wartetSeit, fertig)
+            // Die Zeile bleibt stehen, auch wenn sie den Text wechselt: Fiele
+            // sie für die knappe Sekunde des Volllaufens weg, ruckte der ganze
+            // mittig gesetzte Bildschirm nach unten.
+            Wartezeile(
+                if (fertig) "Gleich geht es weiter."
+                else "Es geht von selbst weiter, du musst nicht warten.",
+            )
         } else {
             Wartezeile("Es geht von selbst weiter, sobald sie geantwortet hat.")
         }

@@ -23,10 +23,22 @@ class Speicher(kontext: Context) {
         get() = p.getString("server", "https://mimik.merlinnolte.de").orEmpty()
         set(v) = p.edit().putString("server", v.trim().trimEnd('/')).apply()
 
-    /** Höchste Rundennummer, deren Auflösung dieser Spieler gesehen hat. */
+    /**
+     * Höchste Rundennummer, deren Auflösung dieser Spieler gesehen hat – und
+     * das Match, zu dem sie gehört.
+     *
+     * Ohne das Match war der Merker eine Falle: Rundennummern beginnen in jedem
+     * Match wieder bei 1, also lagen nach dem ersten Match alle Auflösungen
+     * unter dem alten Höchststand und wurden übersprungen. Zu sehen erst beim
+     * zweiten Spiel, und deshalb lange nicht gesehen.
+     */
     var gesehenBis: Int
         get() = p.getInt("gesehen_bis", 0)
         set(v) = p.edit().putInt("gesehen_bis", v).apply()
+
+    var gesehenMatch: String
+        get() = p.getString("gesehen_match", "").orEmpty()
+        set(v) = p.edit().putString("gesehen_match", v).apply()
 
     var palette: String
         get() = p.getString("palette", "tokyo-night").orEmpty()

@@ -90,10 +90,16 @@ Mechanik dahinter.
 Moment, in dem der Worker die Runde aufnimmt. Weil der Wert vom Server kommt,
 steht der Balken auch nach einem Neustart der App richtig.
 
-Er wächst nach 1 − e^(−t/18 s) und bleibt unter 97 %. Gemessen liegt ein Aufruf
+Er läuft in ungleichen Schritten und ungleichen Abständen auf fünfzehn Sekunden
+zu – wie etwas, das arbeitet, und nicht wie eine Uhr. Gemessen liegt ein Aufruf
 bei rund zehn Sekunden Median, aber weist die Abstandsprüfung eine Fassung
-zurück, kommt ein zweiter dazu – eine Restzeit wäre geraten, und ein Balken, der
-volllauft und dann steht, wäre eine Lüge.
+zurück, kommt ein zweiter dazu: Eine echte Restzeit wäre geraten. Deshalb steht
+darunter die tatsächlich verstrichene Zeit in Sekunden – die Erwartung im
+Balken, die Wahrheit in der Zeile.
+
+Sind die Karten früher da, läuft der Balken trotzdem sichtbar voll: `AppModel`
+hält den Wartebildschirm dafür 900 ms länger (`balkenLaeuftVoll`). Ein Balken,
+der mitten im Lauf verschwindet, lässt den Moment unfertig aussehen.
 
 ## Benachrichtigungen
 

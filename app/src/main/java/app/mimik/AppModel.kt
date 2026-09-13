@@ -56,6 +56,15 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     var zeigeAufloesung by mutableStateOf<String?>(null)
         private set
     private var gesehenBis by mutableStateOf(speicher.gesehenBis)
+    private var gesehenMatch by mutableStateOf(speicher.gesehenMatch)
+
+    /**
+     * Die Runde, deren Fortschrittsbalken noch volläuft. Die Karten sind schon
+     * da – der Bildschirm bleibt trotzdem einen Moment stehen, damit der Balken
+     * nicht mitten im Lauf verschwindet.
+     */
+    var balkenLaeuftVoll by mutableStateOf<String?>(null)
+        private set
 
     /** Läuft einmal nach der Anmeldung, danach nur noch auf Wunsch. */
     var introOffen by mutableStateOf(false); private set
@@ -106,7 +115,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
             val r = aktuelleRunde ?: return Bildschirm.Basis
             return when {
                 r.meineAntwort.isBlank() -> Bildschirm.Schreiben
-                r.karten.isEmpty() -> Bildschirm.Warten
+                r.karten.isEmpty() || balkenLaeuftVoll == r.id -> Bildschirm.Warten
                 r.meinTipp == null -> Bildschirm.Raten
                 else -> Bildschirm.Getippt
             }
@@ -148,7 +157,32 @@ class AppModel(app: Application) : AndroidViewModel(app) {
      * landet wortlos in der nächsten Frage.
      */
     private fun zustandUebernehmen(z: Spielzustand) {
+        val vorher = zustand
+        // Rundennummern fangen in jedem Match wieder bei 1 an. Bleibt der
+        // Merker über den Matchwechsel stehen, liegt jede Auflösung des neuen
+        // Matches darunter und wird übersprungen – genau das war der Fall.
+        val mid = z.match?.id.orEmpty()
+        if (mid != gesehenMatch) {
+            gesehenMatch = mid
+            gesehenBis = 0
+            speicher.gesehenMatch = mid
+            speicher.gesehenBis = 0
+        }
+        // Karten sind neu da: den Wartebildschirm noch einen Moment halten,
+        // damit der Balken sichtbar vollläuft, statt mitten im Lauf zu
+        // verschwinden.
+        val alt = vorher?.runden?.firstOrNull { it.id == aktuelleRunde?.id }
         zustand = z
+        val jetzt = aktuelleRunde
+        if (jetzt != null && alt != null && alt.karten.isEmpty() && jetzt.karten.isNotEmpty() &&
+            jetzt.meinTipp == null
+        ) {
+            balkenLaeuftVoll = jetzt.id
+            viewModelScope.launch {
+                delay(900)
+                balkenLaeuftVoll = null
+            }
+        }
         if (zeigeAufloesung != null) return
         val faellig = z.runden
             .filter { it.zustand == "AUFGELOEST" && it.meinTipp != null && it.nummer > gesehenBis }
@@ -372,6 +406,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
             tagsGeladen = false
             zeigeAufloesung = null
             gesehenBis = 0
+            gesehenMatch = ""
             einstellungenOffen = false
         }
     }

@@ -1,6 +1,7 @@
 package app.mimik
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -37,8 +38,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-import kotlin.math.exp
 import kotlin.math.roundToInt
+import kotlin.random.Random
 
 /** Entspricht ui/components/Panel.svelte: Titel in accent, Versalien, 1px Rahmen. */
 @Composable
@@ -183,44 +184,77 @@ private fun Balken(name: String, wert: Int, von: Int, ziel: Int, farbe: Color) {
 }
 
 /**
- * Fortschritt beim Fälschen: ein Balken, der sich dem Ende nähert, ohne es zu
- * erreichen.
+ * Fortschritt beim Fälschen: fünfzehn Sekunden bis voll, in unregelmäßigen
+ * Sprüngen.
  *
- * Wie lange ein Aufruf dauert, weiß niemand vorher – gemessen liegt der Median
- * bei gut zehn Sekunden je Aufruf, und weist die Abstandsprüfung eine Fassung
- * zurück, kommt ein zweiter dazu. Ein Balken, der auf hundert Prozent läuft und
- * dann stehen bleibt, lügt. Dieser hier wächst nach 1 − e^(−t/T): schnell am
- * Anfang, immer langsamer, und der letzte Rest bleibt bis zum Schluss offen.
+ * Ehrlich messen lässt sich hier nichts. Ein Aufruf liegt im Median bei gut
+ * zehn Sekunden, kann aber das Doppelte brauchen, wenn die Abstandsprüfung eine
+ * Fassung zurückweist – eine echte Restzeit wäre geraten. Also zeigt der Balken
+ * eine Erwartung: Er läuft in ungleichen Schritten und ungleichen Abständen auf
+ * die fünfzehn Sekunden zu, wie etwas, das arbeitet, und nicht wie eine Uhr.
+ * Darunter stehen die tatsächlich verstrichenen Sekunden – wer nachrechnen
+ * will, wird nicht belogen.
  *
- * `seit` sind Sekunden seit dem Absenden. Der Wert kommt vom Server, also
- * stimmt er auch, wenn die App zwischendurch zu war.
+ * `seit` sind Sekunden seit dem Absenden, vom Server. Nach einem Neustart der
+ * App steht der Balken deshalb da, wo er hingehört, statt wieder bei null.
+ *
+ * `fertig` heißt: Die Karten sind da. Dann geht er zügig auf voll, und der
+ * Bildschirm hält so lange – ein Balken, der mitten im Lauf verschwindet,
+ * lässt den Moment unfertig aussehen.
  */
 @Composable
-fun Fortschritt(seit: Int, modifier: Modifier = Modifier) {
+fun Fortschritt(seit: Int, fertig: Boolean, modifier: Modifier = Modifier) {
     val p = LokalePalette.current
-    var sekunden by remember(seit) { mutableIntStateOf(seit) }
-    LaunchedEffect(seit) {
+    val start = System.currentTimeMillis() - seit * 1000L
+    var anteil by remember { mutableFloatStateOf(0f) }
+    var sekunden by remember { mutableIntStateOf(seit) }
+
+    LaunchedEffect(fertig) {
+        if (fertig) {
+            anteil = 1f
+            return@LaunchedEffect
+        }
         while (true) {
-            delay(1000)
-            sekunden += 1
+            val ms = System.currentTimeMillis() - start
+            sekunden = (ms / 1000L).toInt()
+            // Der gleichmäßige Lauf auf 15 s, versetzt um einen Zufallsschlag.
+            // Das Maximum nimmt der Versatz zurück, damit der Balken nicht
+            // rückwärts geht: gezeigt wird immer der höchste bisherige Stand.
+            val gerade = (ms / 15000f).coerceIn(0f, 1f)
+            val versetzt = gerade + Random.nextFloat() * 0.09f - 0.03f
+            anteil = maxOf(anteil, versetzt.coerceIn(0f, 1f))
+            if (anteil >= 1f) {
+                // Voll, aber noch nichts da: nur noch die Sekunden zählen.
+                delay(1000)
+            } else {
+                delay(Random.nextLong(120, 800))
+            }
         }
     }
-    val anteil = 1f - exp(-sekunden / 18f)
+
+    val gezeigt by animateFloatAsState(
+        targetValue = anteil,
+        animationSpec = tween(durationMillis = if (fertig) 320 else 260, easing = LinearEasing),
+        label = "fortschritt",
+    )
     Column(modifier.fillMaxWidth()) {
         Box(Modifier.fillMaxWidth().height(10.dp).background(p.bgAlt).border(1.dp, p.border)) {
-            Box(Modifier.fillMaxWidth(anteil.coerceIn(0f, 0.97f)).height(10.dp).background(p.accent))
+            Box(Modifier.fillMaxWidth(gezeigt.coerceIn(0f, 1f)).height(10.dp).background(p.accent))
         }
         Spacer(Modifier.height(5.dp))
-        Text(
-            // Zwei feste Zeilen wären Unsinn, eine wechselnde Länge lässt den
-            // zentrierten Text wandern - deshalb steht die Zeit am Anfang und
-            // der Satz danach, beide in einer Zeile.
-            if (sekunden < 60) "%d s · MIMIK schreibt".format(sekunden)
-            else "%d:%02d · MIMIK schreibt noch".format(sekunden / 60, sekunden % 60),
-            color = p.fgDim, fontSize = 11.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        // Feste Breite für die Prozentzahl: Sie steht in der Mitte, und ohne
+        // die Breite rückte die ganze Zeile bei jedem Sprung zur Seite.
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+            Text(
+                "%3d %%".format((gezeigt * 100).roundToInt()),
+                color = p.accent, fontSize = 11.sp,
+                textAlign = TextAlign.End, modifier = Modifier.width(42.dp),
+            )
+            Text(
+                if (fertig) " · fertig" else " · MIMIK schreibt · %d s".format(sekunden),
+                color = p.fgDim, fontSize = 11.sp,
+            )
+        }
     }
 }
 
