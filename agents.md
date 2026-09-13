@@ -8,14 +8,20 @@ Wenn du etwas davon änderst, ändere auch die Begründung.
 
 ## 1. Was MIMIK ist
 
-Ein rundenbasiertes Spiel für **genau zwei** Personen, die sich gut kennen.
-Beide beantworten dieselbe Frage; ein Sprachmodell schreibt drei Fälschungen im
-Stil der schreibenden Person; jede Seite bekommt vier Karten über die **andere**
-Person und sucht die echte. Treffer = Punkt für die Menschen, Fehlgriff = Punkt
-für MIMIK. Erster auf zehn gewinnt. Kooperativ, zeitunabhängig, kein Timer.
+Ein rundenbasiertes Spiel für **genau zwei** Personen je Partie, die sich gut
+kennen. Beide beantworten dieselbe Frage; ein Sprachmodell schreibt drei
+Fälschungen im Stil der schreibenden Person; jede Seite bekommt vier Karten über
+die **andere** Person und sucht die echte. Treffer = Punkt für die Menschen,
+Fehlgriff = Punkt für MIMIK. Erster auf zehn gewinnt. Kooperativ,
+zeitunabhängig, kein Timer.
+
+Eine Partie hat zwei Mitglieder – ein Spieler aber beliebig viele Partien
+nebeneinander. Die Übersicht darüber heißt **Lobby**; von dort führt ein Weg in
+jede Partie und aus jeder zurück. Partien entstehen über einen Einladungscode
+oder über eine **Einladung** an einen gesuchten Namen.
 
 **MIMIK ist der Name des Spiels, der Figur und des Gegners.** Die erfundene
-Antwort heißt **Fälschung**, nie „Doppelgänger“ – dieser Name ist vollständig
+Antwort heißt **Fälschung**, nie „Doppelgänger" – dieser Name ist vollständig
 abgeschafft, auch als Untertitel.
 
 ### Was das Spiel schwer macht
@@ -372,6 +378,22 @@ Damit es nicht noch einmal passiert:
   hängt die Chronik.
 - **`mimik` in `.gitignore` ohne Schrägstrich** hätte `internal/mimik/`
   verschluckt. Jetzt `/mimik`.
+- **Der Merker „gesehen bis" war eine nackte Rundennummer.** Rundennummern
+  fangen in jedem Match wieder bei 1 an – nach dem ersten Match lag jede
+  Auflösung unter dem alten Höchststand und wurde übersprungen. Er führt jetzt
+  Match **und** Partie mit. Zu sehen war das erst beim zweiten Spiel, und
+  deshalb lange nicht.
+- **`wartet_seit` zählte ab der eigenen Antwort.** Wer zuerst schrieb und dann
+  eine halbe Stunde wartete, sah den Fortschrittsbalken beim ersten Blick schon
+  voll – die Zeit war ja vergangen, nur nicht mit Arbeit. Gearbeitet wird erst,
+  wenn **beide** geschrieben haben (`Runde.Ableiten`), und das ist der Nullpunkt.
+- **Meldungen zu einer Phase, die schon vorbei war.** Drei Ursachen, alle in
+  `APP.md` festgehalten: keine Vordergrundprüfung, eine Meldung, die im Schacht
+  stehen blieb, und ein Merker, der im Vordergrund nie gekürzt wurde.
+- **`AllesLoeschen` griff sich genau eine Party.** Mit mehreren Partien lief es
+  in einen Fremdschlüsselfehler auf `DELETE FROM players` – das Konto ließ sich
+  nicht mehr löschen. Dasselbe galt für `PartyVerlassen`, das stillschweigend
+  irgendeine Partie aufgelöst hätte.
 
 ---
 
@@ -391,6 +413,12 @@ kein Teil des Spiels: Er steht nicht in `harness.py` und wird von
 **Geraten wird gewürfelt, nicht gerechnet.** Geprüft werden soll der Ablauf für
 den Menschen davor, nicht wie gut ein Modell rät – und jeder Modellaufruf kostet
 hier eine weitere Minute.
+
+Aus demselben Grund läuft über Testpartien **kein Review**: Aus einem
+gewürfelten Tipp etwas über einen Menschen zu schließen, wäre ein Scheinbeleg,
+und ein Scheinbeleg im Profil ist schlimmer als kein Beleg. Höchstens drei
+Testpartien je Spieler – jede erzeugt einen Spieler und laufende Modellaufrufe
+auf Rechnung des Betreibers.
 
 `BotRunden` liefert je Match **genau eine** Runde: die kleinste noch nicht
 aufgelöste. Ein Match legt seine Runden im Voraus an; ohne das beantwortete der
