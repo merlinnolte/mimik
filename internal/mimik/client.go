@@ -3,9 +3,12 @@ package mimik
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -95,9 +98,10 @@ func (c *Client) Chat(ctx context.Context, system, user string, temperatur float
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.APIKey)
 	for k, v := range c.Headers {
-		req.Header.Set(k, v)
+		req.Header.Set(k, ersetzeZufall(v))
 	}
 
+	begonnen := time.Now()
 	res, err := c.HTTP.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("kein kontakt zu %s: %w", c.BaseURL, err)
@@ -111,7 +115,30 @@ func (c *Client) Chat(ctx context.Context, system, user string, temperatur float
 	if err := json.Unmarshal(roh, &a); err != nil || len(a.Choices) == 0 {
 		return "", fmt.Errorf("antwort unlesbar: %s", kurz(string(roh)))
 	}
-	return a.Choices[0].Message.Content, nil
+	inhalt := a.Choices[0].Message.Content
+	// Eine Zeile je Modellaufruf. Ohne sie lässt sich im Betrieb nicht sagen, ob
+	// eine langsame Runde am Umfang liegt oder am Anbieter.
+	log.Printf("modell: %d+%d Zeichen rein, %d raus, %.1fs",
+		len(system), len(user), len(inhalt), time.Since(begonnen).Seconds())
+	return inhalt, nil
+}
+
+// ersetzeZufall tauscht {zufall} in einem Kopfzeilenwert gegen eine frische
+// Zufallskennung.
+//
+// Wofür: OpenCode verlangt "x-opencode-session". Steht dort ein fester Wert,
+// laufen alle Aufrufe unter derselben Sitzung – und je nachdem, wie der Anbieter
+// das auslegt, wächst deren Verlauf mit jeder Runde, bis der Kontext überläuft.
+// Mit MIMIK_HEADERS="x-opencode-session: mimik-{zufall}" bekommt jeder Aufruf
+// seine eigene. Das Spiel braucht keine Sitzung: Jeder Aufruf trägt sein
+// gesamtes Material selbst.
+func ersetzeZufall(v string) string {
+	if !strings.Contains(v, "{zufall}") {
+		return v
+	}
+	b := make([]byte, 8)
+	rand.Read(b)
+	return strings.ReplaceAll(v, "{zufall}", hex.EncodeToString(b))
 }
 
 // LiesJSON ist tolerant: es nimmt auch JSON, das in einem Codeblock oder in

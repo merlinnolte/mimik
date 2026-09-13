@@ -187,6 +187,8 @@ class Netz(private var basis: String, private var token: String) {
 
     fun matchAnlegen(): String = ruf("POST", "/v1/matches", "{}")
 
+    fun matchAbbrechen(): String = ruf("POST", "/v1/matches/abbrechen", "{}")
+
     /**
      * Nur der rohe Text. Die saubere Fassung schreibt MIMIK, zusammen mit den
      * Fälschungen – damit alle vier Karten dieselbe Schreibweise haben.

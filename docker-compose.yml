@@ -39,7 +39,7 @@ services:
       MIMIK_BASE_URL: "${MIMIK_BASE_URL:-https://opencode.ai/zen/go/v1}"
       MIMIK_MODEL: "${MIMIK_MODEL:-deepseek-v4-flash}"
       MIMIK_API_KEY: "${MIMIK_API_KEY:?MIMIK_API_KEY fehlt - lege eine .env an}"
-      MIMIK_HEADERS: "${MIMIK_HEADERS:-x-opencode-session: mimik}"
+      MIMIK_HEADERS: "${MIMIK_HEADERS:-x-opencode-session: mimik-{zufall}}"
       # Wer sich anmelden darf. Leer lassen heißt: jeder, der den Server
       # erreicht – und jede Anmeldung kann Modellaufrufe auf deine Rechnung
       # auslösen.

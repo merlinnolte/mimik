@@ -94,6 +94,33 @@ private fun Aktionen(inhalt: @Composable () -> Unit) {
 }
 
 /**
+ * Statt eines Knopfes, der nichts bewirkt: ein Satz und ein laufender Punkt.
+ *
+ * Auf Wartebildschirmen stand früher "Nachsehen". Der Knopf tat fast nie etwas –
+ * er wurde gedrückt, WEIL nichts passierte, und es passierte nichts, weil die
+ * andere Seite noch nicht gezogen hatte. Die App fragt jetzt selbst nach; hier
+ * steht nur noch, worauf gewartet wird.
+ */
+@Composable
+private fun Wartezeile(text: String) {
+    val p = LokalePalette.current
+    var punkte by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(500)
+            punkte = (punkte + 1) % 4
+        }
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(text, color = p.fgDim, fontSize = 11.sp, lineHeight = 17.sp)
+        Text(
+            ".".repeat(punkte).padEnd(3),
+            color = p.accent, fontSize = 11.sp,
+        )
+    }
+}
+
+/**
  * Das Zahnrad liegt über dem Bildschirm, nicht in ihm: Es gehört auf jeden
  * Spielbildschirm, und keiner davon soll deshalb eine Kopfleiste bekommen, die
  * die mittige Anordnung wieder kaputt macht.
@@ -294,7 +321,7 @@ fun PartyBildschirm(modell: AppModel) {
             MimikKopf(Miene.Denkt, "Ich warte auf die zweite Person.")
             Zeile("Gib diesen Code weiter", p.fgDim, 11)
             Text(party.code.ifBlank { "—" }, color = p.accent2, fontSize = 38.sp, letterSpacing = 8.sp)
-            Aktionen { Knopf("Nachsehen", betont = true, aktiv = !modell.laden) { modell.aktualisieren() } }
+            Wartezeile("Sobald sie beitritt, geht es hier von selbst weiter.")
         }
     }
 }
@@ -356,16 +383,34 @@ fun BasisBildschirm(modell: AppModel) {
     val m = modell.zustand?.match
     val vorbei = m != null && m.ergebnis != "OFFEN"
     val gewonnen = m?.ergebnis == "MENSCH"
+    val abgebrochen = m?.ergebnis == "ABGEBROCHEN"
     Huelle(modell) {
         if (vorbei) {
             MimikKopf(
-                if (gewonnen) Miene.Getroffen else Miene.Triumph,
-                if (gewonnen) "Ihr habt mich durchschaut." else "Ich kenne euch besser, als ihr denkt.",
-                haltend = true, schrift = 19,
+                when {
+                    abgebrochen -> Miene.Bereit
+                    gewonnen -> Miene.Getroffen
+                    else -> Miene.Triumph
+                },
+                when {
+                    abgebrochen -> "Abgebrochen. Fangen wir neu an, wenn ihr wollt."
+                    gewonnen -> "Ihr habt mich durchschaut."
+                    else -> "Ich kenne euch besser, als ihr denkt."
+                },
+                haltend = !abgebrochen, schrift = 19,
             )
             Text(
-                if (gewonnen) "IHR GEWINNT" else "MIMIK GEWINNT",
-                color = if (gewonnen) p.accent2 else p.accent, fontSize = 19.sp, letterSpacing = 2.sp,
+                when {
+                    abgebrochen -> "SPIEL BEENDET"
+                    gewonnen -> "IHR GEWINNT"
+                    else -> "MIMIK GEWINNT"
+                },
+                color = when {
+                    abgebrochen -> p.fgDim
+                    gewonnen -> p.accent2
+                    else -> p.accent
+                },
+                fontSize = 19.sp, letterSpacing = 2.sp,
             )
             Punktebalken(m!!.stand.mensch, m.stand.mimik, m.ziel)
             Aktionen { Knopf("Revanche", betont = true, aktiv = !modell.laden) { modell.matchStarten() } }
@@ -431,7 +476,10 @@ fun WartenBildschirm(modell: AppModel) {
             )
         }
         if (r.fehler.isNotBlank()) Zeile(r.fehler, LokalePalette.current.warn, 11)
-        Aktionen { Knopf("Nachsehen", betont = true, aktiv = !modell.laden) { modell.aktualisieren() } }
+        Wartezeile(
+            if (arbeitet) "Das kann ein paar Minuten dauern. Es geht von selbst weiter."
+            else "Es geht von selbst weiter, sobald sie geantwortet hat.",
+        )
     }
 }
 
@@ -490,7 +538,7 @@ fun GetipptBildschirm(modell: AppModel) {
                 Text(meine?.text.orEmpty(), color = p.fg, fontSize = 14.sp, lineHeight = 22.sp)
             }
         }
-        Aktionen { Knopf("Nachsehen", betont = true, aktiv = !modell.laden) { modell.aktualisieren() } }
+        Wartezeile("Es geht von selbst weiter, sobald sie getippt hat.")
     }
 }
 
@@ -570,6 +618,7 @@ fun EinstellungenBildschirm(modell: AppModel) {
     val p = LokalePalette.current
     var name by remember { mutableStateOf(modell.spitzname) }
     var loeschStufe by remember { mutableIntStateOf(0) } // 0 = zu, 1 = Dossier, 2 = alles
+    var spielBeenden by remember { mutableStateOf(false) }
     var bestaetigung by remember { mutableStateOf("") }
 
     Huelle(modell) {
@@ -588,6 +637,31 @@ fun EinstellungenBildschirm(modell: AppModel) {
 
         Panel(titel = "Farbschema") {
             PalettenWahl(modell)
+        }
+
+        if (modell.matchLaeuft) {
+            Panel(titel = "Laufendes Spiel") {
+                if (!spielBeenden) {
+                    Zeile("Punktestand und Chronik bleiben stehen.", p.fgDim, 11)
+                    Spacer(Modifier.height(8.dp))
+                    Knopf("Spiel beenden") { spielBeenden = true }
+                } else {
+                    Zeile(
+                        "Das Spiel endet für euch beide – auch mitten in einer Runde, " +
+                            "auch wenn die andere Seite gerade schreibt. Danach könnt ihr " +
+                            "ein neues starten.",
+                        p.warn, 12,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Knopf("Doch nicht") { spielBeenden = false }
+                        Knopf("Beenden", aktiv = !modell.laden) {
+                            spielBeenden = false
+                            modell.matchAbbrechen()
+                        }
+                    }
+                }
+            }
         }
 
         Panel(titel = "Intro") {

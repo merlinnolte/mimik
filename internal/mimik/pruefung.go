@@ -13,8 +13,12 @@ import (
 // Das Dossier nennt für Embeddings 0.72 statt 0.35; beim Umstieg auf ein
 // Embedding-Modell gehören die Dossier-Werte hierher.
 const (
-	SimMaxEcht    = 0.35 // Fälschung darf der echten Antwort nicht näher kommen
-	SimEnthalten  = 0.75 // ab hier steckt der eine Text im anderen
+	SimMaxEcht   = 0.35 // Fälschung darf der echten Antwort nicht näher kommen
+	SimEnthalten = 0.75 // ab hier steckt der eine Text im anderen
+	// Oberhalb dieser Grenze sind zwei Karten praktisch dieselbe. Anders als
+	// die übrigen Schwellen ist diese KEINE Empfehlung, sondern ein Boden:
+	// Solche Karten gehen nie hinaus, auch nicht notgedrungen.
+	SimUnzumutbar = 0.80
 	SimStreuung   = 0.15 // Fälschungen dürfen nicht enger beieinander liegen
 	SperrSchwelle = 0.60 // ab hier gilt ein gesperrtes Thema als berührt
 )
@@ -164,6 +168,31 @@ func Abstandsfenster(echt string, faelschungen []string) Befund {
 		b.Schuldig = []int{besterIdx}
 	}
 	return b
+}
+
+// Unzumutbar sagt, ob zwei der vier Karten praktisch dieselbe sind – die echte
+// gegen eine Fälschung oder zwei Fälschungen untereinander.
+//
+// Das ist der Boden unter der Rückfallebene. Abstandsfenster und Sperrbruch
+// dürfen scheitern; dann geht notgedrungen der beste Satz hinaus, denn eine
+// schwache Karte ist besser als eine Runde, die hängt. Zwei wortgleiche Karten
+// sind aber keine schwache Runde, sondern eine kaputte: Der Tipp wird zur
+// Münze, und wer es merkt, hat das Spiel durchschaut.
+//
+// Am 13.09.2026 im Emulator aufgetreten – die echte Antwort stand zweimal im
+// Kartensatz, weil drei Versuche nichts Besseres brachten und die
+// Rückfallebene alles durchließ.
+func Unzumutbar(normalform string, faelschungen []string) (int, int, bool) {
+	alle := append([]string{normalform}, faelschungen...)
+	for i := range alle {
+		for j := i + 1; j < len(alle); j++ {
+			if Aehnlichkeit(alle[i], alle[j]) >= SimUnzumutbar ||
+				Enthalten(alle[i], alle[j]) >= 0.90 || Enthalten(alle[j], alle[i]) >= 0.90 {
+				return i, j, true
+			}
+		}
+	}
+	return 0, 0, false
 }
 
 // Sperrbruch findet Fälschungen, die ein gesperrtes Thema doch berühren.

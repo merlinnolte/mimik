@@ -22,6 +22,10 @@ const (
 	MenschGewinnt Ergebnis = "MENSCH"
 	MimikGewinnt  Ergebnis = "MIMIK"
 	Verlaengerung Ergebnis = "VERLAENGERUNG"
+	// Abgebrochen kommt nie aus Auswerten, sondern nur, wenn ein Mensch das
+	// Spiel beendet. Es zählt als beendet: Das Match taucht nicht mehr als
+	// laufend auf, der Punktestand bleibt zum Nachsehen stehen.
+	Abgebrochen Ergebnis = "ABGEBROCHEN"
 )
 
 // Auswerten entscheidet über das Matchende. Es wird ausschließlich NACH dem

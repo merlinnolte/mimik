@@ -127,6 +127,32 @@ func (s *Store) AktivesMatch(partyID string) (Match, error) {
 // ------------------------------------------------------------------ Runde ---
 
 // Runde lädt eine Runde samt Antworten, Karten und Tipps.
+// MatchAbbrechen beendet ein laufendes Match für BEIDE Seiten.
+//
+// Es gehört beiden, also endet es auch für beide – die andere Seite sieht beim
+// nächsten Abgleich, dass es vorbei ist, statt weiter auf eine Antwort zu
+// warten, die nie kommt. Offene Runden werden auf AUFGELOEST gesetzt, sonst
+// zöge der Worker sie weiter durch und riefe das Modell für ein Spiel, das
+// niemand mehr spielt.
+func (s *Store) MatchAbbrechen(mid string) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.Exec(
+		`UPDATE matches SET ergebnis = ?, beendet_am = ? WHERE id = ? AND ergebnis = ?`,
+		game.Abgebrochen, jetzt(), mid, game.Offen); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(
+		`UPDATE rounds SET zustand = ?, aufgeloest_am = ? WHERE match_id = ? AND zustand != ?`,
+		game.Aufgeloest, jetzt(), mid, game.Aufgeloest); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 func (s *Store) Runde(rid string) (game.Runde, error) {
 	var r game.Runde
 	err := s.db.QueryRow(`SELECT id, match_id, nummer, frage FROM rounds WHERE id = ?`, rid).

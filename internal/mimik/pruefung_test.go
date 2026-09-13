@@ -342,3 +342,32 @@ func TestKurzeAntwortBleibtDurchlaessig(t *testing.T) {
 		t.Fatalf("harmloser Satz abgelehnt: %s (max %.2f)", b.Grund, b.MaxZuEcht)
 	}
 }
+
+// TestZweiGleicheKartenGehenNieHinaus: der Boden unter der Rückfallebene.
+func TestZweiGleicheKartenGehenNieHinaus(t *testing.T) {
+	echt := "Der Stapel Zeitschriften neben dem Sofa."
+	// Genau der Fall aus dem Emulator: eine Fälschung ist die echte Antwort.
+	if _, _, doppelt := Unzumutbar(echt, []string{
+		"Eine zweite Kaffeemuehle, die erste mahlt zu grob.",
+		echt,
+		"Abends noch Nachrichten lesen, jedes Mal.",
+	}); !doppelt {
+		t.Fatal("die echte Antwort als Fälschung ist durchgegangen")
+	}
+	// Auch zwei gleiche Fälschungen untereinander.
+	if _, _, doppelt := Unzumutbar(echt, []string{
+		"Abends noch Nachrichten lesen, jedes Mal.",
+		"Abends noch Nachrichten lesen, jedes Mal.",
+		"Zu spät ins Bett, zu früh raus.",
+	}); !doppelt {
+		t.Fatal("zwei gleiche Fälschungen sind durchgegangen")
+	}
+	// Ein normaler Satz darf nicht hängenbleiben.
+	if _, _, doppelt := Unzumutbar(echt, []string{
+		"Eine zweite Kaffeemuehle, die erste mahlt zu grob.",
+		"Abends noch Nachrichten lesen, jedes Mal.",
+		"Zu spät ins Bett, zu früh raus.",
+	}); doppelt {
+		t.Fatal("ein harmloser Kartensatz wurde abgelehnt")
+	}
+}

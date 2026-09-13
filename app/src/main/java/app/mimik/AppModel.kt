@@ -112,6 +112,21 @@ class AppModel(app: Application) : AndroidViewModel(app) {
             }
         }
 
+    /**
+     * Bildschirme, auf denen man auf die andere Seite oder auf MIMIK wartet.
+     * Hier hat der Mensch nichts zu tun – also soll er auch nichts tun müssen.
+     */
+    val wartetAufGegenseite: Boolean
+        get() = when (bildschirm) {
+            Bildschirm.Warten, Bildschirm.Getippt -> true
+            Bildschirm.Party -> zustand?.party?.partner == null && zustand?.party != null
+            else -> false
+        }
+
+    /** Läuft gerade ein Spiel, das man abbrechen könnte? */
+    val matchLaeuft: Boolean
+        get() = zustand?.match?.ergebnis == "OFFEN"
+
     /** Das Zahnrad gehört nicht auf den Anmelde- und nicht auf den Introschirm. */
     val zahnradSichtbar: Boolean
         get() = bildschirm !in
@@ -194,13 +209,23 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         withContext(Dispatchers.Main) { zustandUebernehmen(z) }
     }
 
-    /** Solange MIMIK arbeitet, alle zehn Sekunden nachfragen. */
+    /**
+     * Fragt von selbst nach, solange der Mensch wartet.
+     *
+     * Vorher stand auf jedem Wartebildschirm ein Knopf "Nachsehen". Der war
+     * fast immer wirkungslos – man drückte ihn, weil nichts passierte, und
+     * nichts passierte, weil die andere Seite noch nicht gezogen hatte. Wer
+     * wartet, soll warten dürfen, ohne zu arbeiten.
+     *
+     * Bewusst OHNE imHintergrund: Das setzte laden=true, machte bei jedem Takt
+     * die Knöpfe grau und löschte eine angezeigte Fehlermeldung. Ein Abgleich
+     * im Hintergrund darf im Vordergrund nicht sichtbar sein.
+     */
     fun beobachten() {
         viewModelScope.launch {
             while (true) {
-                delay(10_000)
-                val arbeitet = zustand?.runden?.any { it.zustand == "MIMIK_ARBEITET" } == true
-                if (angemeldet && arbeitet) {
+                delay(3_000)
+                if (angemeldet && wartetAufGegenseite && !laden) {
                     runCatching { withContext(Dispatchers.IO) { netz.zustand() } }
                         .onSuccess { zustandUebernehmen(it) }
                 }
@@ -250,6 +275,16 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         val z = netz.zustand()
         withContext(Dispatchers.Main) {
             gespeicherteTags = gewaehlteTags.toList().sorted()
+            zustandUebernehmen(z)
+        }
+    }
+
+    fun matchAbbrechen() = imHintergrund {
+        netz.matchAbbrechen()
+        val z = netz.zustand()
+        withContext(Dispatchers.Main) {
+            zeigeAufloesung = null
+            einstellungenOffen = false
             zustandUebernehmen(z)
         }
     }

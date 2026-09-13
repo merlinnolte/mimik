@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"mimik/internal/game"
@@ -25,7 +26,9 @@ import (
 // Test die Mechanik, nicht die Laune eines Modells.
 func stubModell(t *testing.T) *httptest.Server {
 	t.Helper()
-	var n int
+	// Atomar, weil der Worker beide Kartensätze einer Runde nebenläufig baut
+	// und dieses Stubmodell damit aus zwei Goroutinen gleichzeitig gerufen wird.
+	var n atomic.Int64
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		roh, _ := io.ReadAll(r.Body)
 		var in struct {
@@ -33,7 +36,7 @@ func stubModell(t *testing.T) *httptest.Server {
 		}
 		json.Unmarshal(roh, &in)
 		user := in.Messages[1].Content
-		n++
+		lauf := n.Add(1)
 
 		// Die rohe Antwort steht im Material. Das Stubmodell "schreibt sie
 		// sauber", indem es den Satzanfang großmacht - genug, um zu prüfen,
@@ -44,12 +47,12 @@ func stubModell(t *testing.T) *httptest.Server {
 
 		inhalt, _ := jsonString(map[string]any{
 			"normalform": "Sauber: " + antwort,
-			"fakt":       fmt.Sprintf("Hat in Runde %d etwas über sich verraten.", n),
+			"fakt":       fmt.Sprintf("Hat in Runde %d etwas über sich verraten.", lauf),
 			"sperre":     []string{"stubthema"},
 			"antworten": []map[string]string{
-				{"anker": "a", "text": fmt.Sprintf("Zitronenfalter beobachten, %d Stück.", n)},
-				{"anker": "b", "text": fmt.Sprintf("Rathausturm besteigen, ganz oben %d.", n)},
-				{"anker": "c", "text": fmt.Sprintf("Werkzeugkisten sortieren bei Nummer %d.", n)},
+				{"anker": "a", "text": fmt.Sprintf("Zitronenfalter beobachten, %d Stück.", lauf)},
+				{"anker": "b", "text": fmt.Sprintf("Rathausturm besteigen, ganz oben %d.", lauf)},
+				{"anker": "c", "text": fmt.Sprintf("Werkzeugkisten sortieren bei Nummer %d.", lauf)},
 			},
 		})
 		json_(w, 200, map[string]any{
@@ -635,5 +638,74 @@ func TestTagsWeitere(t *testing.T) {
 	}
 	if len(nachher.Gewaehlt) != 10 {
 		t.Fatalf("gewaehlt hat %d Einträge", len(nachher.Gewaehlt))
+	}
+}
+
+// TestMatchAbbrechen: Das Match gehört beiden, also endet es für beide – auch
+// mitten in einer Runde, in der die andere Seite noch schreibt.
+func TestMatchAbbrechen(t *testing.T) {
+	srv, s, w := aufbauen(t)
+
+	machen := func(name string) *klient {
+		k := &klient{t: t, basis: srv.URL}
+		var an struct {
+			Token string `json:"token"`
+		}
+		k.ruf("POST", "/v1/devices", map[string]string{"spitzname": name}, &an)
+		k.token = an.Token
+		k.ruf("PUT", "/v1/tags", map[string]any{"tags": zehnTags()}, nil)
+		return k
+	}
+	a, b := machen("A"), machen("B")
+	var pa struct {
+		Code string `json:"code"`
+	}
+	a.ruf("POST", "/v1/parties", nil, &pa)
+	b.ruf("POST", "/v1/parties/join", map[string]string{"code": pa.Code}, nil)
+	a.ruf("POST", "/v1/matches", nil, nil)
+
+	// A schreibt, B nicht – die Runde steht also mitten im Zug.
+	var st struct {
+		Runden []RundeAus `json:"runden"`
+	}
+	a.ruf("GET", "/v1/state", nil, &st)
+	rid := st.Runden[0].ID
+	a.ruf("POST", "/v1/rounds/"+rid+"/answer", map[string]string{"original": "irgendwas"}, nil)
+
+	if code := b.ruf("POST", "/v1/matches/abbrechen", nil, nil); code != 200 {
+		t.Fatalf("abbrechen: %d", code)
+	}
+
+	// Beide Seiten sehen dasselbe Ergebnis.
+	for name, k := range map[string]*klient{"A": a, "B": b} {
+		var z struct {
+			Match struct {
+				Ergebnis string `json:"ergebnis"`
+			} `json:"match"`
+		}
+		k.ruf("GET", "/v1/state", nil, &z)
+		if z.Match.Ergebnis != "ABGEBROCHEN" {
+			t.Fatalf("%s sieht %q", name, z.Match.Ergebnis)
+		}
+	}
+
+	// Der Worker lässt die Finger davon: Kein Modellaufruf für ein Spiel, das
+	// niemand mehr spielt.
+	offen, _ := s.OffeneRunden()
+	if len(offen) != 0 {
+		t.Fatalf("worker sieht noch %d offene runden", len(offen))
+	}
+	w.durchgang(context.Background())
+
+	// Und ein neues Match lässt sich starten.
+	if code := a.ruf("POST", "/v1/matches", nil, nil); code != 201 {
+		t.Fatalf("neues match nach abbruch: %d", code)
+	}
+	// Ohne laufendes Match gibt es nichts abzubrechen – aber jetzt läuft ja eins.
+	if code := a.ruf("POST", "/v1/matches/abbrechen", nil, nil); code != 200 {
+		t.Fatalf("zweiter abbruch: %d", code)
+	}
+	if code := a.ruf("POST", "/v1/matches/abbrechen", nil, nil); code != 409 {
+		t.Fatalf("abbruch ohne laufendes spiel: %d, erwartet 409", code)
 	}
 }

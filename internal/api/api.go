@@ -47,6 +47,7 @@ func (s *Server) Routes() http.Handler {
 		"PUT /v1/tags":                s.tagsSetzen,
 		"GET /v1/state":               s.zustand,
 		"POST /v1/matches":            s.matchAnlegen,
+		"POST /v1/matches/abbrechen":  s.matchAbbrechen,
 		"POST /v1/rounds/{id}/answer": s.antworten,
 		"POST /v1/rounds/{id}/guess":  s.raten,
 		"GET /v1/dossier":             s.dossier,
@@ -298,6 +299,27 @@ func (s *Server) dossierLoeschen(w http.ResponseWriter, r *http.Request) {
 }
 
 // ------------------------------------------------------------------ Match ---
+
+// matchAbbrechen beendet das laufende Match. Die Rückfrage stellt die App; der
+// Server verlangt hier nichts weiter, weil beide Seiten ohnehin dasselbe Match
+// besitzen und jede es beenden darf.
+func (s *Server) matchAbbrechen(w http.ResponseWriter, r *http.Request) {
+	pa, err := s.S.PartyVon(spieler(r).ID)
+	if err != nil {
+		fehler(w, 409, "du bist in keiner party")
+		return
+	}
+	m, err := s.S.AktivesMatch(pa.ID)
+	if err != nil {
+		fehler(w, 409, "es läuft gerade kein spiel")
+		return
+	}
+	if err := s.S.MatchAbbrechen(m.ID); err != nil {
+		fehler(w, 500, err.Error())
+		return
+	}
+	json_(w, 200, map[string]any{"abgebrochen": true})
+}
 
 func (s *Server) matchAnlegen(w http.ResponseWriter, r *http.Request) {
 	p := spieler(r)

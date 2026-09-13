@@ -113,6 +113,12 @@ func (c *Client) Faelschungen(ctx context.Context, frage, roh string, anker []st
 		}
 		// Gemessen wird gegen die Normalform, nicht gegen den rohen Text: Die
 		// Normalform ist es, die als Karte danebensteht.
+		// Erst der Boden: Zwei wortgleiche Karten gehen nie hinaus, auch nicht
+		// als bester von drei schlechten Versuchen.
+		if i, j, doppelt := Unzumutbar(erg.Normalform, texte); doppelt {
+			letzterFehler = fmt.Errorf("karte %d und %d sind praktisch dieselbe", i, j)
+			continue
+		}
 		erg.Befund = Abstandsfenster(erg.Normalform, texte)
 		bruch := Sperrbruch(texte, erg.Sperre)
 		form := FormPruefen(erg.Normalform, texte)
