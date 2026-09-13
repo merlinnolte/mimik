@@ -7,10 +7,14 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      # Nur an das Loopback gebunden. Von außen erreichbar wird der Server über
-      # einen Reverse Proxy mit TLS – nicht dadurch, dass hier ein Port offen
-      # im Netz steht. Für einen Test im eigenen WLAN reicht "8080:8080".
-      - "127.0.0.1:8080:8080"
+      # Die linke Seite kommt aus der .env, damit niemand diese Datei anfassen
+      # muss – sonst kollidiert jede lokale Portänderung mit dem nächsten
+      # git pull.
+      #
+      # Vorgabe ist das Loopback: Von außen erreichbar wird der Server über
+      # einen Reverse Proxy mit TLS, nicht dadurch, dass hier ein Port offen im
+      # Netz steht. Für einen Test im eigenen WLAN: MIMIK_PORT=8082 in die .env.
+      - "${MIMIK_PORT:-127.0.0.1:8080}:8080"
     volumes:
       - daten:/daten
     # Schreiben darf der Dienst genau an einer Stelle: dem Volume.

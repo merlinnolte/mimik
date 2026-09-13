@@ -19,6 +19,7 @@ MIMIK_API_KEY=... MIMIK_BASE_URL=https://opencode.ai/zen/go/v1 MIMIK_HEADERS="x-
 | Variable | Standard | Bedeutung |
 |---|---|---|
 | `MIMIK_DB` | `mimik.db` | SQLite-Datei |
+| `MIMIK_PORT` | `127.0.0.1:8080` | Worauf der Container im Wirtssystem hört. Für das eigene WLAN z. B. `8082` |
 | `MIMIK_ADDR` | `:8080` | Adresse |
 | `MIMIK_BASE_URL` | `https://api.deepseek.com` | OpenAI-kompatibler Endpunkt |
 | `MIMIK_API_KEY` | – | Pflicht, sonst bleiben Runden auf `MIMIK_ARBEITET` |
