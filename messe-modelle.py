@@ -15,6 +15,7 @@ Sekunden etwas Unbrauchbares liefert, hilft nicht.
     export MIMIK_BASE_URL="https://opencode.ai/zen/go/v1"
     export MIMIK_API_KEY="..."
     export MIMIK_HEADERS="x-opencode-session: mimik-{zufall}"
+    python3 messe-modelle.py --liste         # nur auflisten, nichts messen
     python3 messe-modelle.py                 # alle gelisteten Modelle, je 1 Lauf
     python3 messe-modelle.py -n 3            # je 3 Laeufe, Median
     python3 messe-modelle.py modell-a modell-b
@@ -97,13 +98,16 @@ def prompt_b():
     return m.group(1)
 
 
-def modelle():
+def modelle(roh=False):
+    """Die Modelle des Endpunkts. OpenAI-kompatible APIs listen sie unter /models."""
     try:
         d = ruf("/models")
     except Exception as e:
         print("Modelliste nicht abrufbar (%s) - dann bitte Namen als Argumente." % e)
         return []
     xs = d.get("data", d if isinstance(d, list) else [])
+    if roh:
+        return sorted(xs, key=lambda x: x.get("id", ""))
     return sorted(x.get("id", "") for x in xs if x.get("id"))
 
 
@@ -155,6 +159,20 @@ def main():
     laeufe = 1
     if "-n" in sys.argv:
         laeufe = int(sys.argv[sys.argv.index("-n") + 1])
+
+    # Nur auflisten: Was gibt es ueberhaupt, und was steht sonst noch dabei?
+    if "--liste" in sys.argv:
+        xs = modelle(roh=True)
+        if not xs:
+            sys.exit(1)
+        print("%d Modelle an %s\n" % (len(xs), BASIS))
+        for x in xs:
+            extra = {k: v for k, v in x.items()
+                     if k not in ("id", "object") and v not in (None, "", [], {})}
+            print("  %s" % x.get("id", "?"))
+            if extra:
+                print("      " + json.dumps(extra, ensure_ascii=False)[:160])
+        return
 
     system = prompt_b()
     namen = args or modelle()
