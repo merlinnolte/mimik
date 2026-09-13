@@ -167,7 +167,12 @@ private fun Balken(name: String, wert: Int, von: Int, ziel: Int, farbe: Color) {
         Modifier.fillMaxWidth().padding(vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(name, color = p.fgDim, fontSize = 10.sp, letterSpacing = 1.1.sp, modifier = Modifier.width(64.dp))
+        // Feste Breiten, deshalb einzeilig: Eine zweite Zeile schöbe den Balken
+        // daneben nach unten.
+        Text(
+            name, color = p.fgDim, fontSize = 10.sp, letterSpacing = 1.1.sp,
+            maxLines = 1, modifier = Modifier.width(64.dp),
+        )
         Box(
             Modifier.weight(1f).height(10.dp).background(p.bgAlt).border(1.dp, p.border),
         ) {
@@ -177,7 +182,7 @@ private fun Balken(name: String, wert: Int, von: Int, ziel: Int, farbe: Color) {
             )
         }
         Text(
-            jetzt.roundToInt().toString(), color = farbe, fontSize = 13.sp,
+            jetzt.roundToInt().toString(), color = farbe, fontSize = 13.sp, maxLines = 1,
             modifier = Modifier.width(30.dp).padding(start = 8.dp),
         )
     }
@@ -247,12 +252,12 @@ fun Fortschritt(seit: Int, fertig: Boolean, modifier: Modifier = Modifier) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
             Text(
                 "%3d %%".format((gezeigt * 100).roundToInt()),
-                color = p.accent, fontSize = 11.sp,
+                color = p.accent, fontSize = 11.sp, maxLines = 1,
                 textAlign = TextAlign.End, modifier = Modifier.width(42.dp),
             )
             Text(
                 if (fertig) " · fertig" else " · MIMIK schreibt · %d s".format(sekunden),
-                color = p.fgDim, fontSize = 11.sp,
+                color = p.fgDim, fontSize = 11.sp, maxLines = 1,
             )
         }
     }

@@ -24,7 +24,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -76,7 +78,7 @@ fun Huelle(modell: AppModel, inhalt: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun Frage(text: String) {
+internal fun Frage(text: String) {
     val p = LokalePalette.current
     Text(
         text,
@@ -89,7 +91,7 @@ private fun Frage(text: String) {
 }
 
 @Composable
-private fun Aktionen(inhalt: @Composable () -> Unit) {
+internal fun Aktionen(inhalt: @Composable () -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { inhalt() }
 }
 
@@ -107,7 +109,7 @@ private fun Aktionen(inhalt: @Composable () -> Unit) {
  * Aussage: Dass gewartet wird, sagt schon der Satz.
  */
 @Composable
-private fun Wartezeile(text: String) {
+internal fun Wartezeile(text: String) {
     val p = LokalePalette.current
     Text(
         text, color = p.fgDim, fontSize = 11.sp, lineHeight = 17.sp,
@@ -155,7 +157,7 @@ fun StartBildschirm(modell: AppModel) {
         MimikKopf(Miene.Bereit, "Wir kennen uns noch nicht.", schrift = 19)
         Text(
             "MIMIK", color = p.fg, fontSize = 22.sp, fontWeight = FontWeight.Bold,
-            letterSpacing = 6.sp,
+            letterSpacing = 6.sp, maxLines = 1,
         )
         Zeile("Vier Antworten. Eine ist echt.", p.fgDim, 12)
         Panel(titel = "Anmelden") {
@@ -272,6 +274,11 @@ fun IntroBildschirm(modell: AppModel) {
             Text(
                 INTRO_WORTE.take(bis).joinToString(" ") + if (fertig) "" else " ▋",
                 color = p.fg, fontSize = 14.sp, lineHeight = 23.sp,
+                // Hier ausdrücklich der einfache Umbruch: Der Absatz wächst
+                // Wort für Wort, und ein ausgeglichener Umbruch verteilte bei
+                // jedem Wort neu – der schon gelesene Teil spränge im Takt der
+                // Schreibmaschine.
+                style = LocalTextStyle.current.copy(lineBreak = LineBreak.Simple),
                 modifier = Modifier.fillMaxWidth(),
             )
             if (fertig) {
@@ -297,46 +304,6 @@ fun IntroBildschirm(modell: AppModel) {
                 }
             } else {
                 Zeile("tippen zum Überspringen", p.fgDim, 11)
-            }
-        }
-    }
-}
-
-// ------------------------------------------------------------------- Party ---
-
-@Composable
-fun PartyBildschirm(modell: AppModel) {
-    val p = LokalePalette.current
-    var code by remember { mutableStateOf("") }
-    val party = modell.zustand?.party
-    Huelle(modell) {
-        if (party == null) {
-            MimikKopf(Miene.Bereit, "Zu zweit. Einer gründet, einer tritt bei.")
-            Aktionen {
-                Knopf("Party gründen", betont = true, aktiv = !modell.laden) { modell.partyAnlegen() }
-            }
-            Zeile("oder", p.fgDim, 11)
-            Panel(titel = "Einladungscode") {
-                Feld(code, { code = it.uppercase() }, hinweis = "ABC123")
-            }
-            Aktionen {
-                // Vier statt sechs, damit auch TEST durchgeht.
-                Knopf("Beitreten", aktiv = code.trim().length >= 4 && !modell.laden) {
-                    modell.partyBeitreten(code)
-                }
-            }
-            Zeile("Code TEST spielt gegen einen Testspieler.", p.fgDim, 11)
-        } else {
-            MimikKopf(Miene.Denkt, "Ich warte auf die zweite Person.")
-            Zeile("Gib diesen Code weiter", p.fgDim, 11)
-            Text(party.code.ifBlank { "—" }, color = p.accent2, fontSize = 38.sp, letterSpacing = 8.sp)
-            Wartezeile("Sobald sie beitritt, geht es hier von selbst weiter.")
-            // Wer sich vertippt oder es sich anders überlegt, kam hier bisher
-            // nicht mehr heraus: Der Bildschirm hängt an der Party, und die
-            // Party bestand schon. Ohne Rückfrage – es ist noch niemand dabei,
-            // und ein neuer Code ist einen Knopfdruck entfernt.
-            Aktionen {
-                Knopf("Abbrechen", aktiv = !modell.laden) { modell.partyVerlassen() }
             }
         }
     }
@@ -496,7 +463,7 @@ fun WartenBildschirm(modell: AppModel) {
         MimikKopf(
             if (arbeitet && !fertig) Miene.Denkt else Miene.Bereit,
             if (fertig) "Fertig. Vier Karten, eine ist echt."
-            else if (arbeitet) "Ich baue gerade drei Fälschungen.\nDas dauert einen Moment."
+            else if (arbeitet) "Ich baue gerade drei Fälschungen. Das dauert einen Moment."
             else "Deine Antwort steht. Jetzt ist die andere Seite dran.",
             schrift = 19,
         )
@@ -573,7 +540,7 @@ fun GetipptBildschirm(modell: AppModel) {
     val r = modell.aktuelleRunde ?: return
     val meine = r.karten.firstOrNull { it.pos == r.meinTipp }
     Huelle(modell) {
-        MimikKopf(Miene.Denkt, "Tipp steht.\nDie Auflösung kommt, sobald auch sie getippt hat.", schrift = 19)
+        MimikKopf(Miene.Denkt, "Tipp steht. Die Auflösung kommt, sobald auch sie getippt hat.", schrift = 19)
         Frage(r.frage)
         Panel(titel = "Deine Wahl", betont = true) {
             Row {
@@ -787,6 +754,39 @@ fun EinstellungenBildschirm(modell: AppModel) {
         // Was MIMIK über einen weiß, steht bisher nur im Prompt. Wer sich
         // anschauen will, was da über ihn notiert ist, soll das können - die
         // Fakten sind aus den eigenen Antworten gezogen, es ist sein Material.
+        modell.dossier?.let { d ->
+            // Ausdrücklich getrennt vom Dossier: Fakten sind Zitate aus den
+            // eigenen Antworten, Merkmale sind Schlüsse daraus. Das eine ist
+            // belegt, das andere geraten – und wer das nicht auseinanderhält,
+            // liest eine Vermutung als Tatsache über sich selbst.
+            Panel(
+                titel = "Was ich über dich vermute",
+                rechts = if (d.profil.isEmpty()) null else "${d.profil.size}",
+            ) {
+                if (d.profil.isEmpty()) {
+                    Zeile("Noch nichts. Ich schaue nach jeder Runde nach.", p.fgDim, 12)
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        d.profil.forEach { m ->
+                            Column(Modifier.fillMaxWidth()) {
+                                Zeile("${m.merkmal}: ${m.wert}", p.fg, 12)
+                                Zeile(
+                                    m.stand + (if (m.beleg.isBlank()) "" else " · ${m.beleg}"),
+                                    p.fgDim, 11,
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Zeile(
+                        "Das sind Vermutungen, keine Tatsachen – sie dürfen falsch sein. " +
+                            "„Mein Dossier löschen“ nimmt sie mit.",
+                        p.fgDim, 11,
+                    )
+                }
+            }
+        }
+
         Panel(titel = "Mein Dossier", rechts = modell.dossier?.let { "${it.fakten.size} Fakten" }) {
             val d = modell.dossier
             if (d == null) {
@@ -824,9 +824,9 @@ fun EinstellungenBildschirm(modell: AppModel) {
             when (loeschStufe) {
                 1 -> {
                     Zeile(
-                        "Alle Fakten, die ich aus deinen Antworten gezogen habe, werden " +
-                            "gelöscht. Deine Tags bleiben, sie sind eine Einstellung. " +
-                            "Der laufende Punktestand bleibt auch.",
+                        "Alle Fakten und alle Vermutungen, die ich aus deinen Antworten " +
+                            "gezogen habe, werden gelöscht. Deine Tags bleiben, sie sind " +
+                            "eine Einstellung. Der laufende Punktestand bleibt auch.",
                         p.warn, 12,
                     )
                     Spacer(Modifier.height(10.dp))

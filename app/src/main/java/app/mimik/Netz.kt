@@ -72,15 +72,79 @@ data class RundeAus(
 @Serializable
 data class DranPunkt(val was: String = "", val runde: String = "")
 
+/**
+ * Der Zustand EINER Partie. Seit es mehrere gibt, steht die Partie-ID mit drin:
+ * Die App prüft damit, ob die Antwort noch zu der Partie gehört, die gerade
+ * offen ist – sonst zeigte ein spät eintreffender Abgleich die Runde der
+ * falschen Partie.
+ */
 @Serializable
 data class Spielzustand(
     val spieler: Spieler? = null,
     /** Die Tags des Spielers – am Spieler, nicht an der Party. */
     val tags: List<String> = emptyList(),
+    @SerialName("party_id") val partyId: String = "",
+    val name: NameStand = NameStand(),
     val party: PartyAus? = null,
     val match: MatchAus? = null,
     val runden: List<RundeAus> = emptyList(),
     val dran: List<DranPunkt> = emptyList(),
+)
+
+/** Ob der eigene Spitzname eindeutig ist. Nur dann ist man auffindbar. */
+@Serializable
+data class NameStand(val eindeutig: Boolean = true, val beansprucht: Boolean = true)
+
+/** Eine Zeile der Lobby: eine Partie und was dort ansteht. */
+@Serializable
+data class LobbyPartie(
+    @SerialName("party_id") val partyId: String = "",
+    val partner: Spieler? = null,
+    val testpartie: Boolean = false,
+    val code: String = "",
+    val stand: Stand = Stand(),
+    val ziel: Int = 10,
+    val ergebnis: String = "",
+    /** schreiben | raten | warten | aufgeloest | kein_match | kein_partner */
+    val dran: String = "",
+    val runde: String = "",
+    val ungesehen: Int = 0,
+)
+
+@Serializable
+data class EinladungAus(
+    val id: String = "",
+    val zustand: String = "",
+    val gegenueber: Spieler = Spieler(),
+    @SerialName("erstellt_am") val erstelltAm: String = "",
+)
+
+@Serializable
+data class Einladungen(
+    val eingehend: List<EinladungAus> = emptyList(),
+    val ausgehend: List<EinladungAus> = emptyList(),
+)
+
+@Serializable
+data class LobbyAus(
+    val spieler: Spieler? = null,
+    val tags: List<String> = emptyList(),
+    val name: NameStand = NameStand(),
+    val partien: List<LobbyPartie> = emptyList(),
+    val einladungen: Einladungen = Einladungen(),
+)
+
+@Serializable
+data class TrefferAus(val treffer: List<Spieler> = emptyList())
+
+@Serializable
+data class MerkmalAus(
+    val merkmal: String = "",
+    val wert: String = "",
+    val stand: String = "",
+    val belege: Int = 0,
+    val wider: Int = 0,
+    val beleg: String = "",
 )
 
 @Serializable
@@ -111,6 +175,7 @@ data class DossierAus(
     val fakten: List<String> = emptyList(),
     @SerialName("verbrauchte_themen") val verbrauchteThemen: List<String> = emptyList(),
     val tags: List<String> = emptyList(),
+    val profil: List<MerkmalAus> = emptyList(),
 )
 
 @Serializable
@@ -157,6 +222,14 @@ class Netz(private var basis: String, private var token: String) {
         return text
     }
 
+    /**
+     * Suchbegriffe gehoeren in der Adresse kodiert. Ein Leerzeichen oder ein
+     * Umlaut im Namen wuerde die Anfrage sonst zerlegen - und ein "&" waere ein
+     * zweiter Parameter.
+     */
+    private fun enkodiere(x: String): String =
+        java.net.URLEncoder.encode(x, "UTF-8").replace("+", "%20")
+
     private inline fun <reified T> hole(pfad: String): T =
         json.decodeFromString(ruf("GET", pfad, null))
 
@@ -178,8 +251,25 @@ class Netz(private var basis: String, private var token: String) {
     fun partyBeitreten(code: String): PartyNeu =
         sende("POST", "/v1/parties/join", buildJsonObject { put("code", code) }.toString())
 
+    fun partyVerlassen(partie: String): String =
+        ruf("POST", "/v1/parties/$partie/verlassen", "{}")
+
+    fun lobby(): LobbyAus = hole("/v1/lobby")
+
+    fun spielerSuchen(q: String): TrefferAus = hole("/v1/spieler?q=" + enkodiere(q))
+
+    fun einladen(an: String): String =
+        ruf("POST", "/v1/einladungen", buildJsonObject { put("an", an) }.toString())
+
+    fun einladungAnnehmen(id: String): String =
+        ruf("POST", "/v1/einladungen/$id/annehmen", "{}")
+
+    fun einladungAblehnen(id: String): String =
+        ruf("POST", "/v1/einladungen/$id/ablehnen", "{}")
+
+    fun einladungZurueckziehen(id: String): String = ruf("DELETE", "/v1/einladungen/$id", null)
+
     /** ab = wie viele Vorschläge dieses Gerät schon gesehen hat. */
-    fun partyVerlassen(): String = ruf("POST", "/v1/parties/verlassen", "{}")
 
     fun tags(ab: Int = 0): TagsAus = hole("/v1/tags?ab=$ab")
 
@@ -188,11 +278,11 @@ class Netz(private var basis: String, private var token: String) {
         buildJsonObject { put("tags", buildJsonArray { tags.forEach { add(it) } }) }.toString(),
     )
 
-    fun zustand(): Spielzustand = hole("/v1/state")
+    fun zustand(partie: String): Spielzustand = hole("/v1/parties/$partie/state")
 
-    fun matchAnlegen(): String = ruf("POST", "/v1/matches", "{}")
+    fun matchAnlegen(partie: String): String = ruf("POST", "/v1/parties/$partie/matches", "{}")
 
-    fun matchAbbrechen(): String = ruf("POST", "/v1/matches/abbrechen", "{}")
+    fun matchAbbrechen(partie: String): String = ruf("POST", "/v1/parties/$partie/abbrechen", "{}")
 
     /**
      * Nur der rohe Text. Die saubere Fassung schreibt MIMIK, zusammen mit den

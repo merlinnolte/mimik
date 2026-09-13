@@ -35,7 +35,7 @@ Dazu: [SICHERHEIT.md](SICHERHEIT.md) – was der Server annimmt, was er dem Mode
 gibt und was er nicht tut. [agents.md](agents.md) – die Regeln des Projekts für
 alle, die daran weiterarbeiten, Mensch wie Agent.
 
-Version **0.7**. Sie steht an zwei Stellen und muss dort gleich bleiben:
+Version **0.8**. Sie steht an zwei Stellen und muss dort gleich bleiben:
 `internal/version.go` und `app/build.gradle.kts` (`versionName`).
 
 ## Loslegen

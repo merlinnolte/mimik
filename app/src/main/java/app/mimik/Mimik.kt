@@ -23,7 +23,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.style.LineBreak
 import kotlinx.coroutines.delay
 
 /**
@@ -211,6 +213,9 @@ fun MimikGesicht(
     }
     val farbe by animateColorAsState(ziel, tween(90, easing = LinearEasing), label = "mimikFarbe")
 
+    // Das Gesicht bricht NICHT um. Die App setzt sonst ausgeglichen (Theme.kt),
+    // und jeder Umbruch zerlegt hier die Zeichenmatrix in Fragmente - derselbe
+    // Grund, aus dem die Schrift mitgeliefert wird.
     Text(
         text = male(bild),
         color = farbe,
@@ -218,6 +223,8 @@ fun MimikGesicht(
         fontSize = schrift.sp,
         lineHeight = (schrift * 1.18f).sp,
         textAlign = TextAlign.Start,
+        softWrap = false,
+        style = LocalTextStyle.current.copy(lineBreak = LineBreak.Simple),
         modifier = if (rahmen) {
             modifier.background(p.bgInset).border(1.dp, p.border)
                 .padding(horizontal = 10.dp, vertical = 8.dp)

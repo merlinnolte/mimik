@@ -10,6 +10,7 @@ import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -87,11 +88,34 @@ val MonoSchrift = FontFamily(
 
 private val mono = MonoSchrift
 
+/**
+ * Ausgeglichener Umbruch statt "gierig".
+ *
+ * Der gierige Umbruch fuellt die erste Zeile bis zum Rand und laesst den Rest
+ * als Stummel stehen. Bei zweizeiligen Saetzen - und aus denen besteht diese
+ * App fast nur - sieht das aus wie ein Fehler. Balanced verteilt gleichmaessig.
+ *
+ * Es gilt je Absatz: Ein hartes \n teilt den Text, und beide Haelften werden
+ * getrennt ausgeglichen. Deshalb sind die beiden handgesetzten Umbrueche in
+ * Screens.kt weg - sie standen da, um genau diesen Mangel von Hand zu
+ * umgehen, und wuerden ihn jetzt wieder herstellen.
+ */
+private val ausgeglichen = LineBreak.Paragraph.copy(strategy = LineBreak.Strategy.Balanced)
+
 private val typo = Typography(
-    bodyLarge = TextStyle(fontFamily = mono, fontSize = 14.sp, lineHeight = 21.sp),
-    bodyMedium = TextStyle(fontFamily = mono, fontSize = 13.sp, lineHeight = 20.sp),
-    bodySmall = TextStyle(fontFamily = mono, fontSize = 11.sp, lineHeight = 16.sp),
-    titleMedium = TextStyle(fontFamily = mono, fontSize = 15.sp, fontWeight = FontWeight.Bold),
+    bodyLarge = TextStyle(
+        fontFamily = mono, fontSize = 14.sp, lineHeight = 21.sp, lineBreak = ausgeglichen,
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = mono, fontSize = 13.sp, lineHeight = 20.sp, lineBreak = ausgeglichen,
+    ),
+    bodySmall = TextStyle(
+        fontFamily = mono, fontSize = 11.sp, lineHeight = 16.sp, lineBreak = ausgeglichen,
+    ),
+    titleMedium = TextStyle(
+        fontFamily = mono, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+        lineBreak = ausgeglichen,
+    ),
     labelSmall = TextStyle(
         fontFamily = mono, fontSize = 11.sp, fontWeight = FontWeight.Normal, letterSpacing = 1.2.sp,
     ),
@@ -101,8 +125,14 @@ private val typo = Typography(
     labelLarge = TextStyle(
         fontFamily = mono, fontSize = 13.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.4.sp,
     ),
-    titleLarge = TextStyle(fontFamily = mono, fontSize = 20.sp, fontWeight = FontWeight.Bold),
-    headlineSmall = TextStyle(fontFamily = mono, fontSize = 18.sp, fontWeight = FontWeight.Bold),
+    titleLarge = TextStyle(
+        fontFamily = mono, fontSize = 20.sp, fontWeight = FontWeight.Bold,
+        lineBreak = ausgeglichen,
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = mono, fontSize = 18.sp, fontWeight = FontWeight.Bold,
+        lineBreak = ausgeglichen,
+    ),
 )
 
 @Composable

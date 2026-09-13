@@ -39,8 +39,12 @@ object Melder {
         val auftrag = PeriodicWorkRequestBuilder<MelderArbeit>(15, TimeUnit.MINUTES)
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .build()
+        // UPDATE statt KEEP: Mit KEEP behielt ein Geraet, das schon spielt, fuer
+        // immer den Auftrag, mit dem es einmal angefangen hat - eine Aenderung
+        // am Takt oder an den Bedingungen erreichte genau die Geraete nie, auf
+        // die es ankommt.
         WorkManager.getInstance(kontext).enqueueUniquePeriodicWork(
-            AUFTRAG, ExistingPeriodicWorkPolicy.KEEP, auftrag,
+            AUFTRAG, ExistingPeriodicWorkPolicy.UPDATE, auftrag,
         )
     }
 
@@ -61,7 +65,25 @@ object Melder {
         kontext.getSystemService(NotificationManager::class.java).createNotificationChannel(kanal)
     }
 
-    fun melden(kontext: Context, titel: String, text: String) {
+    /**
+     * Eine feste Nummer ging, solange es eine Partie gab. Bei mehreren wuerde
+     * jede Meldung die vorige ueberschreiben: Man saehe immer nur die zuletzt
+     * eingetroffene und wuesste nicht, dass noch eine zweite aussteht.
+     */
+    private fun nummer(kontext: Context, partie: String): Int {
+        val s = Speicher(kontext)
+        val karte = s.meldungsNummern
+        karte[partie]?.toIntOrNull()?.let { return it }
+        val neu = (karte.values.mapNotNull { it.toIntOrNull() }.maxOrNull() ?: 100) + 1
+        s.meldungsNummern = karte + (partie to neu.toString())
+        return neu
+    }
+
+    fun wegnehmen(kontext: Context, partie: String) {
+        runCatching { NotificationManagerCompat.from(kontext).cancel(nummer(kontext, partie)) }
+    }
+
+    fun melden(kontext: Context, m: Meldung) {
         if (!darfMelden(kontext)) return
         kanalAnlegen(kontext)
         val oeffnen = PendingIntent.getActivity(
@@ -72,20 +94,32 @@ object Melder {
         )
         val meldung = NotificationCompat.Builder(kontext, KANAL)
             .setSmallIcon(R.drawable.mimik_melder)
-            .setContentTitle(titel)
-            .setContentText(text)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setContentTitle(m.titel)
+            .setContentText(m.text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(m.text))
             .setContentIntent(oeffnen)
+            .setGroup(KANAL)
             .setAutoCancel(true)
             .build()
-        runCatching { NotificationManagerCompat.from(kontext).notify(1, meldung) }
+        runCatching {
+            NotificationManagerCompat.from(kontext).notify(nummer(kontext, m.partie), meldung)
+        }
     }
 }
 
 /**
- * Ein Durchlauf: Zustand holen, prüfen, ob etwas ansteht, und nur melden, wenn
- * es etwas anderes ist als beim letzten Mal. Ohne diesen Vergleich meldet jeder
- * Durchlauf dieselbe offene Runde erneut.
+ * Ein Durchlauf: nachsehen, ob etwas ansteht - und nur dann melden.
+ *
+ * Zwei Dinge waren hier kaputt, beide im Betrieb aufgefallen:
+ *
+ * 1. Es gab keine Vordergrundpruefung. Wer gerade auf dem Bildschirm sass,
+ *    bekam trotzdem einen Zettel.
+ * 2. Meldungen bezogen sich auf eine Phase, die schon vorbei war. Zwei
+ *    Ursachen: Der Abruf darf zehn Sekunden auf die Verbindung warten, und in
+ *    dieser Zeit kann der Zug laengst gemacht sein - deshalb wird VOR und NACH
+ *    dem Abruf geprueft. Und eine einmal gestellte Meldung blieb im Schacht
+ *    stehen, weil setAutoCancel nur beim Antippen abraeumt - deshalb die
+ *    Loeschliste aus dem Meldeplan.
  */
 class MelderArbeit(kontext: Context, parameter: WorkerParameters) :
     CoroutineWorker(kontext, parameter) {
@@ -93,51 +127,17 @@ class MelderArbeit(kontext: Context, parameter: WorkerParameters) :
     override suspend fun doWork(): Result {
         val speicher = Speicher(applicationContext)
         if (speicher.token.isBlank()) return Result.success()
+        // Wer gerade hinschaut, braucht keinen Zettel.
+        if (speicher.imVordergrund()) return Result.success()
 
-        val z = runCatching { Netz(speicher.server, speicher.token).zustand() }
+        val l = runCatching { Netz(speicher.server, speicher.token).lobby() }
             .getOrElse { return Result.retry() }
+        if (speicher.imVordergrund()) return Result.success()
 
-        val (kennung, titel, text) = ansage(z) ?: run {
-            speicher.letzteMeldung = ""
-            return Result.success()
-        }
-        if (kennung == speicher.letzteMeldung) return Result.success()
-        speicher.letzteMeldung = kennung
-        Melder.melden(applicationContext, titel, text)
+        val plan = meldeplan(l, speicher.gemeldet)
+        plan.loeschen.forEach { Melder.wegnehmen(applicationContext, it) }
+        plan.zeigen.forEach { Melder.melden(applicationContext, it) }
+        speicher.gemeldet = plan.merker
         return Result.success()
-    }
-
-    /**
-     * Was ansteht, entscheidet der Server: `dran` ist genau die Liste dessen,
-     * was dieser Spieler tun muss. Steht dort etwas, hat die andere Seite
-     * gezogen.
-     */
-    private fun ansage(z: Spielzustand): Triple<String, String, String>? {
-        val partner = z.party?.partner?.spitzname?.take(24).orEmpty().ifBlank { "Die andere Seite" }
-        val offen = z.dran.firstOrNull()
-        if (offen != null) {
-            val nummer = z.runden.firstOrNull { it.id == offen.runde }?.nummer ?: 0
-            return when (offen.was) {
-                "schreiben" -> Triple(
-                    "schreiben:${offen.runde}", "MIMIK wartet",
-                    "Runde $nummer steht offen. Deine Antwort fehlt noch.",
-                )
-                "raten" -> Triple(
-                    "raten:${offen.runde}", "Vier Karten liegen bereit",
-                    "Runde $nummer: Eine davon hat $partner wirklich geschrieben.",
-                )
-                else -> null
-            }
-        }
-        // Vor dem ersten Match gibt es nichts zu tun – außer dem Moment, in dem
-        // die Party endlich zu zweit ist.
-        val p = z.party
-        if (p?.partner != null && z.match == null) {
-            return Triple(
-                "party:${p.id}", "Die Party ist vollständig",
-                "$partner ist beigetreten. Ihr könnt anfangen.",
-            )
-        }
-        return null
     }
 }

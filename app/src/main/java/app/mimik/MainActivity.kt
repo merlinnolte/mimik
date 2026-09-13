@@ -2,6 +2,7 @@ package app.mimik
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +17,19 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         Melder.kanalAnlegen(this)
         setContent { App() }
+    }
+
+    // Der Zeitstempel ist die ganze Vordergrunderkennung: Der Melder fragt ihn,
+    // bevor er jemandem einen Zettel schreibt. Ein Ja/Nein-Merker waere eine
+    // Falle - stirbt der Prozess auf "ja", kaeme nie wieder eine Meldung.
+    override fun onResume() {
+        super.onResume()
+        Speicher(this).gesehenStempel = System.currentTimeMillis()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        Speicher(this).gesehenStempel = 0L
     }
 }
 
@@ -32,14 +46,26 @@ private fun App() {
         }
         modell.beobachten()
     }
+    // Der Systemzurueck fuehrt dorthin, wo man herkam: aus den Einstellungen in
+    // den Bildschirm, aus einer Partie in die Uebersicht.
+    BackHandler(enabled = modell.einstellungenOffen || modell.offenePartie != null) {
+        if (modell.einstellungenOffen) modell.einstellungen(false) else modell.zurueckZurLobby()
+    }
+    // Sichtbarkeit fuer den Takt: Im Hintergrund fragt die App gar nicht nach.
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        modell.sichtbarkeit(true)
+        onDispose { modell.sichtbarkeit(false) }
+    }
     MimikTheme(modell.palette) {
         Box(Modifier.fillMaxSize()) {
             when (modell.bildschirm) {
                 Bildschirm.Start -> StartBildschirm(modell)
                 Bildschirm.Laden -> LadeBildschirm(modell)
+                Bildschirm.NameWaehlen -> NameBildschirm(modell)
                 Bildschirm.Intro -> IntroBildschirm(modell)
                 Bildschirm.Tags -> TagsBildschirm(modell)
-                Bildschirm.Party -> PartyBildschirm(modell)
+                Bildschirm.Lobby -> LobbyBildschirm(modell)
+                Bildschirm.Warteraum -> WarteraumBildschirm(modell)
                 Bildschirm.Basis -> BasisBildschirm(modell)
                 Bildschirm.Schreiben -> SchreibenBildschirm(modell)
                 Bildschirm.Warten -> WartenBildschirm(modell)
@@ -49,6 +75,7 @@ private fun App() {
                 Bildschirm.Einstellungen -> EinstellungenBildschirm(modell)
             }
             ZahnradEcke(modell)
+            ZurueckEcke(modell)
         }
     }
 }

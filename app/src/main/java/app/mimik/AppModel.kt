@@ -11,11 +11,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-enum class Bildschirm {
-    Start, Laden, Intro, Tags, Party, Basis, Schreiben, Warten, Raten, Getippt, Aufloesung,
-    Einstellungen,
-}
-
 class AppModel(app: Application) : AndroidViewModel(app) {
 
     private val speicher = Speicher(app)
@@ -23,7 +18,24 @@ class AppModel(app: Application) : AndroidViewModel(app) {
 
     var palette by mutableStateOf(paletteMit(speicher.palette)); private set
     var server by mutableStateOf(speicher.server)
+    /** Die Übersicht: alle Partien, Einladungen, der eigene Namensstand. */
+    var lobby by mutableStateOf<LobbyAus?>(null); private set
+
+    /** Der Zustand der GERADE OFFENEN Partie. Null heißt: noch nicht geladen. */
     var zustand by mutableStateOf<Spielzustand?>(null); private set
+
+    /**
+     * Welche Partie offen ist – eine Auswahl, keine Navigation. Der Bildschirm
+     * ergibt sich weiterhin allein aus dem Zustand; dieses Feld sagt nur, aus
+     * welcher der Partien. Es liegt im Speicher, damit ein Prozesstod niemanden
+     * mitten im Schreiben in die Lobby wirft.
+     */
+    var offenePartie by mutableStateOf(speicher.offenePartie.ifBlank { null })
+        private set
+
+    /** Trefferliste der Namenssuche. */
+    var treffer by mutableStateOf<List<Spieler>>(emptyList()); private set
+    var sichtbar by mutableStateOf(true); private set
     var laden by mutableStateOf(false); private set
     var fehler by mutableStateOf<String?>(null)
     /**
@@ -49,14 +61,14 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     var letzterTreffer by mutableStateOf<Boolean?>(null)
 
     /**
-     * Die Auflösung der gerade beendeten Runde. Ohne dieses Feld würde sie
-     * übersprungen: Sobald beide getippt haben, ist die Runde aufgelöst und die
-     * nächste rückt nach – der Moment, auf den man gewartet hat, wäre weg.
+     * Bis wohin die Auflösungen je Partie gesehen sind.
+     *
+     * Kein gesetztes "zeige jetzt die Auflösung" mehr: Was zu sehen ist, leitet
+     * naechsteAufloesung daraus ab. Ein gesetzter Bildschirm war bei einer
+     * Partie noch zu halten; bei mehreren wäre er ein zweiter Wahrheitsstand
+     * neben dem Spielzustand.
      */
-    var zeigeAufloesung by mutableStateOf<String?>(null)
-        private set
-    private var gesehenBis by mutableStateOf(speicher.gesehenBis)
-    private var gesehenMatch by mutableStateOf(speicher.gesehenMatch)
+    private var gesehen by mutableStateOf(speicher.gesehen)
 
     /**
      * Die Runde, deren Fortschrittsbalken noch volläuft. Die Karten sind schon
@@ -79,58 +91,36 @@ class AppModel(app: Application) : AndroidViewModel(app) {
 
     val angemeldet: Boolean get() = tokenState.isNotBlank()
 
-    val spitzname: String get() = zustand?.spieler?.spitzname.orEmpty()
+    val spitzname: String
+        get() = lobby?.spieler?.spitzname ?: zustand?.spieler?.spitzname.orEmpty()
 
-    /**
-     * Es gibt immer genau eine Runde, die dran ist. Das Spiel ist eine Schleife:
-     * Frage, beide antworten, beide raten, Auflösung, nächste Frage. Mehrere
-     * Runden gleichzeitig anzuzeigen hat das Datenmodell gespiegelt, nicht das
-     * Spielgefühl.
-     */
+    private val sicht: Sicht
+        get() = Sicht(
+            angemeldet = angemeldet,
+            lobby = lobby,
+            partie = zustand,
+            offenePartie = offenePartie,
+            introOffen = introOffen,
+            einstellungenOffen = einstellungenOffen,
+            gesehen = gesehen,
+            balkenLaeuftVoll = balkenLaeuftVoll,
+        )
+
+    /** Der Bildschirm steht in Ableitung.kt – dort ist er prüfbar. */
+    val bildschirm: Bildschirm get() = bildschirmFuer(sicht)
+
     val aktuelleRunde: RundeAus?
-        get() = zustand?.runden?.firstOrNull { it.zustand != "AUFGELOEST" }
+        get() = zustand?.let { aktuelleRunde(it) }
 
-    /**
-     * Der Bildschirm ergibt sich aus dem Zustand, nicht aus Navigation.
-     *
-     * Die Reihenfolge ist die des Onboardings: anmelden, Intro, Tags, Party.
-     * Die Tags stehen bewusst vor der Party – was MIMIK über einen weiß, hängt
-     * am Spieler und überlebt jede Party.
-     */
-    val bildschirm: Bildschirm
-        get() {
-            if (!angemeldet) return Bildschirm.Start
-            if (introOffen) return Bildschirm.Intro
-            if (einstellungenOffen) return Bildschirm.Einstellungen
-            // Erst wenn der Server geantwortet hat, steht fest, wo es weitergeht.
-            // Ohne diesen Zwischenschritt blitzt beim Start jedes Mal kurz die
-            // Tagauswahl auf, die das Gerät längst hinter sich hat.
-            val z = zustand ?: return Bildschirm.Laden
-            if (z.tags.size < 10) return Bildschirm.Tags
-            val party = z.party ?: return Bildschirm.Party
-            if (party.partner == null) return Bildschirm.Party
-            if (zeigeAufloesung != null) return Bildschirm.Aufloesung
-            val m = z.match ?: return Bildschirm.Basis
-            if (m.ergebnis != "OFFEN") return Bildschirm.Basis
-            val r = aktuelleRunde ?: return Bildschirm.Basis
-            return when {
-                r.meineAntwort.isBlank() -> Bildschirm.Schreiben
-                r.karten.isEmpty() || balkenLaeuftVoll == r.id -> Bildschirm.Warten
-                r.meinTipp == null -> Bildschirm.Raten
-                else -> Bildschirm.Getippt
-            }
-        }
+    /** Die Auflösung, die gerade ansteht – abgeleitet, nicht gesetzt. */
+    val zeigeAufloesung: String?
+        get() = zustand?.let { naechsteAufloesung(it, gesehen[it.partyId]) }
 
-    /**
-     * Bildschirme, auf denen man auf die andere Seite oder auf MIMIK wartet.
-     * Hier hat der Mensch nichts zu tun – also soll er auch nichts tun müssen.
-     */
-    val wartetAufGegenseite: Boolean
-        get() = when (bildschirm) {
-            Bildschirm.Warten, Bildschirm.Getippt -> true
-            Bildschirm.Party -> zustand?.party?.partner == null && zustand?.party != null
-            else -> false
-        }
+    val zeilen: List<LobbyPartie> get() = lobby?.let { lobbyzeilen(it) } ?: emptyList()
+    val einladungen: Einladungen get() = lobby?.einladungen ?: Einladungen()
+
+    fun einladungOffenMit(pid: String): Boolean =
+        einladungen.ausgehend.any { it.gegenueber.id == pid }
 
     /** Steckt der Spieler in einer vollständigen Party? */
     val inParty: Boolean
@@ -143,39 +133,54 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     val matchLaeuft: Boolean
         get() = zustand?.match?.ergebnis == "OFFEN"
 
+    /**
+     * Wie oft nachgefragt wird – nach dem Bildschirm, nicht nach der Zahl der
+     * Partien: Die Lobby kommt in einem Abruf, sechs Partien kosten so viel wie
+     * eine. Drei Sekunden nur dort, wo etwas in Sekunden passiert; im
+     * Hintergrund gar nicht, und auf Schreiben und Raten auch nicht – dort ist
+     * der Mensch dran, und ein Abgleich währenddessen kann nur stören.
+     */
+    private val takt: Long
+        get() = when {
+            !sichtbar || !angemeldet -> 0L
+            bildschirm == Bildschirm.Warten -> 3_000L
+            bildschirm == Bildschirm.Getippt -> 5_000L
+            bildschirm == Bildschirm.Warteraum -> 5_000L
+            bildschirm == Bildschirm.Lobby -> 12_000L
+            bildschirm == Bildschirm.Laden -> 3_000L
+            else -> 0L
+        }
+
     /** Das Zahnrad gehört nicht auf den Anmelde- und nicht auf den Introschirm. */
     val zahnradSichtbar: Boolean
-        get() = bildschirm !in
-            setOf(Bildschirm.Start, Bildschirm.Laden, Bildschirm.Intro, Bildschirm.Einstellungen)
+        get() = bildschirm !in setOf(
+            Bildschirm.Start, Bildschirm.Laden, Bildschirm.Intro,
+            Bildschirm.Einstellungen, Bildschirm.NameWaehlen,
+        )
+
+    /** Der Rückweg in die Übersicht – überall dort, wo eine Partie offen ist. */
+    val zurueckSichtbar: Boolean
+        get() = offenePartie != null && bildschirm !in setOf(
+            Bildschirm.Start, Bildschirm.Intro, Bildschirm.Einstellungen, Bildschirm.NameWaehlen,
+        )
 
     fun runde(id: String?): RundeAus? = zustand?.runden?.firstOrNull { it.id == id }
 
     /**
-     * Nach jedem Zustandsabgleich prüfen, ob eine Runde aufgelöst wurde, die
-     * dieser Spieler noch nicht gesehen hat. Ohne das bekommt nur die Auflösung
-     * zu sehen, wer als Zweiter tippt – wer zuerst tippt, überspringt sie und
-     * landet wortlos in der nächsten Frage.
+     * Übernimmt den Zustand der offenen Partie.
+     *
+     * Seiteneffekt ist hier nur noch eines: das kurze Halten des
+     * Wartebildschirms, damit der Fortschrittsbalken sichtbar vollläuft. Das
+     * ist Zeitsteuerung, kein Zustand. Was angezeigt wird, leitet
+     * bildschirmFuer ab.
      */
     private fun zustandUebernehmen(z: Spielzustand) {
         val vorher = zustand
-        // Rundennummern fangen in jedem Match wieder bei 1 an. Bleibt der
-        // Merker über den Matchwechsel stehen, liegt jede Auflösung des neuen
-        // Matches darunter und wird übersprungen – genau das war der Fall.
-        val mid = z.match?.id.orEmpty()
-        if (mid != gesehenMatch) {
-            gesehenMatch = mid
-            gesehenBis = 0
-            speicher.gesehenMatch = mid
-            speicher.gesehenBis = 0
-        }
-        // Karten sind neu da: den Wartebildschirm noch einen Moment halten,
-        // damit der Balken sichtbar vollläuft, statt mitten im Lauf zu
-        // verschwinden.
         val alt = vorher?.runden?.firstOrNull { it.id == aktuelleRunde?.id }
         zustand = z
         val jetzt = aktuelleRunde
-        if (jetzt != null && alt != null && alt.karten.isEmpty() && jetzt.karten.isNotEmpty() &&
-            jetzt.meinTipp == null
+        if (vorher?.partyId == z.partyId && jetzt != null && alt != null &&
+            alt.karten.isEmpty() && jetzt.karten.isNotEmpty() && jetzt.meinTipp == null
         ) {
             balkenLaeuftVoll = jetzt.id
             viewModelScope.launch {
@@ -183,11 +188,42 @@ class AppModel(app: Application) : AndroidViewModel(app) {
                 balkenLaeuftVoll = null
             }
         }
-        if (zeigeAufloesung != null) return
-        val faellig = z.runden
-            .filter { it.zustand == "AUFGELOEST" && it.meinTipp != null && it.nummer > gesehenBis }
-            .minByOrNull { it.nummer }
-        if (faellig != null) zeigeAufloesung = faellig.id
+    }
+
+    /**
+     * Übernimmt die Lobby und kürzt dabei den Meldemerker.
+     *
+     * Kürzen, weil eine erledigte Phase sonst als "schon gemeldet" stehen
+     * bleibt und die nächste Meldung derselben Art verschluckt – das war der
+     * Fall nach jedem Zug, den man im Vordergrund gemacht hat. Nicht
+     * erweitern, weil Zuschauen keine Meldung ist: Wer die App öffnet, die
+     * offene Runde sieht und wieder weggeht, soll später trotzdem angestupst
+     * werden.
+     */
+    private fun lobbyUebernehmen(l: LobbyAus) {
+        lobby = l
+        val faellig = l.partien.filter { it.dran == "schreiben" || it.dran == "raten" }
+            .map { it.partyId }.toSet()
+        val alt = speicher.gemeldet
+        val erledigt = alt.keys - faellig
+        if (erledigt.isEmpty()) return
+        erledigt.forEach { Melder.wegnehmen(getApplication(), it) }
+        speicher.gemeldet = alt.filterKeys { it in faellig }
+    }
+
+
+    /**
+     * Nach jedem Zug: die Lobby und - falls eine Partie offen ist - deren
+     * Zustand. Zwei Abrufe, weil die Lobby keine Runden traegt: Sie soll auch
+     * bei zehn Partien eine Abfrage bleiben.
+     */
+    private suspend fun nachladen() {
+        val l = netz.lobby()
+        val z = offenePartie?.let { netz.zustand(it) }
+        withContext(Dispatchers.Main) {
+            lobbyUebernehmen(l)
+            if (z != null) zustandUebernehmen(z)
+        }
     }
 
     private fun imHintergrund(arbeit: suspend () -> Unit) {
@@ -221,11 +257,11 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         val aus = netz.geraetAnlegen(spitzname, einladung.trim())
         speicher.token = aus.token
         netz.setze(speicher.server, aus.token)
-        val z = netz.zustand()
+        val l = netz.lobby()
         withContext(Dispatchers.Main) {
             tokenState = aus.token
             introOffen = !speicher.introGesehen
-            zustandUebernehmen(z)
+            lobbyUebernehmen(l)
             Melder.planen(getApplication())
         }
     }
@@ -245,45 +281,131 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         einstellungenOffen = offen
     }
 
-    fun aktualisieren() = imHintergrund {
-        val z = netz.zustand()
-        withContext(Dispatchers.Main) { zustandUebernehmen(z) }
-    }
+    fun aktualisieren() = imHintergrund { nachladen() }
 
     /**
      * Fragt von selbst nach, solange der Mensch wartet.
      *
-     * Vorher stand auf jedem Wartebildschirm ein Knopf "Nachsehen". Der war
-     * fast immer wirkungslos – man drückte ihn, weil nichts passierte, und
-     * nichts passierte, weil die andere Seite noch nicht gezogen hatte. Wer
-     * wartet, soll warten dürfen, ohne zu arbeiten.
-     *
      * Bewusst OHNE imHintergrund: Das setzte laden=true, machte bei jedem Takt
      * die Knöpfe grau und löschte eine angezeigte Fehlermeldung. Ein Abgleich
      * im Hintergrund darf im Vordergrund nicht sichtbar sein.
+     *
+     * Der Takt hängt am Bildschirm (siehe takt) und hält im Hintergrund ganz
+     * an. Vorher lief er weiter, solange die Activity lebte – alle drei
+     * Sekunden, auch wenn niemand hinsah. Der Zeitstempel hier ist zugleich der
+     * Herzschlag, an dem der Melder erkennt, dass die App sichtbar ist.
      */
     fun beobachten() {
         viewModelScope.launch {
+            var fehlschlaege = 0
             while (true) {
-                delay(3_000)
-                if (angemeldet && wartetAufGegenseite && !laden) {
-                    runCatching { withContext(Dispatchers.IO) { netz.zustand() } }
-                        .onSuccess { zustandUebernehmen(it) }
+                val t = takt
+                if (t == 0L) {
+                    delay(2_000)
+                    continue
                 }
+                speicher.gesehenStempel = System.currentTimeMillis()
+                delay(t * (1L shl minOf(fehlschlaege, 3)))
+                if (laden) continue
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        val l = netz.lobby()
+                        val z = offenePartie?.let { netz.zustand(it) }
+                        l to z
+                    }
+                }.onSuccess { (l, z) ->
+                    fehlschlaege = 0
+                    lobbyUebernehmen(l)
+                    if (z != null) zustandUebernehmen(z)
+                }.onFailure { fehlschlaege++ }
             }
         }
     }
 
+    fun sichtbarkeit(an: Boolean) {
+        sichtbar = an
+        speicher.gesehenStempel = if (an) System.currentTimeMillis() else 0L
+    }
+
+    // ------------------------------------------------------------ Lobby ---
+
+    fun partieOeffnen(id: String) {
+        fehler = null
+        offenePartie = id
+        speicher.offenePartie = id
+        zustand = null
+        imHintergrund {
+            val z = netz.zustand(id)
+            withContext(Dispatchers.Main) { zustandUebernehmen(z) }
+        }
+    }
+
+    fun zurueckZurLobby() {
+        fehler = null
+        offenePartie = null
+        speicher.offenePartie = ""
+        zustand = null
+        aktualisieren()
+    }
+
+    fun suchen(q: String) {
+        if (q.trim().length < 2) {
+            treffer = emptyList()
+            return
+        }
+        viewModelScope.launch {
+            runCatching { withContext(Dispatchers.IO) { netz.spielerSuchen(q.trim()) } }
+                .onSuccess { treffer = it.treffer }
+        }
+    }
+
+    fun einladen(pid: String) = imHintergrund {
+        netz.einladen(pid)
+        val l = netz.lobby()
+        withContext(Dispatchers.Main) { lobbyUebernehmen(l) }
+    }
+
+    fun einladungAnnehmen(id: String) = imHintergrund {
+        netz.einladungAnnehmen(id)
+        val l = netz.lobby()
+        withContext(Dispatchers.Main) { lobbyUebernehmen(l) }
+    }
+
+    fun einladungAblehnen(id: String) = imHintergrund {
+        netz.einladungAblehnen(id)
+        val l = netz.lobby()
+        withContext(Dispatchers.Main) { lobbyUebernehmen(l) }
+    }
+
+    fun einladungZurueckziehen(id: String) = imHintergrund {
+        netz.einladungZurueckziehen(id)
+        val l = netz.lobby()
+        withContext(Dispatchers.Main) { lobbyUebernehmen(l) }
+    }
+
     fun partyAnlegen() = imHintergrund {
-        netz.partyAnlegen()
-        val z = netz.zustand()
-        withContext(Dispatchers.Main) { zustandUebernehmen(z) }
+        val neu = netz.partyAnlegen()
+        val l = netz.lobby()
+        val z = netz.zustand(neu.partyId)
+        withContext(Dispatchers.Main) {
+            lobbyUebernehmen(l)
+            // Direkt in den Warteraum: Wer gründet, will den Code sehen.
+            offenePartie = neu.partyId
+            speicher.offenePartie = neu.partyId
+            zustandUebernehmen(z)
+        }
     }
 
     fun partyBeitreten(code: String) = imHintergrund {
-        netz.partyBeitreten(code.trim().uppercase())
-        val z = netz.zustand()
-        withContext(Dispatchers.Main) { zustandUebernehmen(z) }
+        val neu = netz.partyBeitreten(code.trim().uppercase())
+        val l = netz.lobby()
+        val z = netz.zustand(neu.partyId)
+        withContext(Dispatchers.Main) {
+            lobbyUebernehmen(l)
+            offenePartie = neu.partyId
+            speicher.offenePartie = neu.partyId
+            zustandUebernehmen(z)
+        }
     }
 
     /** Erster Griff: Stand vom Server holen, Auswahl daraus übernehmen. */
@@ -313,62 +435,62 @@ class AppModel(app: Application) : AndroidViewModel(app) {
 
     fun tagsSpeichern() = imHintergrund {
         netz.tagsSetzen(gewaehlteTags.toList())
-        val z = netz.zustand()
+        val l = netz.lobby()
         withContext(Dispatchers.Main) {
             gespeicherteTags = gewaehlteTags.toList().sorted()
-            zustandUebernehmen(z)
+            lobbyUebernehmen(l)
         }
     }
 
     /** Löst die Party auf – für beide. Konto, Tags und Dossier bleiben. */
+    /** Löst die Party auf – für beide. Konto, Tags und Dossier bleiben. */
     fun partyVerlassen() = imHintergrund {
-        netz.partyVerlassen()
-        val z = netz.zustand()
+        val p = offenePartie ?: return@imHintergrund
+        netz.partyVerlassen(p)
+        val l = netz.lobby()
         withContext(Dispatchers.Main) {
-            zeigeAufloesung = null
             einstellungenOffen = false
-            zustandUebernehmen(z)
+            offenePartie = null
+            speicher.offenePartie = ""
+            zustand = null
+            lobbyUebernehmen(l)
         }
     }
 
     fun matchAbbrechen() = imHintergrund {
-        netz.matchAbbrechen()
-        val z = netz.zustand()
-        withContext(Dispatchers.Main) {
-            zeigeAufloesung = null
-            einstellungenOffen = false
-            zustandUebernehmen(z)
-        }
+        val p = offenePartie ?: return@imHintergrund
+        netz.matchAbbrechen(p)
+        withContext(Dispatchers.Main) { einstellungenOffen = false }
+        nachladen()
     }
 
     fun matchStarten() = imHintergrund {
-        netz.matchAnlegen()
-        val z = netz.zustand()
-        withContext(Dispatchers.Main) { zustandUebernehmen(z) }
+        val p = offenePartie ?: return@imHintergrund
+        netz.matchAnlegen(p)
+        nachladen()
     }
 
     fun antwortSenden(runde: String, original: String) = imHintergrund {
         netz.antworten(runde, original)
-        val z = netz.zustand()
-        withContext(Dispatchers.Main) { zustandUebernehmen(z) }
+        nachladen()
     }
 
     fun tippSenden(runde: String, pos: Int) = imHintergrund {
         val aus = netz.raten(runde, pos)
-        val z = netz.zustand()
-        withContext(Dispatchers.Main) {
-            letzterTreffer = aus.richtig
-            zustandUebernehmen(z)
-        }
+        withContext(Dispatchers.Main) { letzterTreffer = aus.richtig }
+        nachladen()
     }
 
-    /** Auflösung wegklicken und in die nächste Runde gehen. */
+    /**
+     * Auflösung wegklicken. Es wird nichts "zugemacht", sondern der Merker
+     * dieser Partie weitergeschoben - was zu sehen ist, ergibt sich danach von
+     * selbst.
+     */
     fun weiter() {
-        runde(zeigeAufloesung)?.let {
-            gesehenBis = maxOf(gesehenBis, it.nummer)
-            speicher.gesehenBis = gesehenBis
-        }
-        zeigeAufloesung = null
+        val z = zustand ?: return
+        val r = z.runden.firstOrNull { it.id == zeigeAufloesung } ?: return
+        gesehen = gesehen + (z.partyId to Gesehen(z.match?.id.orEmpty(), r.nummer))
+        speicher.gesehen = gesehen
         aktualisieren()
     }
 
@@ -376,8 +498,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
 
     fun umbenennen(neu: String) = imHintergrund {
         netz.umbenennen(neu.trim())
-        val z = netz.zustand()
-        withContext(Dispatchers.Main) { zustandUebernehmen(z) }
+        nachladen()
     }
 
     /**
@@ -396,11 +517,8 @@ class AppModel(app: Application) : AndroidViewModel(app) {
      *  Einstellung, kein Gelerntes. */
     fun dossierLoeschen() = imHintergrund {
         netz.dossierLoeschen()
-        val z = netz.zustand()
-        withContext(Dispatchers.Main) {
-            dossier = null
-            zustandUebernehmen(z)
-        }
+        withContext(Dispatchers.Main) { dossier = null }
+        nachladen()
     }
 
     /** Danach ist auf dem Server nichts mehr von diesem Spieler übrig, und die
@@ -415,13 +533,13 @@ class AppModel(app: Application) : AndroidViewModel(app) {
             netz.setze(adresse, "")
             tokenState = ""
             zustand = null
+            lobby = null
+            offenePartie = null
             gespeicherteTags = emptyList()
             vorschlaege = emptyList()
             gewaehlteTags = emptySet()
             tagsGeladen = false
-            zeigeAufloesung = null
-            gesehenBis = 0
-            gesehenMatch = ""
+            gesehen = emptyMap()
             einstellungenOffen = false
         }
     }
