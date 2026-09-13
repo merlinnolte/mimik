@@ -106,6 +106,12 @@ func (s *Server) zustand(w http.ResponseWriter, r *http.Request) {
 		}
 		pa = xs[0]
 	}
+	// Die Partie-ID GLEICH HIER, nicht erst am Ende: Darunter liegen zwei
+	// vorzeitige Rueckwege (kein Match, keine Runden). Eine frische Partie hat
+	// noch kein Match, ging also ohne party_id hinaus - und die App, die ihre
+	// geoeffnete Partie ueber genau dieses Feld wiedererkennt, blieb im
+	// Ladebildschirm stehen.
+	aus["party_id"] = pa.ID
 	party := map[string]any{"id": pa.ID, "tags": nichtNil(tags), "code": s.S.PartyCode(pa.ID)}
 	gegner := pa.Gegner(game.PlayerID(p.ID))
 	if gegner != "" {
@@ -181,7 +187,6 @@ func (s *Server) zustand(w http.ResponseWriter, r *http.Request) {
 	}
 	aus["runden"] = liste
 	aus["dran"] = dran
-	aus["party_id"] = pa.ID
 	// Wer den Zustand einer Partie abruft, hat ihre Auflösungen vor Augen.
 	// Damit faellt der Zaehler in der Lobby genau dann, wenn der Mensch
 	// hingeschaut hat - und nicht schon, wenn die Runde aufgeloest wurde.

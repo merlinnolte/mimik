@@ -1108,3 +1108,45 @@ func TestReviewBautProfil(t *testing.T) {
 			len(d.Verlauf), vorher)
 	}
 }
+
+// TestFrischePartieTraegtIhreID: Eine gegruendete Partie hat noch kein Match.
+// Der Zustand steigt dann vorzeitig aus - und muss trotzdem sagen, um welche
+// Partie es geht. Ohne das Feld erkennt die App ihre geoeffnete Partie nicht
+// wieder und bleibt im Ladebildschirm stehen. Genau so gesehen, in 0.8.
+func TestFrischePartieTraegtIhreID(t *testing.T) {
+	srv, _, _ := aufbauen(t)
+	k := &klient{t: t, basis: srv.URL}
+	var out struct {
+		Token string `json:"token"`
+	}
+	k.ruf("POST", "/v1/devices", map[string]string{"spitzname": "Frisch"}, &out)
+	k.token = out.Token
+
+	var neu struct {
+		PartyID string `json:"party_id"`
+	}
+	if code := k.ruf("POST", "/v1/parties", nil, &neu); code != 201 {
+		t.Fatalf("party: %d", code)
+	}
+
+	var st struct {
+		PartyID string `json:"party_id"`
+		Party   struct {
+			Code    string    `json:"code"`
+			Partner *struct{} `json:"partner"`
+		} `json:"party"`
+	}
+	k.ruf("GET", "/v1/parties/"+neu.PartyID+"/state", nil, &st)
+	if st.PartyID != neu.PartyID {
+		t.Fatalf("party_id fehlt oder ist falsch: %q statt %q", st.PartyID, neu.PartyID)
+	}
+	if st.Party.Code == "" {
+		t.Fatal("der einladungscode fehlt im zustand")
+	}
+	// Und dasselbe ueber den Altpfad, solange es nur diese eine Partie gibt.
+	st.PartyID = ""
+	k.ruf("GET", "/v1/state", nil, &st)
+	if st.PartyID != neu.PartyID {
+		t.Fatalf("altpfad ohne party_id: %q", st.PartyID)
+	}
+}

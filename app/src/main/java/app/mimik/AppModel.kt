@@ -317,7 +317,20 @@ class AppModel(app: Application) : AndroidViewModel(app) {
                     fehlschlaege = 0
                     lobbyUebernehmen(l)
                     if (z != null) zustandUebernehmen(z)
-                }.onFailure { fehlschlaege++ }
+                }.onFailure { e ->
+                    fehlschlaege++
+                    // Der Takt schweigt sonst. Das ist richtig, solange nur
+                    // die Verbindung hakt - aber wer auf dem Ladebildschirm
+                    // festsitzt, soll erfahren, warum. Ab dem dritten
+                    // Fehlschlag steht es da.
+                    if (fehlschlaege >= 3 && fehler == null) {
+                        fehler = (e as? NetzFehler)?.text ?: e.message
+                    }
+                    // Die offene Partie gibt es nicht mehr (verlassen, vom
+                    // Gegenueber aufgeloest): zurueck in die Uebersicht, statt
+                    // ewig eine Partie zu laden, die weg ist.
+                    if ((e as? NetzFehler)?.code == 404) zurueckZurLobby()
+                }
             }
         }
     }
