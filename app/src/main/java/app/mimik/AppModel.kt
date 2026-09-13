@@ -380,12 +380,27 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         withContext(Dispatchers.Main) { zustandUebernehmen(z) }
     }
 
+    /**
+     * Was MIMIK über einen notiert hat – auf Wunsch, nicht im Hintergrund
+     * geladen: Es ändert sich nur nach einer Runde, und wer es nie öffnet,
+     * soll dafür auch keine Abfrage bezahlen.
+     */
+    var dossier by mutableStateOf<DossierAus?>(null); private set
+
+    fun dossierLaden() = imHintergrund {
+        val d = netz.dossier()
+        withContext(Dispatchers.Main) { dossier = d }
+    }
+
     /** MIMIK vergisst, was sie gelernt hat. Die Tags bleiben – sie sind eine
      *  Einstellung, kein Gelerntes. */
     fun dossierLoeschen() = imHintergrund {
         netz.dossierLoeschen()
         val z = netz.zustand()
-        withContext(Dispatchers.Main) { zustandUebernehmen(z) }
+        withContext(Dispatchers.Main) {
+            dossier = null
+            zustandUebernehmen(z)
+        }
     }
 
     /** Danach ist auf dem Server nichts mehr von diesem Spieler übrig, und die

@@ -30,8 +30,8 @@ type RundeAus struct {
 	MeinTreffer  *bool        `json:"mein_treffer,omitempty"`
 	Aufloesung   *Aufloesung  `json:"aufloesung,omitempty"`
 	Fehler       string       `json:"fehler,omitempty"`
-	// Sekunden, seit dieser Spieler geantwortet hat - der Beginn von MIMIKs
-	// Arbeit. Nur gesetzt, solange sie arbeitet; die App zeichnet daraus den
+	// Sekunden, seit BEIDE geantwortet haben - der Beginn von MIMIKs Arbeit.
+	// Nur gesetzt, solange sie arbeitet; die App zeichnet daraus den
 	// Fortschrittsbalken und findet ihn nach einem Neustart wieder.
 	WartetSeit int `json:"wartet_seit,omitempty"`
 }
@@ -41,6 +41,11 @@ type Aufloesung struct {
 	AntwortPartner  string `json:"antwort_partner"`
 	MeinTippRichtig bool   `json:"mein_tipp_richtig"`
 	PartnerTipp     int    `json:"partner_tipp"`
+	// Der Text der Karte, die die andere Seite fuer meine echte Antwort hielt -
+	// aus dem Satz ueber MICH. Der spannendste Teil der Auflösung: Wofuer hat
+	// sie mich gehalten? Erst nach dem zweiten Tipp, also ist nichts verraten.
+	PartnerTippText string `json:"partner_tipp_text,omitempty"`
+	MeineEchte      string `json:"meine_echte,omitempty"`
 	PartnerRichtig  bool   `json:"partner_richtig"`
 	Doppeltreffer   bool   `json:"doppeltreffer"`
 }
@@ -53,6 +58,17 @@ func nichtNil(xs []string) []string {
 		return []string{}
 	}
 	return xs
+}
+
+// kartentext sucht eine Karte nach Position. Fehlt sie, bleibt das Feld leer -
+// die App zeigt den Abschnitt dann gar nicht, statt eine Luecke zu malen.
+func kartentext(ks []game.Karte, pos int) string {
+	for _, k := range ks {
+		if k.Pos == pos {
+			return k.Text
+		}
+	}
+	return ""
 }
 
 func (s *Server) zustand(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +123,7 @@ func (s *Server) zustand(w http.ResponseWriter, r *http.Request) {
 		if a, ok := rd.Antworten[ich]; ok {
 			ra.MeineAntwort = a.Normalform
 			if z == game.MimikArbeitet {
-				ra.WartetSeit = s.S.AntwortSeit(rd.ID, p.ID)
+				ra.WartetSeit = s.S.ArbeitSeit(rd.ID)
 			}
 		} else {
 			dran = append(dran, map[string]string{"was": "schreiben", "runde": rd.ID})
@@ -135,6 +151,8 @@ func (s *Server) zustand(w http.ResponseWriter, r *http.Request) {
 				AntwortPartner:  rd.Antworten[gegner].Normalform,
 				MeinTippRichtig: meiner.Richtig,
 				PartnerTipp:     partner.Gewaehlt,
+				PartnerTippText: kartentext(rd.Karten[ich], partner.Gewaehlt),
+				MeineEchte:      rd.Antworten[ich].Normalform,
 				PartnerRichtig:  partner.Richtig,
 				Doppeltreffer:   game.Doppeltreffer(rd, pa),
 			}

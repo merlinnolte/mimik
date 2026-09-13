@@ -48,18 +48,19 @@ func TestVorschlaegeMischenStabil(t *testing.T) {
 
 // Der Fortschrittsbalken in der App haengt daran, dass der Server sagt, wie
 // lange MIMIK schon arbeitet. Ohne Antwort darf das 0 sein und nicht raten.
-func TestAntwortSeit(t *testing.T) {
+func TestArbeitSeit(t *testing.T) {
 	s, err := Open(filepath.Join(t.TempDir(), "t.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	if got := s.AntwortSeit("gibt-es-nicht", "auch-nicht"); got != 0 {
+	if got := s.ArbeitSeit("gibt-es-nicht"); got != 0 {
 		t.Fatalf("ohne Antwort %d Sekunden statt 0", got)
 	}
 	// Eltern zuerst: answers haengt an rounds und players.
 	for _, q := range []string{
 		`INSERT INTO players (id, spitzname, erstellt_am) VALUES ('p1','Kim','2026-01-01T00:00:00Z')`,
+		`INSERT INTO players (id, spitzname, erstellt_am) VALUES ('p2','Robin','2026-01-01T00:00:00Z')`,
 		`INSERT INTO parties (id, code, code_bis, erstellt_am) VALUES ('pa1',NULL,NULL,'2026-01-01T00:00:00Z')`,
 		`INSERT INTO matches (id, party_id, erstellt_am) VALUES ('m1','pa1','2026-01-01T00:00:00Z')`,
 		`INSERT INTO rounds (id, match_id, nummer, frage, rubrik, geoeffnet_am)
@@ -75,7 +76,19 @@ func TestAntwortSeit(t *testing.T) {
 		time.Now().UTC().Add(-30*time.Second).Format(time.RFC3339)); err != nil {
 		t.Fatal(err)
 	}
-	if got := s.AntwortSeit("r1", "p1"); got < 29 || got > 40 {
-		t.Fatalf("30 Sekunden alt, gemeldet werden %d", got)
+	// Eine Antwort allein ist noch keine Arbeit: MIMIK faengt erst an, wenn
+	// beide geschrieben haben.
+	if got := s.ArbeitSeit("r1"); got != 0 {
+		t.Fatalf("mit nur einer Antwort %d Sekunden statt 0", got)
+	}
+	if _, err := s.DB().Exec(
+		`INSERT INTO answers (round_id, player_id, original, normalform, erstellt_am)
+		 VALUES (?,?,?,?,?)`, "r1", "p2", "roh", "glatt",
+		time.Now().UTC().Add(-5*time.Second).Format(time.RFC3339)); err != nil {
+		t.Fatal(err)
+	}
+	// Gezaehlt wird ab der spaeteren Antwort, also ab 5 s - nicht ab 30.
+	if got := s.ArbeitSeit("r1"); got < 4 || got > 15 {
+		t.Fatalf("die spaetere Antwort ist 5 s alt, gemeldet werden %d", got)
 	}
 }

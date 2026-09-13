@@ -31,7 +31,7 @@ import kotlinx.coroutines.delay
  * ist ein Bauplan aus vier beweglichen Teilen, pro Bild wird nur der Text
  * getauscht – dieselbe Struktur wie in der Figurenstudie.
  */
-enum class Miene { Bereit, Denkt, Triumph, Getroffen }
+enum class Miene { Bereit, Denkt, Triumph, Getroffen, Neutral }
 
 private data class Bild(
     val antenne: Char,
@@ -62,17 +62,48 @@ private fun male(b: Bild) = buildString {
     append("╚══╤═══╤══╝")
 }
 
+private const val MUND_SCHMAL = " ─── "
+private const val MUND_SCHIEF = "──╯  "
+private const val MUND_SCHIEF2 = "  ╰──"
+private const val MUND_SCHMUNZELN = "╲───╱"
+private const val MUND_SPITZ = "  ·  "
+
+/**
+ * Leerlauf: atmen, blinzeln, und hin und wieder ein Zug um den Mund.
+ *
+ * Vorher bewegten sich nur Antenne und Augen, und die Figur wirkte im Warten
+ * wie abgeschaltet. Jetzt läuft ein zweiter, längerer Takt mit: ein Zucken auf
+ * einer Seite, ein kurzes Schmunzeln, dann wieder gerade. Wichtig ist die
+ * Ungleichzeitigkeit – blinzeln und schmunzeln fallen nie zusammen, sonst
+ * sieht es nach einer Schleife aus statt nach jemandem, der wartet.
+ */
 private val LEERLAUF = listOf(
     Bild('◦', '│', '▄', MITTE_NASE, MUND_NEUTRAL, 900),
     Bild('∘', '│', '▄', MITTE_NASE, MUND_NEUTRAL, 500),
-    Bild('·', '│', '▄', MITTE_NASE, MUND_NEUTRAL, 500),
+    Bild('·', '│', '▄', MITTE_NASE, MUND_SCHMAL, 420),
     Bild('∘', '│', '▄', MITTE_NASE, MUND_NEUTRAL, 500),
+    // Blinzeln.
     Bild('◦', '│', '▂', MITTE_NASE, MUND_NEUTRAL, 70),
     Bild('◦', '│', '▁', MITTE_NASE, MUND_NEUTRAL, 80),
     Bild('◦', '│', '▂', MITTE_NASE, MUND_NEUTRAL, 70),
     Bild('◦', '│', '▄', MITTE_NASE, MUND_NEUTRAL, 1200),
-    Bild('∘', '│', '▄', MITTE_NASE, MUND_NEUTRAL, 500),
-    Bild('·', '│', '▄', MITTE_NASE, MUND_NEUTRAL, 500),
+    // Ein Zucken, erst die eine Seite, dann die andere.
+    Bild('∘', '│', '▄', MITTE_NASE, MUND_SCHIEF, 260),
+    Bild('∘', '│', '▄', MITTE_NASE, MUND_NEUTRAL, 700),
+    Bild('·', '│', '▖', MITTE_NASE, MUND_NEUTRAL, 380),
+    Bild('·', '│', '▗', MITTE_NASE, MUND_SCHIEF2, 380),
+    Bild('◦', '│', '▄', MITTE_NASE, MUND_NEUTRAL, 900),
+    // Kurz schelmisch - der einzige Moment, in dem sie zeigt, dass ihr das
+    // hier Spass macht. Danach sofort wieder gerade.
+    Bild('◦', '│', '▀', MITTE_NASE, MUND_SCHMUNZELN, 420),
+    Bild('●', '│', '▀', MITTE_NASE, MUND_SCHMUNZELN, 240, hell = true),
+    Bild('◦', '│', '▄', MITTE_NASE, MUND_SCHMAL, 300),
+    Bild('◦', '│', '▄', MITTE_NASE, MUND_NEUTRAL, 1100),
+    // Nochmal blinzeln, diesmal an anderer Stelle im Takt.
+    Bild('∘', '│', '▂', MITTE_NASE, MUND_NEUTRAL, 70),
+    Bild('∘', '│', '▄', MITTE_NASE, MUND_NEUTRAL, 800),
+    Bild('·', '│', '▄', MITTE_NASE, MUND_SPITZ, 300),
+    Bild('∘', '│', '▄', MITTE_NASE, MUND_NEUTRAL, 700),
 )
 
 // 20 Bilder à 110 ms gehen glatt auf: 5 Antennenumdrehungen, 4 Mundläufe,
@@ -104,11 +135,26 @@ private val GETROFFEN = listOf(
     Bild('◦', '│', '▄', MITTE_NASE, MUND_NEUTRAL, 110),
 )
 
+/**
+ * Unentschieden: einer hat sie erwischt, einen hat sie erwischt. Kein Triumph,
+ * kein Schmerz – ein Achselzucken, das sie nicht zugibt. Deshalb nur die
+ * Augenbrauen, ein kurzer Blick zur Seite und ein gerader Mund.
+ */
+private val NEUTRAL = listOf(
+    Bild('◦', '│', '▄', MITTE_NASE, MUND_NEUTRAL, 90),
+    Bild('◦', '│', '▀', MITTE_NASE, MUND_SCHMAL, 200),
+    Bild('◦', '│', '▖', MITTE_NASE, MUND_NEUTRAL, 700),
+    Bild('∘', '│', '▗', MITTE_NASE, MUND_NEUTRAL, 500),
+    Bild('◦', '│', '▄', MITTE_NASE, MUND_NEUTRAL, 400),
+    Bild('◦', '│', '▄', MITTE_NASE, MUND_SCHMAL, 150),
+)
+
 private fun bilder(m: Miene) = when (m) {
     Miene.Bereit -> LEERLAUF
     Miene.Denkt -> DENKT
     Miene.Triumph -> TRIUMPH
     Miene.Getroffen -> GETROFFEN
+    Miene.Neutral -> NEUTRAL
 }
 
 /**
@@ -116,7 +162,8 @@ private fun bilder(m: Miene) = when (m) {
  * Leerlauf. Die Figur bleibt nie in einer Miene hängen – sonst wirkt sie
  * eingefroren statt lebendig.
  */
-private fun einmalig(m: Miene) = m == Miene.Triumph || m == Miene.Getroffen
+private fun einmalig(m: Miene) =
+    m == Miene.Triumph || m == Miene.Getroffen || m == Miene.Neutral
 
 @Composable
 fun MimikGesicht(

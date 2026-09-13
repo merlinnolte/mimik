@@ -48,6 +48,8 @@ data class Aufloesung(
     @SerialName("antwort_partner") val antwortPartner: String = "",
     @SerialName("mein_tipp_richtig") val meinTippRichtig: Boolean = false,
     @SerialName("partner_tipp") val partnerTipp: Int = 0,
+    @SerialName("partner_tipp_text") val partnerTippText: String = "",
+    @SerialName("meine_echte") val meineEchte: String = "",
     @SerialName("partner_richtig") val partnerRichtig: Boolean = false,
     val doppeltreffer: Boolean = false,
 )

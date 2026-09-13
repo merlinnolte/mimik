@@ -18,7 +18,7 @@ Downloadordner nicht drei gleichnamige Dateien liegen.
 Auf ein Gerät oder den Emulator:
 
 ```bash
-adb install -r app/build/outputs/apk/debug/mimik-0.6-debug.apk
+adb install -r app/build/outputs/apk/debug/mimik-0.7-debug.apk
 ```
 
 ## Serveradresse
@@ -88,9 +88,12 @@ Mechanik dahinter.
 
 ### Der Fortschrittsbalken
 
-`wartet_seit` aus `/v1/state` sind die Sekunden seit dem Absenden – genau der
-Moment, in dem der Worker die Runde aufnimmt. Weil der Wert vom Server kommt,
-steht der Balken auch nach einem Neustart der App richtig.
+`wartet_seit` aus `/v1/state` sind die Sekunden seit der **späteren** der beiden
+Antworten – erst dann arbeitet MIMIK überhaupt (`Runde.Ableiten`). Gezählt ab
+der eigenen Antwort stand der Balken für den, der zuerst schrieb und dann eine
+halbe Stunde wartete, beim ersten Blick schon voll: Die Zeit war ja wirklich
+vergangen, nur nicht mit Arbeit. Weil der Wert vom Server kommt, steht der
+Balken auch nach einem Neustart der App richtig.
 
 Er läuft in ungleichen Schritten und ungleichen Abständen auf fünfzehn Sekunden
 zu – wie etwas, das arbeitet, und nicht wie eine Uhr. Gemessen liegt ein Aufruf
@@ -126,7 +129,9 @@ Einstellungen selbst. Es liegt als Überlagerung über dem Bildschirm, nicht in
 ihm – sonst bräuchte jeder Bildschirm eine Kopfleiste, und die mittige Anordnung
 wäre hin.
 
-Darin: umbenennen, Farbschema, Intro erneut ansehen, und zwei getrennte
+Darin: umbenennen, Farbschema, Intro erneut ansehen, das eigene Dossier
+ansehen – was MIMIK aus den eigenen Antworten mitgeschrieben hat, welche Themen
+verbraucht sind, welche Tags gesetzt – und zwei getrennte
 Löschknöpfe. „Mein Dossier löschen“ nimmt nur, was MIMIK gelernt hat; die Tags
 bleiben, sie sind eine Einstellung. „Alles löschen“ verlangt den eigenen
 Spitznamen als Bestätigung – bei etwas Unwiderruflichem ist ein Klick zu wenig.

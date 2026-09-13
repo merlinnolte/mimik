@@ -248,18 +248,27 @@ func (s *Store) AntwortSpeichern(rid, pid string, a game.Antwort) error {
 	return err
 }
 
-// AntwortSeit sagt, wie viele Sekunden vergangen sind, seit dieser Spieler
-// geantwortet hat. Genau in diesem Moment nimmt der Worker die Runde auf, also
-// ist es auch der Beginn der Wartezeit - der Fortschrittsbalken in der App
-// haengt daran und ueberlebt so einen Neustart der App. Ohne Antwort: 0.
-func (s *Store) AntwortSeit(rid, pid string) int {
-	var roh string
+// ArbeitSeit sagt, wie viele Sekunden MIMIK an dieser Runde arbeitet: gezaehlt
+// ab der SPAETEREN der beiden Antworten.
+//
+// Vorher zaehlte es ab der eigenen. Wer zuerst schrieb und dann eine halbe
+// Stunde auf die andere Seite wartete, sah den Fortschrittsbalken bei seinem
+// ersten Blick schon voll - die Zeit war ja wirklich vergangen, nur nicht mit
+// Arbeit. Gearbeitet wird erst, wenn beide geschrieben haben (siehe
+// Runde.Ableiten), und genau das ist der Nullpunkt. Weniger als zwei
+// Antworten: 0, es laeuft noch nichts.
+func (s *Store) ArbeitSeit(rid string) int {
+	var anzahl int
+	var spaeteste string
 	if err := s.db.QueryRow(
-		`SELECT erstellt_am FROM answers WHERE round_id=? AND player_id=?`,
-		rid, pid).Scan(&roh); err != nil {
+		`SELECT COUNT(*), COALESCE(MAX(erstellt_am),'') FROM answers WHERE round_id=?`,
+		rid).Scan(&anzahl, &spaeteste); err != nil {
 		return 0
 	}
-	t, err := time.Parse(time.RFC3339, roh)
+	if anzahl < 2 {
+		return 0
+	}
+	t, err := time.Parse(time.RFC3339, spaeteste)
 	if err != nil {
 		return 0
 	}

@@ -350,7 +350,7 @@ fun TagsBildschirm(modell: AppModel) {
     LaunchedEffect(Unit) { if (!modell.tagsGeladen) modell.tagsLaden() }
     val gewaehlt = modell.gewaehlteTags
     Huelle(modell) {
-        MimikKopf(Miene.Bereit, "Woran soll ich mich bei dir festhalten?")
+        MimikKopf(Miene.Bereit, "Wähle Themen aus, die dich interessieren.")
         Text(
             "${gewaehlt.size} / 10", color = if (gewaehlt.size >= 10) p.accent2 else p.fgDim,
             fontSize = 15.sp,
@@ -398,6 +398,7 @@ fun BasisBildschirm(modell: AppModel) {
     val p = LokalePalette.current
     val m = modell.zustand?.match
     val vorbei = m != null && m.ergebnis != "OFFEN"
+    var verlassenFragen by remember { mutableStateOf(false) }
     val gewonnen = m?.ergebnis == "MENSCH"
     val abgebrochen = m?.ergebnis == "ABGEBROCHEN"
     Huelle(modell) {
@@ -429,7 +430,32 @@ fun BasisBildschirm(modell: AppModel) {
                 fontSize = 19.sp, letterSpacing = 2.sp,
             )
             Punktebalken(m!!.stand.mensch, m.stand.mimik, m.ziel)
-            Aktionen { Knopf("Revanche", betont = true, aktiv = !modell.laden) { modell.matchStarten() } }
+            // Nach einem Spiel stehen zwei Wege offen, und beide gehören hierhin:
+            // noch einmal gegeneinander, oder auseinander. Wer aufhören will,
+            // musste bisher ins Zahnrad – an der Stelle, an der die Frage
+            // tatsächlich aufkommt, stand sie nicht.
+            Aktionen {
+                Knopf("Revanche", betont = true, aktiv = !modell.laden) { modell.matchStarten() }
+                Knopf("Party verlassen", aktiv = !modell.laden) { verlassenFragen = true }
+            }
+            if (verlassenFragen) {
+                Panel(titel = "Sicher?", betont = true) {
+                    Zeile(
+                        "Die Party wird für euch beide aufgelöst. Dein Dossier und deine " +
+                            "Tags bleiben – danach kannst du eine neue Party gründen oder " +
+                            "einer beitreten.",
+                        p.warn, 12,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Knopf("Doch nicht") { verlassenFragen = false }
+                        Knopf("Verlassen", aktiv = !modell.laden) {
+                            verlassenFragen = false
+                            modell.partyVerlassen()
+                        }
+                    }
+                }
+            }
         } else {
             MimikKopf(Miene.Bereit, "Bereit, wenn ihr es seid.")
             Aktionen { Knopf("Match starten", betont = true, aktiv = !modell.laden) { modell.matchStarten() } }
@@ -589,22 +615,36 @@ fun AufloesungBildschirm(modell: AppModel) {
     val r = modell.runde(modell.zeigeAufloesung) ?: return
     val a = r.aufloesung
     val richtig = a?.meinTippRichtig == true
+    val partnerRichtig = a?.partnerRichtig == true
     val m = modell.zustand?.match
     val echt = r.karten.firstOrNull { it.istEcht == true }
     val meine = r.karten.firstOrNull { it.pos == r.meinTipp }
+    val sie = modell.partnerName.ifBlank { "Die andere Seite" }
 
     Huelle(modell) {
+        // Vier Ausgänge, vier Mienen. Der Punktestand allein sagt nicht, was
+        // passiert ist: Zwei Treffer und zwei Fehlgriffe stehen beide 2:0
+        // beziehungsweise 0:2 - aber MIMIK hat dabei einmal verloren und einmal
+        // gewonnen, und genau das zeigt das Gesicht.
         MimikKopf(
-            if (richtig) Miene.Getroffen else Miene.Triumph,
-            if (richtig) "Erwischt. Punkt für euch." else "Das war ich. Punkt für mich.",
+            when {
+                richtig && partnerRichtig -> Miene.Getroffen
+                !richtig && !partnerRichtig -> Miene.Triumph
+                else -> Miene.Neutral
+            },
+            when {
+                richtig && partnerRichtig -> "$sie und du – beide. Das tut weh."
+                richtig && !partnerRichtig -> "Du hast mich erwischt. $sie nicht."
+                !richtig && partnerRichtig -> "$sie hat mich erwischt. Dich habe ich."
+                else -> "Euch beide. Doppelt."
+            },
             haltend = true, schrift = 19,
         )
-        // Eine Runde vergibt immer genau zwei Punkte, einen je Tipp. Also steht
-        // der Stand von vorher fest, ohne dass der Server ihn mitschicken muss:
-        // was diese Runde gebracht hat, wieder abgezogen. Von dort laufen die
-        // Balken los.
         if (m != null) {
-            val fuerMensch = (if (richtig) 1 else 0) + (if (a?.partnerRichtig == true) 1 else 0)
+            // Eine Runde vergibt immer genau zwei Punkte, einen je Tipp. Also
+            // steht der Stand von vorher fest, ohne dass der Server ihn
+            // mitschicken muss: was diese Runde gebracht hat, wieder abgezogen.
+            val fuerMensch = (if (richtig) 1 else 0) + (if (partnerRichtig) 1 else 0)
             Punktebalken(
                 m.stand.mensch, m.stand.mimik, m.ziel,
                 vonMensch = (m.stand.mensch - fuerMensch).coerceAtLeast(0),
@@ -612,9 +652,9 @@ fun AufloesungBildschirm(modell: AppModel) {
             )
         }
         Frage(r.frage)
-        // Nur zeigen, worum es geht: bei einem Treffer die echte Karte, sonst
-        // die falsch gewählte neben der echten. Alle vier noch einmal
-        // durchzugehen heißt, den Moment im Rauschen zu ertränken.
+
+        // Erster Block: der Satz über den Partner – was du geraten hast.
+        Zeile("Über ${sie}", p.fgDim, 11)
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (!richtig && meine != null) {
                 Aufloesungskarte(meine.text, "DEIN TIPP · VON MIR", betont = false)
@@ -622,19 +662,38 @@ fun AufloesungBildschirm(modell: AppModel) {
             if (echt != null) {
                 Aufloesungskarte(
                     echt.text,
-                    if (richtig) "ECHT · DEIN TIPP" else "ECHT",
+                    if (richtig) "ECHT · DEIN TIPP" else "ECHT · VON ${sie.uppercase()}",
                     betont = true,
                 )
             }
         }
-        if (a != null) {
-            Zeile(
-                if (a.doppeltreffer) "Ihr lagt beide daneben – Doppeltreffer für MIMIK."
-                else if (a.partnerRichtig) "Dein Gegenüber hat dich erkannt."
-                else "Dein Gegenüber ist auf MIMIK hereingefallen.",
-                if (a.doppeltreffer) p.warn else p.fgDim, 12,
-            )
+
+        // Zweiter Block: der Satz über dich – wofür die andere Seite dich
+        // gehalten hat. Das ist der eigentlich spannende Teil und stand bisher
+        // nur als Nebensatz da: Nicht wie gut du rätst, sondern wie gut sie
+        // dich kennt.
+        if (a != null && a.partnerTippText.isNotBlank()) {
+            Spacer(Modifier.height(4.dp))
+            Zeile("Über dich", p.fgDim, 11)
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (!partnerRichtig) {
+                    Aufloesungskarte(
+                        a.partnerTippText,
+                        "DAFÜR HIELT ${sie.uppercase()} DICH · VON MIR",
+                        betont = false,
+                    )
+                }
+                if (a.meineEchte.isNotBlank()) {
+                    Aufloesungskarte(
+                        a.meineEchte,
+                        if (partnerRichtig) "DAS WARST DU · ${sie.uppercase()} HAT ES ERKANNT"
+                        else "DAS WARST DU",
+                        betont = true,
+                    )
+                }
+            }
         }
+
         Aktionen { Knopf("Weiter", betont = true, aktiv = !modell.laden) { modell.weiter() } }
     }
 }
@@ -723,6 +782,42 @@ fun EinstellungenBildschirm(modell: AppModel) {
             Zeile("MIMIKs Ansage noch einmal von vorn.", p.fgDim, 11)
             Spacer(Modifier.height(8.dp))
             Knopf("Erneut ansehen") { modell.introZeigen() }
+        }
+
+        // Was MIMIK über einen weiß, steht bisher nur im Prompt. Wer sich
+        // anschauen will, was da über ihn notiert ist, soll das können - die
+        // Fakten sind aus den eigenen Antworten gezogen, es ist sein Material.
+        Panel(titel = "Mein Dossier", rechts = modell.dossier?.let { "${it.fakten.size} Fakten" }) {
+            val d = modell.dossier
+            if (d == null) {
+                Zeile("Was ich aus deinen Antworten mitgeschrieben habe.", p.fgDim, 11)
+                Spacer(Modifier.height(8.dp))
+                Knopf("Ansehen", aktiv = !modell.laden) { modell.dossierLaden() }
+            } else {
+                if (d.fakten.isEmpty()) {
+                    Zeile("Noch nichts. Das ändert sich nach der ersten Runde.", p.fgDim, 12)
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        d.fakten.forEach { f -> Zeile("· $f", p.fg, 12) }
+                    }
+                }
+                if (d.verbrauchteThemen.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    Zeile("Verbrauchte Themen", p.accent, 11)
+                    Spacer(Modifier.height(4.dp))
+                    // Einmal benutzt, nicht noch einmal: Diese Themen nimmt
+                    // MIMIK für Fälschungen nicht mehr her.
+                    Zeile(d.verbrauchteThemen.sorted().joinToString(", "), p.fgDim, 12)
+                }
+                if (d.tags.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    Zeile("Deine Themen", p.accent, 11)
+                    Spacer(Modifier.height(4.dp))
+                    Zeile(d.tags.sorted().joinToString(", "), p.fgDim, 12)
+                }
+                Spacer(Modifier.height(10.dp))
+                Knopf("Neu laden", aktiv = !modell.laden) { modell.dossierLaden() }
+            }
         }
 
         Panel(titel = "Daten auf dem Server") {

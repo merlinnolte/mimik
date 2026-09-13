@@ -892,13 +892,21 @@ func TestTestpartie(t *testing.T) {
 	if st.Runden[0].Zustand != game.Aufgeloest {
 		t.Fatalf("runde steht auf %q statt AUFGELOEST", st.Runden[0].Zustand)
 	}
-	if st.Runden[0].Aufloesung == nil {
+	a := st.Runden[0].Aufloesung
+	if a == nil {
 		t.Fatal("keine auflösung")
+	}
+	// Der spannendste Teil der Auflösung: Wofuer hat mich die andere Seite
+	// gehalten? Ohne Text steht in der App eine leere Karte.
+	if a.PartnerTippText == "" {
+		t.Fatal("die auflösung sagt nicht, welche karte die andere seite fuer echt hielt")
+	}
+	if a.MeineEchte == "" {
+		t.Fatal("die auflösung nennt die eigene echte antwort nicht")
 	}
 
 	_ = s
-	t.Logf("Runde aufgelöst, Tipp des Menschen richtig: %v",
-		st.Runden[0].Aufloesung.MeinTippRichtig)
+	t.Logf("Runde aufgelöst, Tipp des Menschen richtig: %v", a.MeinTippRichtig)
 }
 
 // TestKartenLaufenVor: Der Satz über A entsteht, sobald A geantwortet hat –
