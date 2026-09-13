@@ -13,7 +13,7 @@ Ein Aufruf tut vier Dinge:
 | **1** Normalform | Schreibt die echte Antwort sauber: Rechtschreibung, Zeichensetzung, Emoji raus |
 | **2** Fakt | Was die Antwort über die Person verrät, ein Satz fürs Dossier |
 | **3** Sperre | Das Thema, das in dieser Runde nicht mehr vorkommen darf |
-| **4** Antworten | Drei Fälschungen im Stil der Person |
+| **4** Antworten | Drei Fälschungen im Stil der Person, in drei selbst gewählten Richtungen |
 
 Dass die Normalform **in demselben Aufruf** entsteht wie die Fälschungen, ist
 kein Sparen von Aufrufen, sondern der Punkt: Vier Texte aus einer Hand stehen in
@@ -93,7 +93,7 @@ Schwellensätze**:
 |---|---|---|
 | Nähe zur echten Antwort | `0.35` | `0.72` |
 | Streuung der Fälschungen | `0.15` | `0.15` |
-| Anker-Streichung | `0.60` (gerichtet) | `0.60` |
+| Themensperre berührt | `0.60` (gerichtet) | `0.60` |
 
 Zwei Maße, nicht eins: Antwort gegen Antwort ist symmetrisch (Jaccard über
 Vierergramme, ähnliche Längen). Tag gegen Antwort ist **gerichtet** — gefragt ist,

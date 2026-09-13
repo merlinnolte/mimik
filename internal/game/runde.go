@@ -12,7 +12,7 @@ import (
 //
 // MinAntwort stand zuerst bei 25, mit der Begründung, kurze Antworten seien
 // trivial zu fälschen. Die erste Sammlung echter Antworten hat das widerlegt:
-// "Kündige!" hat acht Zeichen, ist unverwechselbar und wäre abgewiesen worden.
+// "Geh raus!" hat neun Zeichen, ist unverwechselbar und wäre abgewiesen worden.
 // Kurz ist nicht beliebig – kurz ist eine Form, die MIMIK nachbauen muss. Die
 // harte Grenze schützt nur noch vor dem leeren Feld; alles darüber ist eine
 // Gestaltungsfrage und gehört in einen Hinweis, nicht in eine Sperre.
@@ -33,7 +33,7 @@ var (
 // Faelschung ist eine von MIMIK erzeugte Antwort samt ihrem Anker.
 type Faelschung struct {
 	Text     string
-	AnkerTag string
+	Richtung string
 }
 
 // PruefeAntwort prüft eine Spielerantwort gegen die Längengrenzen.
@@ -85,7 +85,7 @@ func (r *Runde) KartenSetzen(spieler PlayerID, faelschungen []Faelschung, rng *r
 	}
 	karten := []Karte{{Text: a.Normalform, IstEcht: true}}
 	for _, f := range faelschungen {
-		karten = append(karten, Karte{Text: f.Text, AnkerTag: f.AnkerTag})
+		karten = append(karten, Karte{Text: f.Text, Richtung: f.Richtung})
 	}
 	rng.Shuffle(len(karten), func(i, j int) { karten[i], karten[j] = karten[j], karten[i] })
 	for i := range karten {

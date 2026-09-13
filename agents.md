@@ -37,7 +37,7 @@ Satz – eine schwache Karte ist besser als eine Runde, die hängt.
 
 **Alle Bezeichner, Kommentare und Texte auf Deutsch.** Das ist keine Marotte:
 Die Spielbegriffe (Runde, Party, Dossier, Fälschung, Abstandsfenster,
-Themensperre, Normalform, Anker) sind der Fachwortschatz des Projekts, und eine
+Themensperre, Normalform, Richtung) sind der Fachwortschatz des Projekts, und eine
 halbe Übersetzung erzeugt zwei Vokabulare für dieselbe Sache.
 
 Bezeichner ohne Umlaute (`Aufloesung`, `Faelschungen`, `gewaehlt`), Kommentare
@@ -111,9 +111,9 @@ Drei Regeln stehen darin, weil Läufe an echtem Material sie erzwungen haben:
 
 | Regel | Befund |
 |---|---|
-| Satzgerüst der echten Antwort nicht wiederverwenden | Bei „Snoozen, danach bin ich nur noch kaputter“ hatten alle vier Karten denselben Rahmen. Ähnlichkeit danach 0.44 → 0.04 |
+| Satzgerüst der echten Antwort nicht wiederverwenden | Bei „Abends Nachrichten lesen, danach bin ich nur noch wacher“ hatten alle vier Karten denselben Rahmen. Ähnlichkeit danach 0.44 → 0.04 |
 | Mindestens eine Fälschung kürzer als die echte Antwort | Die echte war in 5 von 9 Runden die kürzeste (p = 0.049), Fälschungen im Schnitt 1.15× so lang |
-| Jede Fälschung an einem **anderen** Tag verankert | Sonst klingen die drei wie Varianten derselben Idee |
+| Das Modell sucht sich die drei Richtungen selbst | Zugewiesene Anker sahen die FRAGE nie an – „schlaf" landete bei „Wofür gibst du zu viel Geld aus?" durch reinen Zufall, und das Modell musste eine Verbindung erfinden, die es nicht gibt |
 
 ### Die Normalform gehört in denselben Aufruf
 
@@ -158,12 +158,26 @@ Embeddings vorsieht:
 |---|---|---|
 | Nähe zur echten Antwort | `0.35` | `0.72` |
 | Streuung der Fälschungen | `0.15` | `0.15` |
-| Anker-Streichung | `0.60` gerichtet | `0.60` |
+| Themensperre berührt | `0.60` gerichtet | `0.60` |
 
 Antwort gegen Antwort ist **symmetrisch** (Jaccard über Vierergramme). Tag gegen
 Antwort ist **gerichtet**: Gefragt ist, wie viel vom Tag in der Antwort steckt.
 Symmetrisch gerechnet geht ein Ein-Wort-Tag gegen einen Dreizeiler immer gegen
-null, und die Anker-Streichung feuert nie.
+null, und die Prüfung der Themensperre feuert nie.
+
+**Es gab einmal Anker.** Drei Tags des Spielers wurden gewürfelt und je einer
+Fälschung fest zugewiesen. Das ging aus zwei Gründen schief. Erstens sah die
+Auswahl die **Frage** nie an – `AnkerWaehlen(tags, verbraucht, echt, mischen)`
+filterte gegen die Antwort und mischte dann: „schlaf" landete bei „Wofür gibst
+du zu viel Geld aus?" durch reinen Zufall, und das Modell musste eine Verbindung
+erfinden, die es nicht gibt. Zweitens war das Filtern selbst zu grob:
+`SperrNaehe("altes rom", "Einen Film über das alte Rom schauen")` ergibt 0.57 bei
+einer Schwelle von 0.60 – drei Hundertstel daneben, weil „alte" und „altes"
+verschiedene n-Gramme sind. Der Anker zum Thema der echten Antwort ging durch.
+
+Jetzt sucht sich das Modell die drei Richtungen selbst, aus den Interessen und
+den Fakten, und nennt sie, bevor es schreibt. Es liest Bedeutung, nicht
+Zeichenketten – und es sieht die Frage. Die Streuung misst wie bisher nach.
 
 ---
 
@@ -327,7 +341,7 @@ jede Zeile, die auseinandergelaufen ist.
 
 Damit es nicht noch einmal passiert:
 
-- **`MinAntwort = 25`** hätte „Kündige!“ (8 Zeichen) abgewiesen. Echte Antworten
+- **`MinAntwort = 25`** hätte „Geh raus!“ (9 Zeichen) abgewiesen. Echte Antworten
   sind kurz. Jetzt 4, mit einem weichen Hinweis ab 20.
 - **`/v1/state` verlor beendete Matches**, weil nur nach `ergebnis='OFFEN'`
   gesucht wurde. Der Endstand war damit unsichtbar. `LetztesMatch` behebt das,

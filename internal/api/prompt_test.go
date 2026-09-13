@@ -46,9 +46,9 @@ func TestPromptbleibtklein(t *testing.T) {
 			themen[i] = "irgendeinthema"
 		}
 		c.Faelschungen(t.Context(), "Was ist das Unvernünftigste, das du dir gekauft hast?",
-			"Noch eine kleine Spielkonsole, aber ich habe viel Spaß damit",
-			[]string{"kaffee", "berge", "filme"},
-			mimik.Dossier{Fakten: fakten, Gesperrt: themen,
+			"Eine zweite Kaffeemühle, aber die erste mahlt zu grob",
+			mimik.Dossier{Interessen: []string{"kaffee", "berge", "filme"},
+				Fakten: fakten, Gesperrt: themen,
 				AntiBeispiele: []string{"Das ist eine spannende Frage!", "Am Ende zählt doch."}})
 		t.Logf("%2d Fakten -> %5d Zeichen (~%5d Token)", n, groesse, groesse/3)
 		// Zwölf Fakten sind der Betriebsfall (siehe worker.go).

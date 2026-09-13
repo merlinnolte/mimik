@@ -190,7 +190,7 @@ func (s *Store) Runde(rid string) (game.Runde, error) {
 	for rows.Next() {
 		var ueber string
 		var k game.Karte
-		if err := rows.Scan(&ueber, &k.Pos, &k.Text, &k.IstEcht, &k.AnkerTag); err != nil {
+		if err := rows.Scan(&ueber, &k.Pos, &k.Text, &k.IstEcht, &k.Richtung); err != nil {
 			rows.Close()
 			return r, err
 		}
@@ -273,8 +273,11 @@ func (s *Store) KartenSpeichern(rid, ueber string, karten []game.Karte) error {
 			echt = 1
 		}
 		if _, err := tx.Exec(
+			// Spalte heißt weiter anker_tag: Sie trägt jetzt die Richtung, die sich
+			// MIMIK selbst gesucht hat. Umbenennen hieße migrieren, und der Name
+			// steht nur in der Datenbank, nirgends im Code.
 			`INSERT INTO karten (round_id, ueber, pos, text, ist_echt, anker_tag) VALUES (?,?,?,?,?,?)`,
-			rid, ueber, k.Pos, k.Text, echt, k.AnkerTag); err != nil {
+			rid, ueber, k.Pos, k.Text, echt, k.Richtung); err != nil {
 			return err
 		}
 	}

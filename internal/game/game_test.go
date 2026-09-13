@@ -22,9 +22,9 @@ const (
 
 func drei(p string) []Faelschung {
 	return []Faelschung{
-		{Text: p + " eins, eine hinreichend lange Fälschung.", AnkerTag: "kaffee"},
-		{Text: p + " zwei, eine hinreichend lange Fälschung.", AnkerTag: "krimis"},
-		{Text: p + " drei, eine hinreichend lange Fälschung.", AnkerTag: "nordsee"},
+		{Text: p + " eins, eine hinreichend lange Fälschung.", Richtung: "kaffee"},
+		{Text: p + " zwei, eine hinreichend lange Fälschung.", Richtung: "krimis"},
+		{Text: p + " drei, eine hinreichend lange Fälschung.", Richtung: "nordsee"},
 	}
 }
 
@@ -181,7 +181,7 @@ func TestAntwortlaenge(t *testing.T) {
 	}
 }
 
-// Aus echtem Material: "Kündige!" ist acht Zeichen lang, unverwechselbar und
+// Aus echtem Material: "Geh raus!" ist neun Zeichen lang, unverwechselbar und
 // muss durchgehen. Die frühere Untergrenze von 25 hätte es abgewiesen.
 func TestVerbuchenUndDoppeltreffer(t *testing.T) {
 	r := bauen(t)

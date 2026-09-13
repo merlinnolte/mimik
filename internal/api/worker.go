@@ -143,12 +143,6 @@ func (w *Worker) kartenBauen(ctx context.Context, rid string, pa game.Party, ueb
 	if err != nil {
 		return err
 	}
-	anker, gestrichen := mimik.AnkerWaehlen(tags, gesperrt, roh, func(xs []string) {
-		rand.Shuffle(len(xs), func(i, j int) { xs[i], xs[j] = xs[j], xs[i] })
-	})
-	if len(anker) == 0 {
-		anker = []string{"alltag", "erinnerung", "vorliebe"} // Notnagel, falls alles verbraucht ist
-	}
 	// Zwölf statt vierzig Fakten. Das Dossier wächst mit jeder Runde, und jeder
 	// Fakt geht in jeden Prompt – bei vierzig Fakten zu je bis zu 300 Zeichen
 	// wären das zwölftausend Zeichen, die mit jeder Runde länger brauchen und
@@ -162,9 +156,10 @@ func (w *Worker) kartenBauen(ctx context.Context, rid string, pa game.Party, ueb
 
 	ctx, abbruch := context.WithTimeout(ctx, 4*time.Minute)
 	defer abbruch()
-	erg, err := w.M.Faelschungen(ctx, rd.Frage, roh, anker, mimik.Dossier{
-		Fakten:   fakten,
-		Gesperrt: verbraucht,
+	erg, err := w.M.Faelschungen(ctx, rd.Frage, roh, mimik.Dossier{
+		Interessen: tags,
+		Fakten:     fakten,
+		Gesperrt:   verbraucht,
 		AntiBeispiele: []string{
 			"Das ist eine spannende Frage! Ich würde sagen ...",
 			"Am Ende zählt doch, dass man glücklich ist.",
@@ -196,7 +191,11 @@ func (w *Worker) kartenBauen(ctx context.Context, rid string, pa game.Party, ueb
 	// Der Fakt wandert ins Dossier, das Thema auf die Sperrliste.
 	w.S.FaktHinzu(string(ueber), rd.ID, erg.Fakt)
 	w.S.ThemenSperren(string(ueber), rd.ID, erg.Sperre)
-	log.Printf("worker: %s über %s fertig (versuche=%d, abstand=%.2f, gestrichen=%v)",
-		rd.ID[:8], ueber, erg.Versuche, erg.Befund.MaxZuEcht, gestrichen)
+	richtungen := make([]string, 0, 3)
+	for _, f := range erg.Faelschungen {
+		richtungen = append(richtungen, f.Richtung)
+	}
+	log.Printf("worker: %s über %s fertig (versuche=%d, abstand=%.2f, richtungen=%v)",
+		rd.ID[:8], ueber, erg.Versuche, erg.Befund.MaxZuEcht, richtungen)
 	return nil
 }

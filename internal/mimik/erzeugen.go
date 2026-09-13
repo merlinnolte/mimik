@@ -22,6 +22,14 @@ const (
 
 // Dossier ist das Material, das MIMIK über einen Spieler bekommt.
 type Dossier struct {
+	// Interessen sind die Tags des Spielers – alle, ungefiltert.
+	//
+	// Sie waren einmal "Anker": Drei davon wurden gewürfelt und jeder Fälschung
+	// fest zugewiesen. Das ging schief, weil die Auswahl die FRAGE nie ansah –
+	// "schlaf" landete bei "Wofür gibst du zu viel Geld aus?" durch reinen
+	// Zufall, und das Modell musste eine Verbindung erfinden, die es nicht gibt.
+	// Jetzt sucht es sich selbst aus, was zur Frage passt.
+	Interessen    []string
 	Fakten        []string
 	Gesperrt      []string
 	AntiBeispiele []string
@@ -45,8 +53,8 @@ type antwortB struct {
 	Fakt       string   `json:"fakt"`
 	Sperre     []string `json:"sperre"`
 	Antworten  []struct {
-		Anker string `json:"anker"`
-		Text  string `json:"text"`
+		Richtung string `json:"richtung"`
+		Text     string `json:"text"`
 	} `json:"antworten"`
 }
 
@@ -97,11 +105,11 @@ const MaxVersuche = 3
 // ungeglättet: Es soll den Stil sehen, bevor es ihn nachmacht – und es schreibt
 // die saubere Fassung selbst, damit alle vier Karten in derselben Schreibweise
 // stehen.
-func (c *Client) Faelschungen(ctx context.Context, frage, roh string, anker []string, d Dossier) (Ergebnis, error) {
+func (c *Client) Faelschungen(ctx context.Context, frage, roh string, d Dossier) (Ergebnis, error) {
 	var best Ergebnis
 	var letzterFehler error
 	for versuch := 1; versuch <= MaxVersuche; versuch++ {
-		erg, err := c.einDurchgang(ctx, frage, roh, anker, d)
+		erg, err := c.einDurchgang(ctx, frage, roh, d)
 		if err != nil {
 			letzterFehler = err
 			continue
@@ -145,11 +153,11 @@ func (c *Client) Faelschungen(ctx context.Context, frage, roh string, anker []st
 	return Ergebnis{}, fmt.Errorf("keine brauchbaren fälschungen: %w", letzterFehler)
 }
 
-func (c *Client) einDurchgang(ctx context.Context, frage, roh string, anker []string, d Dossier) (Ergebnis, error) {
+func (c *Client) einDurchgang(ctx context.Context, frage, roh string, d Dossier) (Ergebnis, error) {
 	var b strings.Builder
-	fmt.Fprintf(&b, "[frage]\n%s\n\n[echte_antwort_roh]\n%s\n\n[anker]\n", frage, roh)
-	for i, a := range anker {
-		fmt.Fprintf(&b, "%d: %s   ", i+1, a)
+	fmt.Fprintf(&b, "[frage]\n%s\n\n[echte_antwort_roh]\n%s", frage, roh)
+	if len(d.Interessen) > 0 {
+		b.WriteString("\n\n[interessen]\n" + strings.Join(d.Interessen, ", "))
 	}
 	if len(d.Fakten) > 0 {
 		b.WriteString("\n\n[dossier · fakten]\n- " + strings.Join(d.Fakten, "\n- "))
@@ -198,11 +206,10 @@ func (c *Client) einDurchgang(ctx context.Context, frage, roh string, anker []st
 			return Ergebnis{}, fmt.Errorf("leere fälschung an stelle %d", i+1)
 		}
 		t = ErsatzNormalform(t)
-		ank := sicher.Text(a.Antworten[i].Anker, MaxThema)
-		if ank == "" && i < len(anker) {
-			ank = anker[i]
-		}
-		erg.Faelschungen = append(erg.Faelschungen, game.Faelschung{Text: t, AnkerTag: ank})
+		erg.Faelschungen = append(erg.Faelschungen, game.Faelschung{
+			Text:     t,
+			Richtung: sicher.Text(a.Antworten[i].Richtung, MaxThema),
+		})
 	}
 	return erg, nil
 }

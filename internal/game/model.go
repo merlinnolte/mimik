@@ -36,10 +36,12 @@ type Antwort struct {
 // ersten Öffnen des Ratebildschirms fest; ohne das könnte man durch mehrfaches
 // Neuladen auf die echte Karte schließen.
 type Karte struct {
-	Pos      int // 1..4, Anzeigereihenfolge
-	Text     string
-	IstEcht  bool
-	AnkerTag string // nur bei Fälschungen gesetzt
+	Pos     int // 1..4, Anzeigereihenfolge
+	Text    string
+	IstEcht bool
+	// Richtung ist das, was MIMIK sich für diese Fälschung ausgesucht hat –
+	// ein bis drei Wörter, nur zur Diagnose. Bei der echten Karte leer.
+	Richtung string
 }
 
 // Tipp ist die Wahl eines Spielers über den jeweils anderen.

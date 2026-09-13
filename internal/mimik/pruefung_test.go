@@ -48,36 +48,6 @@ func TestAbstandsfenster(t *testing.T) {
 	}
 }
 
-// Genau das Beispiel aus der Absprache: wer über sein Rennrad antwortet, darf
-// "radfahren" nicht als Anker bekommen.
-func TestAnkerStreichtDasThema(t *testing.T) {
-	rennrad := "Ein Rennrad. Ich fahre es vielleicht dreimal im Jahr, aber jedes Mal denke ich, es war richtig."
-	tags := []string{"kaffee", "radfahren", "krimis", "nordsee"}
-	anker, gestrichen := AnkerWaehlen(tags, nil, rennrad, nil)
-	if len(gestrichen) != 1 || gestrichen[0] != "radfahren" {
-		t.Fatalf("gestrichen=%v, erwartet [radfahren]", gestrichen)
-	}
-	for _, a := range anker {
-		if a == "radfahren" {
-			t.Fatal("radfahren ist trotzdem anker geworden")
-		}
-	}
-	if len(anker) != 3 {
-		t.Fatalf("erwarte 3 anker, habe %d", len(anker))
-	}
-}
-
-func TestAnkerUeberspringtVerbrauchte(t *testing.T) {
-	tags := []string{"kaffee", "krimis", "nordsee", "podcasts"}
-	verbraucht := map[string]bool{"kaffee": true}
-	anker, _ := AnkerWaehlen(tags, verbraucht, echt, nil)
-	for _, a := range anker {
-		if a == "kaffee" {
-			t.Fatal("verbrauchtes thema wurde wieder anker")
-		}
-	}
-}
-
 func TestSperrbruch(t *testing.T) {
 	sperre := []string{"rennrad", "fahrrad", "radsport"}
 	fakes := []string{
@@ -123,42 +93,6 @@ func TestUmlauteZerschneidenKeineGramme(t *testing.T) {
 	}
 }
 
-// Gegen echtes Material vom 12.09.2026. Wenn jemand über seine Bücher
-// antwortet, darf "bücher" in derselben Runde kein Anker für die Fälschungen
-// sein – sonst baut MIMIK die Sperre selbst wieder ein.
-func TestAnkerAufEchtemMaterial(t *testing.T) {
-	tags := []string{"spielkonsolen", "altes rom", "politik", "bücher", "filme",
-		"memes", "schlaf", "wohnen", "wellness", "geschichte"}
-
-	faelle := []struct {
-		antwort        string
-		willGestrichen string
-	}{
-		{"Bücher: Die lese ich nicht mehr, aber ich finde sie dekorativ", "bücher"},
-		{"Auf jeden Fall (rechte) Politik", "politik"},
-		{"Noch eine kleine Spielkonsole – aber ich habe viel Spaß damit!", "spielkonsolen"},
-		{"Bestimmt ein Meme, das du mir geschickt hast", "memes"},
-	}
-	for _, f := range faelle {
-		anker, gestrichen := AnkerWaehlen(tags, nil, f.antwort, nil)
-		if !enthaelt(gestrichen, f.willGestrichen) {
-			t.Errorf("%q: %q nicht gestrichen (gestrichen=%v)", f.antwort, f.willGestrichen, gestrichen)
-		}
-		if enthaelt(anker, f.willGestrichen) {
-			t.Errorf("%q: %q trotzdem als anker vergeben", f.antwort, f.willGestrichen)
-		}
-		if len(anker) != 3 {
-			t.Errorf("%q: %d anker statt 3", f.antwort, len(anker))
-		}
-	}
-
-	// Gegenprobe: eine Antwort ohne Bezug zu einem Tag streicht nichts.
-	_, gestrichen := AnkerWaehlen(tags, nil, "Statt der Dusche eine Duschwanne im Bad", nil)
-	if len(gestrichen) != 0 {
-		t.Errorf("ohne thematischen bezug wurde gestrichen: %v", gestrichen)
-	}
-}
-
 func enthaelt(xs []string, x string) bool {
 	for _, s := range xs {
 		if s == x {
@@ -174,7 +108,7 @@ func TestErsatzNormalform(t *testing.T) {
 			"Bereuen tu ich nix! Ich trink halt viel kaffe."},
 		{"die zweite kaffeemaschine 😄", "Die zweite kaffeemaschine."},
 		{"Schon in Ordnung.", "Schon in Ordnung."},
-		{"Kündige!", "Kündige!"},
+		{"Geh raus!", "Geh raus!"},
 	}
 	for _, f := range faelle {
 		if got := ErsatzNormalform(f.ein); got != f.aus {
@@ -201,9 +135,9 @@ func TestFormmangel(t *testing.T) {
 	}
 	gut := []string{
 		"Ein selbstgemachtes Kochbuch, handgeschrieben.",
-		"Kündige!",
+		"Geh raus!",
 		"Wirklich? Ich weiß es nicht.",
-		"3 Tage am Stück durchgemacht.",
+		"3 Tage am Stück gewandert.",
 		"Der Stapel Zeitschriften neben dem Sofa …",
 	}
 	for _, t2 := range gut {

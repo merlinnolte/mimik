@@ -31,7 +31,7 @@ func TestModellBekommtKeineWerkzeuge(t *testing.T) {
 
 	c := mimik.NeuAusUmgebung()
 	c.BaseURL, c.APIKey, c.Model, c.JSONMode = modell.URL, "test", "stub", false
-	c.Faelschungen(t.Context(), "Eine Frage?", "irgendwas", []string{"a"}, mimik.Dossier{})
+	c.Faelschungen(t.Context(), "Eine Frage?", "irgendwas", mimik.Dossier{Interessen: []string{"kaffee"}})
 
 	if gesehen == nil {
 		t.Fatal("das modell wurde gar nicht gerufen")

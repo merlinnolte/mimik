@@ -212,30 +212,6 @@ func Sperrbruch(faelschungen []string, sperre []string) []int {
 	return schuldig
 }
 
-// AnkerWaehlen streicht Tags, die zu nah an der echten Antwort liegen, und gibt
-// bis zu drei Anker zurück. Antwortet jemand über sein Rennrad, darf
-// "radfahren" kein Anker sein – sonst baut MIMIK die Sperre selbst wieder ein.
-func AnkerWaehlen(tags []string, verbraucht map[string]bool, echt string, mischen func([]string)) (anker, gestrichen []string) {
-	var frei []string
-	for _, t := range tags {
-		if verbraucht[strings.ToLower(t)] {
-			continue
-		}
-		if SperrNaehe(t, echt) >= SperrSchwelle {
-			gestrichen = append(gestrichen, t)
-			continue
-		}
-		frei = append(frei, t)
-	}
-	if mischen != nil {
-		mischen(frei)
-	}
-	if len(frei) > 3 {
-		frei = frei[:3]
-	}
-	return frei, gestrichen
-}
-
 // NormalformPlausibel prüft die Normalform aus dem Modellaufruf. Sie darf
 // Rechtschreibung glätten, aber nicht umschreiben: Länge höchstens zehn Prozent
 // daneben, Satzzahl höchstens um eins verschoben.
