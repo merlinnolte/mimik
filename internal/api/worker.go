@@ -149,6 +149,17 @@ func (w *Worker) botzug(ctx context.Context, rid string) error {
 	return nil
 }
 
+// rundeBearbeiten baut die Kartensätze, die gebaut werden können.
+//
+// Und zwar, sobald der jeweilige Mensch geantwortet hat – nicht erst, wenn beide
+// fertig sind. Der Satz über A entsteht aus As Antwort und As Dossier; auf B
+// wartet er für nichts. Vorher stieg diese Funktion aus, solange die Runde nicht
+// auf MIMIK_ARBEITET stand, also bis zur letzten Antwort. Damit lagen beide
+// Aufrufe HINTER dem zweiten Menschen, und der sah die volle Wartezeit.
+//
+// Jetzt läuft der erste Aufruf, während die andere Seite noch nachdenkt – in
+// einem Spiel ohne Uhr können das Stunden sein. Wer als Zweiter absendet, wartet
+// meist nur noch auf seinen eigenen Satz.
 func (w *Worker) rundeBearbeiten(ctx context.Context, rid string) {
 	pa, _, err := w.S.PartyVonRunde(rid)
 	if err != nil {
@@ -158,23 +169,27 @@ func (w *Worker) rundeBearbeiten(ctx context.Context, rid string) {
 	if err != nil {
 		return
 	}
-	if rd.Ableiten(pa) != game.MimikArbeitet {
-		return // noch nicht beide geschrieben, oder längst fertig
+	if rd.Ableiten(pa) == game.Aufgeloest {
+		return
 	}
-	// Die beiden Kartensätze NEBENEINANDER bauen, nicht nacheinander.
-	//
-	// Sie hängen nicht voneinander ab: Der Satz über A entsteht aus As Antwort
-	// und As Dossier, der über B aus Bs. Nacheinander dauerte eine Runde so
-	// lange wie beide Aufrufe zusammen – bei gemessenen 15 bis 190 Sekunden je
-	// Aufruf also bis zu sechs Minuten, und mit Wiederholungen mehr. Parallel
-	// dauert sie so lange wie der langsamere von beiden.
+
+	// Wer geantwortet hat und noch keine vier Karten hat, ist dran.
 	offen := make([]game.PlayerID, 0, 2)
 	for _, ueber := range []game.PlayerID{pa.A, pa.B} {
+		if _, hat := rd.Antworten[ueber]; !hat {
+			continue
+		}
 		if len(rd.Karten[ueber]) != 4 {
 			offen = append(offen, ueber)
 		}
 	}
+	if len(offen) == 0 {
+		return
+	}
 
+	// Die Sätze NEBENEINANDER bauen, nicht nacheinander. Sie hängen nicht
+	// voneinander ab; nacheinander dauerte eine Runde so lange wie beide
+	// Aufrufe zusammen.
 	var wg sync.WaitGroup
 	fehler := make([]error, len(offen))
 	for i, ueber := range offen {
@@ -186,32 +201,27 @@ func (w *Worker) rundeBearbeiten(ctx context.Context, rid string) {
 	}
 	wg.Wait()
 
-	for i, err := range fehler {
-		if err != nil {
-			log.Printf("worker: runde %s über %s: %v", rid[:8], offen[i], err)
-			w.S.ZustandSetzen(rid, game.MimikArbeitet, err.Error())
-			return // beim nächsten Takt erneut versuchen
-		}
-	}
-
-	// Neu einlesen: Beide Goroutinen haben in die Datenbank geschrieben, die
+	// Neu einlesen: Die Goroutinen haben in die Datenbank geschrieben, die
 	// Kopie in rd kennt davon nichts.
 	rd, err = w.S.Runde(rid)
 	if err != nil {
 		return
 	}
-	if len(rd.Karten[pa.A]) == 4 && len(rd.Karten[pa.B]) == 4 {
-		w.S.ZustandSetzen(rid, game.Raten, "")
+	neu := rd.Ableiten(pa)
+
+	for i, e := range fehler {
+		if e != nil {
+			log.Printf("worker: runde %s über %s: %v", rid[:8], offen[i], e)
+			w.S.ZustandSetzen(rid, neu, e.Error())
+			return // beim nächsten Takt erneut versuchen
+		}
+	}
+	w.S.ZustandSetzen(rid, neu, "")
+	if neu == game.Raten {
 		log.Printf("worker: runde %s ist zum raten offen", rid[:8])
 	}
 }
 
-// kartenBauen lädt die Runde selbst, statt eine mitgereichte Kopie zu benutzen.
-//
-// game.Runde trägt Maps (Karten, Antworten). Zwei Goroutinen mit derselben
-// Struktur schrieben in dieselben Maps – nebenläufige Map-Schreibzugriffe sind
-// in Go kein Fehlerwert, sondern ein Absturz des ganzen Prozesses. Jede
-// Goroutine bekommt deshalb ihre eigene Runde.
 func (w *Worker) kartenBauen(ctx context.Context, rid string, pa game.Party, ueber game.PlayerID) error {
 	rd, err := w.S.Runde(rid)
 	if err != nil {

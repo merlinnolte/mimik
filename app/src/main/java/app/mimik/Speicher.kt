@@ -13,8 +13,14 @@ class Speicher(kontext: Context) {
         get() = p.getString("token", "").orEmpty()
         set(v) = p.edit().putString("token", v).apply()
 
+    /**
+     * Der eigene Server, voreingestellt. Mit https, weil er hinter einem Reverse
+     * Proxy mit TLS steht – und weil die Release-Fassung Klartext ohnehin
+     * verweigert. Zum Testen gegen einen lokalen Server überschreibt man das
+     * Feld beim Anmelden, etwa mit http://10.0.2.2:8080 im Emulator.
+     */
     var server: String
-        get() = p.getString("server", "http://10.0.2.2:8080").orEmpty()
+        get() = p.getString("server", "https://mimik.merlinnolte.de").orEmpty()
         set(v) = p.edit().putString("server", v.trim().trimEnd('/')).apply()
 
     /** Höchste Rundennummer, deren Auflösung dieser Spieler gesehen hat. */

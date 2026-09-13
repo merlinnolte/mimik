@@ -900,3 +900,74 @@ func TestTestpartie(t *testing.T) {
 	t.Logf("Runde aufgelöst, Tipp des Menschen richtig: %v",
 		st.Runden[0].Aufloesung.MeinTippRichtig)
 }
+
+// TestKartenLaufenVor: Der Satz über A entsteht, sobald A geantwortet hat –
+// nicht erst, wenn auch B fertig ist. Sonst lägen beide Modellaufrufe hinter
+// dem zweiten Menschen, und der säße die volle Wartezeit ab.
+func TestKartenLaufenVor(t *testing.T) {
+	srv, s, w := aufbauen(t)
+	ctx := context.Background()
+
+	machen := func(name string) (*klient, string) {
+		k := &klient{t: t, basis: srv.URL}
+		var an struct {
+			Token   string `json:"token"`
+			Spieler struct {
+				ID string `json:"id"`
+			} `json:"spieler"`
+		}
+		k.ruf("POST", "/v1/devices", map[string]string{"spitzname": name}, &an)
+		k.token = an.Token
+		k.ruf("PUT", "/v1/tags", map[string]any{"tags": zehnTags()}, nil)
+		return k, an.Spieler.ID
+	}
+	a, idA := machen("A")
+	b, _ := machen("B")
+	var pa struct {
+		Code string `json:"code"`
+	}
+	a.ruf("POST", "/v1/parties", nil, &pa)
+	b.ruf("POST", "/v1/parties/join", map[string]string{"code": pa.Code}, nil)
+	a.ruf("POST", "/v1/matches", nil, nil)
+
+	var st struct {
+		Runden []RundeAus `json:"runden"`
+	}
+	a.ruf("GET", "/v1/state", nil, &st)
+	rid := st.Runden[0].ID
+
+	// Nur A antwortet.
+	a.ruf("POST", "/v1/rounds/"+rid+"/answer", map[string]string{"original": "Der Stapel neben dem Sofa"}, nil)
+	w.durchgang(ctx)
+
+	// As Satz steht schon, obwohl B noch nicht getippt hat.
+	rd, err := s.Runde(rid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	party, _, _ := s.PartyVonRunde(rid)
+	if len(rd.Karten[game.PlayerID(idA)]) != 4 {
+		t.Fatalf("As Karten stehen noch nicht: %d", len(rd.Karten[game.PlayerID(idA)]))
+	}
+	if rd.Ableiten(party) != game.SchreibenWartet {
+		t.Fatalf("Zustand ist %q, erwartet SCHREIBEN_WARTET", rd.Ableiten(party))
+	}
+
+	// Und niemand sieht sie: KartenFuer gibt vor dem Raten nichts heraus.
+	b.ruf("GET", "/v1/state", nil, &st)
+	if len(st.Runden[0].Karten) != 0 {
+		t.Fatalf("B sieht %d Karten, bevor er geantwortet hat", len(st.Runden[0].Karten))
+	}
+
+	// Jetzt B – danach fehlt nur noch SEIN Satz.
+	b.ruf("POST", "/v1/rounds/"+rid+"/answer", map[string]string{"original": "Eine Postkarte ohne Anlass"}, nil)
+	w.durchgang(ctx)
+
+	a.ruf("GET", "/v1/state", nil, &st)
+	if st.Runden[0].Zustand != game.Raten {
+		t.Fatalf("Zustand ist %q statt RATEN", st.Runden[0].Zustand)
+	}
+	if len(st.Runden[0].Karten) != 4 {
+		t.Fatalf("%d Karten", len(st.Runden[0].Karten))
+	}
+}

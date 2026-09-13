@@ -21,9 +21,10 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## Serveradresse
 
-Beim ersten Start abfragbar. Voreinstellung `http://10.0.2.2:8080` – das ist der
-Host aus Sicht des Emulators. Auf einem echten Telefon die LAN-Adresse des
-Servers eintragen, oder die öffentliche hinter Caddy.
+Beim ersten Start abfragbar. Voreinstellung `https://mimik.merlinnolte.de` –
+der eigene Server hinter dem Reverse Proxy. Zum Testen überschreibt man das Feld:
+`http://10.0.2.2:8080` ist der Host aus Sicht des Emulators, im eigenen WLAN die
+LAN-Adresse mit dem Port aus `MIMIK_PORT`.
 
 **Klartext-HTTP ist nur im Debug-Build erlaubt**
 (`src/debug/res/xml/netz_sicherheit.xml`). Der Release-Build besteht auf HTTPS,

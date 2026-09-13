@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -111,11 +112,23 @@ private fun Wartezeile(text: String) {
             punkte = (punkte + 1) % 4
         }
     }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(text, color = p.fgDim, fontSize = 11.sp, lineHeight = 17.sp)
+    // Beide Breiten stehen fest, und das ist der ganze Witz.
+    //
+    // Vorher richtete sich der Row nach seinem Inhalt. Der Punkte-Text wurde
+    // alle 500 ms breiter und schmaler – nachgestellte Leerzeichen zählen im
+    // Layout nicht mit –, dadurch brach der Satz daneben zwischen zwei und drei
+    // Zeilen um, und weil die Hülle alles vertikal zentriert, hüpfte der GANZE
+    // Bildschirm im Halbsekundentakt. Genau dann zu sehen, wenn man am längsten
+    // hinschaut: während MIMIK arbeitet.
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
         Text(
-            ".".repeat(punkte).padEnd(3),
-            color = p.accent, fontSize = 11.sp,
+            text, color = p.fgDim, fontSize = 11.sp, lineHeight = 17.sp,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            ".".repeat(punkte),
+            color = p.accent, fontSize = 11.sp, lineHeight = 17.sp,
+            modifier = Modifier.width(16.dp),
         )
     }
 }
@@ -163,7 +176,7 @@ fun StartBildschirm(modell: AppModel) {
         Zeile("Vier Antworten. Eine ist echt.", p.fgDim, 12)
         Panel(titel = "Anmelden") {
             Zeile("Serveradresse", p.fgDim, 11)
-            Feld(url, { url = it }, hinweis = "http://…:8080")
+            Feld(url, { url = it }, hinweis = "https://…")
             Spacer(Modifier.height(10.dp))
             Zeile("Dein Spitzname", p.fgDim, 11)
             Feld(name, { name = it }, hinweis = "Wie heißt du im Spiel?")

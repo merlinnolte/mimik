@@ -28,13 +28,14 @@ keine Uhr.
 |---|---|---|
 | **Server** | Go-Binary, SQLite, ein Docker-Container. Hält das ganze Spiel. | [SERVER.md](SERVER.md) |
 | **App** | Android, Jetpack Compose, Terminal-Optik. | [APP.md](APP.md) |
-| **Werkbank** | Python-Skript, das die beiden Prompts ohne Server testet. | [WERKBANK.md](WERKBANK.md) |
+| **Werkbank** | Python-Skript, das den Prompt ohne Server testet. | [WERKBANK.md](WERKBANK.md) |
+| **Modellmessung** | `messe-modelle.py` – misst, welches Modell deines Endpunkts schnell **und** brauchbar antwortet | — |
 
 Dazu: [SICHERHEIT.md](SICHERHEIT.md) – was der Server annimmt, was er dem Modell
 gibt und was er nicht tut. [agents.md](agents.md) – die Regeln des Projekts für
 alle, die daran weiterarbeiten, Mensch wie Agent.
 
-Version **0.1**. Sie steht an zwei Stellen und muss dort gleich bleiben:
+Version **0.5**. Sie steht an zwei Stellen und muss dort gleich bleiben:
 `internal/version.go` und `app/build.gradle.kts` (`versionName`).
 
 ## Loslegen
