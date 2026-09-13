@@ -176,6 +176,8 @@ class Netz(private var basis: String, private var token: String) {
         sende("POST", "/v1/parties/join", buildJsonObject { put("code", code) }.toString())
 
     /** ab = wie viele Vorschläge dieses Gerät schon gesehen hat. */
+    fun partyVerlassen(): String = ruf("POST", "/v1/parties/verlassen", "{}")
+
     fun tags(ab: Int = 0): TagsAus = hole("/v1/tags?ab=$ab")
 
     fun tagsSetzen(tags: List<String>): TagsAus = sende(

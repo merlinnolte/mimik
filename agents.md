@@ -364,6 +364,12 @@ Damit es nicht noch einmal passiert:
   ein Name auf, der nach einer realen Person aussah, ohne als erfunden
   gekennzeichnet zu sein. `beispiele-kim.json` sagt in der ersten Zeile, dass
   „Kim“ erfunden ist. **Erfundenes immer als solches kennzeichnen.**
+- **Aus einer Party kam man nicht heraus.** Sobald `party.partner != null` war,
+  blieb der Party-Bildschirm für immer unerreichbar; der einzige Ausweg war
+  „Alles löschen" – samt Dossier. Jetzt gibt es `POST /v1/parties/verlassen`.
+  Die Party-Zeile bleibt dabei stehen und wird nur auf `BEENDET` gesetzt: Ein
+  `DELETE` scheitert am Fremdschlüssel von `matches`, und das zu Recht – daran
+  hängt die Chronik.
 - **`mimik` in `.gitignore` ohne Schrägstrich** hätte `internal/mimik/`
   verschluckt. Jetzt `/mimik`.
 

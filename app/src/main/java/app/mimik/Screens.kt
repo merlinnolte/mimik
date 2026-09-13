@@ -619,6 +619,7 @@ fun EinstellungenBildschirm(modell: AppModel) {
     var name by remember { mutableStateOf(modell.spitzname) }
     var loeschStufe by remember { mutableIntStateOf(0) } // 0 = zu, 1 = Dossier, 2 = alles
     var spielBeenden by remember { mutableStateOf(false) }
+    var partyVerlassen by remember { mutableStateOf(false) }
     var bestaetigung by remember { mutableStateOf("") }
 
     Huelle(modell) {
@@ -658,6 +659,32 @@ fun EinstellungenBildschirm(modell: AppModel) {
                         Knopf("Beenden", aktiv = !modell.laden) {
                             spielBeenden = false
                             modell.matchAbbrechen()
+                        }
+                    }
+                }
+            }
+        }
+
+        if (modell.inParty) {
+            Panel(titel = "Party") {
+                if (!partyVerlassen) {
+                    Zeile("Ihr spielt zu zweit mit ${modell.partnerName}.", p.fgDim, 11)
+                    Spacer(Modifier.height(8.dp))
+                    Knopf("Party verlassen") { partyVerlassen = true }
+                } else {
+                    Zeile(
+                        "Die Party wird für euch beide aufgelöst, ein laufendes Spiel " +
+                            "endet dabei. Dein Dossier, deine Tags und dein Konto bleiben — " +
+                            "MIMIK vergisst nichts, nur weil ihr neu antretet. Danach kannst " +
+                            "du eine neue Party gründen oder einer beitreten.",
+                        p.warn, 12,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Knopf("Doch nicht") { partyVerlassen = false }
+                        Knopf("Verlassen", aktiv = !modell.laden) {
+                            partyVerlassen = false
+                            modell.partyVerlassen()
                         }
                     }
                 }

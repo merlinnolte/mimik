@@ -709,3 +709,96 @@ func TestMatchAbbrechen(t *testing.T) {
 		t.Fatalf("abbruch ohne laufendes spiel: %d, erwartet 409", code)
 	}
 }
+
+// TestPartyVerlassen: der Weg zurück auf den Party-Bildschirm. Vorher gab es
+// keinen – wer einmal zu zweit war, kam nur über "Alles löschen" wieder heraus,
+// und das nahm das Dossier mit.
+func TestPartyVerlassen(t *testing.T) {
+	srv, s, _ := aufbauen(t)
+
+	machen := func(name string) (*klient, string) {
+		k := &klient{t: t, basis: srv.URL}
+		var an struct {
+			Token   string `json:"token"`
+			Spieler struct {
+				ID string `json:"id"`
+			} `json:"spieler"`
+		}
+		k.ruf("POST", "/v1/devices", map[string]string{"spitzname": name}, &an)
+		k.token = an.Token
+		k.ruf("PUT", "/v1/tags", map[string]any{"tags": zehnTags()}, nil)
+		return k, an.Spieler.ID
+	}
+	a, idA := machen("A")
+	b, idB := machen("B")
+	var pa struct {
+		Code string `json:"code"`
+	}
+	a.ruf("POST", "/v1/parties", nil, &pa)
+	b.ruf("POST", "/v1/parties/join", map[string]string{"code": pa.Code}, nil)
+	a.ruf("POST", "/v1/matches", nil, nil)
+	s.FaktHinzu(idA, "r", "A mag Berge.")
+	s.FaktHinzu(idB, "r", "B mag Meer.")
+
+	if code := a.ruf("POST", "/v1/parties/verlassen", nil, nil); code != 200 {
+		t.Fatalf("verlassen: %d", code)
+	}
+
+	// Beide sind draußen und sehen den Party-Bildschirm wieder (party == null).
+	for name, k := range map[string]*klient{"A": a, "B": b} {
+		var z struct {
+			Party *struct{} `json:"party"`
+			Tags  []string  `json:"tags"`
+		}
+		k.ruf("GET", "/v1/state", nil, &z)
+		if z.Party != nil {
+			t.Fatalf("%s steckt noch in einer Party", name)
+		}
+		if len(z.Tags) != 10 {
+			t.Fatalf("%s hat seine Tags verloren", name)
+		}
+	}
+
+	// Was den Spielern gehört, ist geblieben.
+	for name, k := range map[string]*klient{"A": a, "B": b} {
+		var d struct {
+			Fakten []string `json:"fakten"`
+		}
+		if code := k.ruf("GET", "/v1/dossier", nil, &d); code != 200 {
+			t.Fatalf("%s: dossier weg (%d)", name, code)
+		}
+		if len(d.Fakten) != 1 {
+			t.Fatalf("%s: %d Fakten statt 1", name, len(d.Fakten))
+		}
+	}
+
+	// Das laufende Match ist beendet, nicht verwaist.
+	if _, err := s.AktivesMatch("egal"); err == nil {
+		t.Fatal("es gibt noch ein aktives match")
+	}
+
+	// Und eine neue Party lässt sich gründen.
+	var neu struct {
+		Code string `json:"code"`
+	}
+	if code := a.ruf("POST", "/v1/parties", nil, &neu); code != 201 {
+		t.Fatalf("neue party: %d", code)
+	}
+	if code := b.ruf("POST", "/v1/parties/join", map[string]string{"code": neu.Code}, nil); code != 200 {
+		t.Fatalf("erneut beitreten: %d", code)
+	}
+	if code := a.ruf("POST", "/v1/matches", nil, nil); code != 201 {
+		t.Fatalf("match in der neuen party: %d", code)
+	}
+
+	// Ohne Party gibt es nichts zu verlassen.
+	c := &klient{t: t, basis: srv.URL}
+	var an struct {
+		Token string `json:"token"`
+	}
+	c.ruf("POST", "/v1/devices", map[string]string{"spitzname": "C"}, &an)
+	c.token = an.Token
+	if code := c.ruf("POST", "/v1/parties/verlassen", nil, nil); code != 409 {
+		t.Fatalf("verlassen ohne party: %d, erwartet 409", code)
+	}
+}

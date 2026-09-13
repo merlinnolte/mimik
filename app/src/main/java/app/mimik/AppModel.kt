@@ -123,6 +123,13 @@ class AppModel(app: Application) : AndroidViewModel(app) {
             else -> false
         }
 
+    /** Steckt der Spieler in einer vollständigen Party? */
+    val inParty: Boolean
+        get() = zustand?.party?.partner != null
+
+    val partnerName: String
+        get() = zustand?.party?.partner?.spitzname.orEmpty()
+
     /** Läuft gerade ein Spiel, das man abbrechen könnte? */
     val matchLaeuft: Boolean
         get() = zustand?.match?.ergebnis == "OFFEN"
@@ -275,6 +282,17 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         val z = netz.zustand()
         withContext(Dispatchers.Main) {
             gespeicherteTags = gewaehlteTags.toList().sorted()
+            zustandUebernehmen(z)
+        }
+    }
+
+    /** Löst die Party auf – für beide. Konto, Tags und Dossier bleiben. */
+    fun partyVerlassen() = imHintergrund {
+        netz.partyVerlassen()
+        val z = netz.zustand()
+        withContext(Dispatchers.Main) {
+            zeigeAufloesung = null
+            einstellungenOffen = false
             zustandUebernehmen(z)
         }
     }

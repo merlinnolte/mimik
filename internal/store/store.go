@@ -243,6 +243,60 @@ func (s *Store) PartyCode(partyID string) string {
 	return c.String
 }
 
+// PartyVerlassen loest die Party auf – für beide Seiten.
+//
+// Eine Party ist zu zweit oder gar nicht; eine Party mit einem Mitglied wäre ein
+// Wartezimmer ohne Tür. Wer geht, beendet sie also ganz. Ein laufendes Match
+// wird dabei abgebrochen, sonst bliebe es für immer offen stehen.
+//
+// Was den Spielern gehört, bleibt: Konto, Tags und Dossier. Genau dafür hängt
+// das Dossier am Spieler und nicht an der Party – MIMIK vergisst nichts, nur
+// weil ihr in neuer Aufstellung antretet.
+//
+// Die vergebenen Fragen bleiben vergeben. Sie in den Vorrat zurückzulegen hieße,
+// denselben Menschen dieselben Fragen noch einmal zu stellen.
+func (s *Store) PartyVerlassen(pid string) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var partyID string
+	if err := tx.QueryRow(
+		`SELECT party_id FROM party_members WHERE player_id = ?`, pid).Scan(&partyID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNichtGefunden
+		}
+		return err
+	}
+	if _, err := tx.Exec(
+		`UPDATE matches SET ergebnis = ?, beendet_am = ? WHERE party_id = ? AND ergebnis = ?`,
+		game.Abgebrochen, jetzt(), partyID, game.Offen); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(
+		`UPDATE rounds SET zustand = ?, aufgeloest_am = ?
+		  WHERE match_id IN (SELECT id FROM matches WHERE party_id = ?) AND zustand != ?`,
+		game.Aufgeloest, jetzt(), partyID, game.Aufgeloest); err != nil {
+		return err
+	}
+	// Nur die Mitgliedschaft fällt, die Party-Zeile bleibt stehen.
+	//
+	// Ein DELETE auf parties scheitert am Fremdschlüssel von matches – und das
+	// zu Recht: Die Chronik der gespielten Matches hängt daran. Ohne Mitglieder
+	// findet PartyVon niemanden mehr, damit ist die Party für beide Seiten weg;
+	// was gespielt wurde, bleibt trotzdem nachlesbar.
+	if _, err := tx.Exec(
+		`UPDATE parties SET zustand = 'BEENDET', code = NULL WHERE id = ?`, partyID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM party_members WHERE party_id = ?`, partyID); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 // ------------------------------------------------------------------- Tags ---
 
 func (s *Store) Tags(pid string) ([]string, error) {

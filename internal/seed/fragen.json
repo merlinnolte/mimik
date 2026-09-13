@@ -1,242 +1,578 @@
 [
- {
-  "text": "Was ist das Unvernünftigste, das du dir in den letzten zwei Jahren gekauft hast – und bereust du es?",
-  "rubrik": "alltag"
- },
- {
-  "text": "Wofür nimmst du dir zu wenig Zeit?",
-  "rubrik": "alltag"
- },
- {
-  "text": "Was hast du zuletzt weggeworfen und schon beim Wegwerfen bereut?",
-  "rubrik": "alltag"
- },
- {
-  "text": "Bei welchem Thema merkst du, dass du dich schneller aufregst, als du möchtest?",
-  "rubrik": "haltung"
- },
- {
-  "text": "Was machst du regelmäßig, obwohl du weißt, dass es nichts bringt?",
-  "rubrik": "alltag"
- },
- {
-  "text": "Welchen Ort würdest du sofort wieder besuchen, obwohl es dort beim ersten Mal geregnet hat?",
-  "rubrik": "vergangenheit"
- },
- {
-  "text": "Was steht bei dir herum, das du nie benutzt, aber auch nie weggeben würdest?",
-  "rubrik": "alltag"
- },
- {
-  "text": "Welchen Rat hast du schon oft gegeben und selbst nie befolgt?",
-  "rubrik": "haltung"
- },
- {
-  "text": "Was würdest du an einem völlig freien Samstag tun, wenn niemand etwas von dir will?",
-  "rubrik": "hypothetisch"
- },
- {
-  "text": "Worüber hast du zuletzt laut gelacht, als niemand dabei war?",
-  "rubrik": "alltag"
- },
- {
-  "text": "Was hast du als Kind gemacht, worüber du heute den Kopf schüttelst?",
-  "rubrik": "vergangenheit"
- },
- {
-  "text": "Was würdest du an deiner Wohnung sofort ändern, wenn Geld keine Rolle spielte?",
-  "rubrik": "hypothetisch"
- },
- {
-  "text": "Welches Essen könntest du täglich essen, ohne dass es dir langweilig wird?",
-  "rubrik": "vorliebe"
- },
- {
-  "text": "Was war das letzte Geschenk, über das du dich wirklich gefreut hast?",
-  "rubrik": "vergangenheit"
- },
- {
-  "text": "Welche Gewohnheit von dir würde dich selbst nerven, wenn jemand anderes sie hätte?",
-  "rubrik": "haltung"
- },
- {
-  "text": "Was tust du, wenn du eigentlich arbeiten solltest?",
-  "rubrik": "alltag"
- },
- {
-  "text": "Welchen Film oder welche Serie hast du abgebrochen und nie beendet?",
-  "rubrik": "vorliebe"
- },
- {
-  "text": "Was ist der beste Ort in deiner Stadt, den kaum jemand kennt?",
-  "rubrik": "vorliebe"
- },
- {
-  "text": "Was hast du schon einmal gelernt und komplett wieder vergessen?",
-  "rubrik": "vergangenheit"
- },
- {
-  "text": "Was würdest du tun, wenn du ein Jahr lang nicht arbeiten müsstest?",
-  "rubrik": "hypothetisch"
- },
- {
-  "text": "Worüber streitest du dich in Gedanken, obwohl das Gespräch längst vorbei ist?",
-  "rubrik": "haltung"
- },
- {
-  "text": "Was ist das Erste, was du morgens machst – ehrlich?",
-  "rubrik": "alltag"
- },
- {
-  "text": "Welches Kleidungsstück trägst du viel zu oft?",
-  "rubrik": "alltag"
- },
- {
-  "text": "Was hast du zuletzt zum ersten Mal gemacht?",
-  "rubrik": "vergangenheit"
- },
- {
-  "text": "Welches Geräusch magst du, obwohl die meisten es nicht mögen?",
-  "rubrik": "vorliebe"
- },
- {
-  "text": "Was würdest du mitnehmen, wenn du für ein Jahr wegziehen müsstest und nur eine Tasche hättest?",
-  "rubrik": "hypothetisch"
- },
- {
-  "text": "Bei welcher Kleinigkeit gibst du gerne zu viel Geld aus?",
-  "rubrik": "vorliebe"
- },
- {
-  "text": "Was hast du zuletzt aufgeschoben, bis es sich von selbst erledigt hat?",
-  "rubrik": "alltag"
- },
- {
-  "text": "Welchen Ort aus deiner Kindheit würdest du gern noch einmal sehen?",
-  "rubrik": "vergangenheit"
- },
- {
-  "text": "Was kannst du überraschend gut, ohne es je gelernt zu haben?",
-  "rubrik": "haltung"
- },
- {
-  "text": "Was würdest du in deinem Leben behalten, auch wenn alle es für seltsam halten?",
-  "rubrik": "haltung"
- },
- {
-  "text": "Welche Jahreszeit passt am wenigsten zu dir?",
-  "rubrik": "vorliebe"
- },
- {
-  "text": "Was ist dir zuletzt peinlich gewesen, obwohl niemand es gemerkt hat?",
-  "rubrik": "alltag"
- },
- {
-  "text": "Welches Buch würdest du jemandem schenken, den du beeindrucken willst?",
-  "rubrik": "vorliebe"
- },
- {
-  "text": "Was hast du früher gehasst und magst es heute?",
-  "rubrik": "vergangenheit"
- },
- {
-  "text": "Wo warst du zuletzt völlig fehl am Platz?",
-  "rubrik": "vergangenheit"
- },
- {
-  "text": "Welche Aufgabe im Haushalt schiebst du am längsten vor dir her?",
-  "rubrik": "alltag"
- },
- {
-  "text": "Was würdest du machen, wenn dein Handy für eine Woche weg wäre?",
-  "rubrik": "hypothetisch"
- },
- {
-  "text": "Welcher Gegenstand in deiner Wohnung hat die längste Geschichte?",
-  "rubrik": "alltag"
- },
- {
-  "text": "Wofür gibst du Geld aus, das andere für Verschwendung halten?",
-  "rubrik": "vorliebe"
- },
- {
-  "text": "Welche Entscheidung von früher würdest du heute genauso wieder treffen?",
-  "rubrik": "vergangenheit"
- },
- {
-  "text": "Was bringt dich zuverlässig in gute Laune, auch wenn der Tag schlecht war?",
-  "rubrik": "vorliebe"
- },
- {
-  "text": "Bei welcher Gelegenheit hast du zuletzt gelogen, um höflich zu sein?",
-  "rubrik": "haltung"
- },
- {
-  "text": "Was möchtest du in fünf Jahren können, das du heute nicht kannst?",
-  "rubrik": "zukunft"
- },
- {
-  "text": "Welche Fähigkeit von anderen beneidest du am meisten?",
-  "rubrik": "haltung"
- },
- {
-  "text": "Was war der letzte Moment, in dem du dich richtig alt gefühlt hast?",
-  "rubrik": "vergangenheit"
- },
- {
-  "text": "Welchen Umweg nimmst du gern in Kauf?",
-  "rubrik": "vorliebe"
- },
- {
-  "text": "Was hast du dir vorgenommen und nie angefangen?",
-  "rubrik": "zukunft"
- },
- {
-  "text": "Welche Nachricht liest du sofort, egal was du gerade tust?",
-  "rubrik": "alltag"
- },
- {
-  "text": "Was wäre dein erster Satz, wenn du eine Rede halten müsstest?",
-  "rubrik": "hypothetisch"
- },
- {
-  "text": "Welches Geräusch in deiner Wohnung würdest du sofort abstellen?",
-  "rubrik": "alltag"
- },
- {
-  "text": "Was hast du zuletzt repariert statt ersetzt?",
-  "rubrik": "alltag"
- },
- {
-  "text": "Welchen Ort hast du dir schöner vorgestellt, als er war?",
-  "rubrik": "vergangenheit"
- },
- {
-  "text": "Was würdest du an einem Tag machen, an dem du unsichtbar wärst?",
-  "rubrik": "hypothetisch"
- },
- {
-  "text": "Welche Frage kannst du nicht mehr hören?",
-  "rubrik": "haltung"
- },
- {
-  "text": "Was lässt dich nachts wach liegen, das am nächsten Morgen belanglos ist?",
-  "rubrik": "haltung"
- },
- {
-  "text": "Welche Rolle übernimmst du in einer Gruppe, ohne dass es jemand verabredet hat?",
-  "rubrik": "haltung"
- },
- {
-  "text": "Was würdest du wieder anfangen, wenn du mehr Zeit hättest?",
-  "rubrik": "zukunft"
- },
- {
-  "text": "Welche Eigenart von dir kennt fast niemand?",
-  "rubrik": "haltung"
- },
- {
-  "text": "Was möchtest du unbedingt einmal gesehen haben?",
-  "rubrik": "zukunft"
- }
+  {
+    "text": "Was ist das Unvernünftigste, das du dir in den letzten zwei Jahren gekauft hast – und bereust du es?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Wofür nimmst du dir zu wenig Zeit?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Was hast du zuletzt weggeworfen und schon beim Wegwerfen bereut?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Bei welchem Thema merkst du, dass du dich schneller aufregst, als du möchtest?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Was machst du regelmäßig, obwohl du weißt, dass es nichts bringt?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Welchen Ort würdest du sofort wieder besuchen, obwohl es dort beim ersten Mal geregnet hat?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Was steht bei dir herum, das du nie benutzt, aber auch nie weggeben würdest?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Welchen Rat hast du schon oft gegeben und selbst nie befolgt?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Was würdest du an einem völlig freien Samstag tun, wenn niemand etwas von dir will?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Worüber hast du zuletzt laut gelacht, als niemand dabei war?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Was hast du als Kind gemacht, worüber du heute den Kopf schüttelst?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Was würdest du an deiner Wohnung sofort ändern, wenn Geld keine Rolle spielte?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Welches Essen könntest du täglich essen, ohne dass es dir langweilig wird?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Was war das letzte Geschenk, über das du dich wirklich gefreut hast?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Welche Gewohnheit von dir würde dich selbst nerven, wenn jemand anderes sie hätte?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Was tust du, wenn du eigentlich arbeiten solltest?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Welchen Film oder welche Serie hast du abgebrochen und nie beendet?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Was ist der beste Ort in deiner Stadt, den kaum jemand kennt?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Was hast du schon einmal gelernt und komplett wieder vergessen?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Was würdest du tun, wenn du ein Jahr lang nicht arbeiten müsstest?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Worüber streitest du dich in Gedanken, obwohl das Gespräch längst vorbei ist?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Was ist das Erste, was du morgens machst – ehrlich?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Welches Kleidungsstück trägst du viel zu oft?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Was hast du zuletzt zum ersten Mal gemacht?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Welches Geräusch magst du, obwohl die meisten es nicht mögen?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Was würdest du mitnehmen, wenn du für ein Jahr wegziehen müsstest und nur eine Tasche hättest?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Bei welcher Kleinigkeit gibst du gerne zu viel Geld aus?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Was hast du zuletzt aufgeschoben, bis es sich von selbst erledigt hat?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Welchen Ort aus deiner Kindheit würdest du gern noch einmal sehen?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Was kannst du überraschend gut, ohne es je gelernt zu haben?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Was würdest du in deinem Leben behalten, auch wenn alle es für seltsam halten?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Welche Jahreszeit passt am wenigsten zu dir?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Was ist dir zuletzt peinlich gewesen, obwohl niemand es gemerkt hat?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Welches Buch würdest du jemandem schenken, den du beeindrucken willst?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Was hast du früher gehasst und magst es heute?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Wo warst du zuletzt völlig fehl am Platz?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Welche Aufgabe im Haushalt schiebst du am längsten vor dir her?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Was würdest du machen, wenn dein Handy für eine Woche weg wäre?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Welcher Gegenstand in deiner Wohnung hat die längste Geschichte?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Wofür gibst du Geld aus, das andere für Verschwendung halten?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Welche Entscheidung von früher würdest du heute genauso wieder treffen?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Was bringt dich zuverlässig in gute Laune, auch wenn der Tag schlecht war?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Bei welcher Gelegenheit hast du zuletzt gelogen, um höflich zu sein?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Was möchtest du in fünf Jahren können, das du heute nicht kannst?",
+    "rubrik": "zukunft"
+  },
+  {
+    "text": "Welche Fähigkeit von anderen beneidest du am meisten?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Was war der letzte Moment, in dem du dich richtig alt gefühlt hast?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Welchen Umweg nimmst du gern in Kauf?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Was hast du dir vorgenommen und nie angefangen?",
+    "rubrik": "zukunft"
+  },
+  {
+    "text": "Welche Nachricht liest du sofort, egal was du gerade tust?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Was wäre dein erster Satz, wenn du eine Rede halten müsstest?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Welches Geräusch in deiner Wohnung würdest du sofort abstellen?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Was hast du zuletzt repariert statt ersetzt?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Welchen Ort hast du dir schöner vorgestellt, als er war?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Was würdest du an einem Tag machen, an dem du unsichtbar wärst?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Welche Frage kannst du nicht mehr hören?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Was lässt dich nachts wach liegen, das am nächsten Morgen belanglos ist?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Welche Rolle übernimmst du in einer Gruppe, ohne dass es jemand verabredet hat?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Was würdest du wieder anfangen, wenn du mehr Zeit hättest?",
+    "rubrik": "zukunft"
+  },
+  {
+    "text": "Welche Eigenart von dir kennt fast niemand?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Was möchtest du unbedingt einmal gesehen haben?",
+    "rubrik": "zukunft"
+  },
+  {
+    "text": "Welche Kleinigkeit bringt deinen Tag zuverlässig aus dem Takt?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Was machst du immer zuerst, wenn du nach Hause kommst?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Wofür stellst du dir einen Wecker, obwohl du nicht musst?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Welchen Weg gehst du absichtlich länger, weil er schöner ist?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Was liegt bei dir seit Monaten auf dem gleichen Stapel?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Welche Ausrede benutzt du am häufigsten?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Was kaufst du immer wieder, obwohl noch genug da ist?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Welche Aufgabe schiebst du gerade vor dir her?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Was isst du, wenn niemand zuschaut?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Welche App würdest du gern löschen und tust es nicht?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Wobei verlierst du die Zeit, ohne es zu merken?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Was räumst du auf, wenn du nachdenken willst?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Welchen Umweg nimmst du, um jemandem nicht zu begegnen?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Was hebst du auf, obwohl es kaputt ist?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Bei welcher Kleinigkeit bist du unerwartet pingelig?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Was ziehst du an, wenn es egal ist, wie du aussiehst?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Welche Nachricht beantwortest du immer zu spät?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Was tust du zuerst, wenn du morgens aufwachst?",
+    "rubrik": "alltag"
+  },
+  {
+    "text": "Welches Essen könntest du eine Woche lang jeden Tag essen?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Welchen Ort in deiner Stadt magst du, obwohl er nichts Besonderes ist?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Welche Jahreszeit passt am besten zu dir und warum?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Welches Lied hörst du, wenn niemand mitbestimmt?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Was riechst du gerne, ohne es jemandem zu erzählen?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Welcher Film funktioniert bei dir immer?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Welche Tageszeit gehört dir ganz allein?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Welches Werkzeug oder Gerät benutzt du mit unangemessener Freude?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Welches Buch hast du mehr als einmal gelesen?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Was trinkst du, wenn der Tag gut war?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Welcher Handgriff geht dir besonders leicht von der Hand?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Welches Wetter magst du, obwohl die meisten es hassen?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Was sammelst du, ohne es Sammeln zu nennen?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Welchen Raum in einer fremden Wohnung siehst du dir zuerst an?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Welches Spiel würdest du sofort mitspielen?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "text": "Worüber lachst du, obwohl du weißt, dass du nicht solltest?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Welche Meinung hast du in den letzten Jahren geändert?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Was findest du überbewertet, ohne es laut zu sagen?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Wobei bist du strenger mit dir als mit anderen?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Welchen Rat würdest du niemals befolgen?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Was verzeihst du sofort, was nie?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Bei welchem Thema hörst du auf zuzuhören?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Was hältst du für eine gute Eigenschaft, die andere an dir nervig finden?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Worauf bist du stolz, ohne es zeigen zu wollen?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Welche Regel brichst du regelmäßig und mit gutem Gewissen?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Was würdest du sagen, wenn niemand beleidigt sein könnte?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Wann hast du zuletzt nachgegeben, obwohl du recht hattest?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Was macht dich in Gesellschaft still?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Welche Frage beantwortest du ungern ehrlich?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Wovor hast du mehr Respekt, als du zugibst?",
+    "rubrik": "haltung"
+  },
+  {
+    "text": "Was war dein erstes eigenes Geld wert?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Welches Geschenk hast du nie vergessen?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Wobei warst du als Kind besser als heute?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Welches Fach in der Schule hat dich geprägt, im Guten oder im Schlechten?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Was hast du früher geliebt und verstehst heute nicht mehr?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Welche Peinlichkeit fällt dir noch nach Jahren ein?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Wer hat dir etwas beigebracht, das du noch täglich benutzt?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Welche Entscheidung hättest du fast anders getroffen?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Was war dein erster richtiger Streit mit einem Erwachsenen?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Welchen Sommer erinnerst du am deutlichsten?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Was hast du als Kind gehortet?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Welche Musik lief bei euch zu Hause?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Wovor hattest du als Kind Angst und wovor heute?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Welchen Umzug wirst du nicht vergessen?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "text": "Was würdest du mit einem geschenkten freien Jahr anfangen?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Welchen Beruf würdest du für ein halbes Jahr ausprobieren?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Wo würdest du wohnen, wenn die Sprache kein Hindernis wäre?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Was würdest du sofort abschaffen, wenn du es könntest?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Welche Fähigkeit hättest du gern über Nacht?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Wen würdest du gern einen Tag lang begleiten?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Was würdest du aus deiner Wohnung retten?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Welche Erfindung würdest du zurücknehmen?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Was würdest du deinem jüngeren Ich verschweigen?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Welches Gespräch würdest du gern noch einmal führen?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Was würdest du tun, wenn dir niemand zusehen könnte?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Welchen Tag deines Lebens würdest du wiederholen?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "text": "Was willst du in fünf Jahren können, was du heute nicht kannst?",
+    "rubrik": "zukunft"
+  },
+  {
+    "text": "Worauf freust du dich in den nächsten Wochen?",
+    "rubrik": "zukunft"
+  },
+  {
+    "text": "Was möchtest du nie mehr tun müssen?",
+    "rubrik": "zukunft"
+  },
+  {
+    "text": "Welche Gewohnheit willst du wirklich loswerden?",
+    "rubrik": "zukunft"
+  },
+  {
+    "text": "Was soll in zehn Jahren noch genauso sein wie heute?",
+    "rubrik": "zukunft"
+  },
+  {
+    "text": "Welchen Ort willst du gesehen haben?",
+    "rubrik": "zukunft"
+  },
+  {
+    "text": "Was willst du lernen, ohne es je zu brauchen?",
+    "rubrik": "zukunft"
+  },
+  {
+    "text": "Wovon möchtest du weniger haben?",
+    "rubrik": "zukunft"
+  },
+  {
+    "text": "Was traust du dir für nächstes Jahr zu?",
+    "rubrik": "zukunft"
+  },
+  {
+    "text": "Welche Sache willst du endlich zu Ende bringen?",
+    "rubrik": "zukunft"
+  }
 ]

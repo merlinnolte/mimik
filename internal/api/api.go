@@ -43,6 +43,7 @@ func (s *Server) Routes() http.Handler {
 	geschuetzt := map[string]http.HandlerFunc{
 		"POST /v1/parties":            s.partyAnlegen,
 		"POST /v1/parties/join":       s.partyBeitreten,
+		"POST /v1/parties/verlassen":  s.partyVerlassen,
 		"GET /v1/tags":                s.tagsVorschlagen,
 		"PUT /v1/tags":                s.tagsSetzen,
 		"GET /v1/state":               s.zustand,
@@ -225,6 +226,19 @@ func (s *Server) partyBeitreten(w http.ResponseWriter, r *http.Request) {
 		fehler(w, 500, err.Error())
 	default:
 		json_(w, 200, map[string]any{"party_id": pa.ID})
+	}
+}
+
+// partyVerlassen löst die Party auf. Die Rückfrage stellt die App.
+func (s *Server) partyVerlassen(w http.ResponseWriter, r *http.Request) {
+	err := s.S.PartyVerlassen(spieler(r).ID)
+	switch {
+	case errors.Is(err, store.ErrNichtGefunden):
+		fehler(w, 409, "du bist in keiner party")
+	case err != nil:
+		fehler(w, 500, err.Error())
+	default:
+		json_(w, 200, map[string]any{"verlassen": true})
 	}
 }
 
