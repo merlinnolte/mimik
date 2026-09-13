@@ -66,8 +66,13 @@ End-to-End-Test hält das fest.
 durch eine frische Kennung ersetzt.
 
 ```
-MIMIK_HEADERS=x-opencode-session: mimik-{zufall}
+MIMIK_HEADERS="x-opencode-session: mimik-{zufall}"
 ```
+
+Die Anführungszeichen sind kein Zierrat: Ohne sie lässt sich die `.env` nicht mit
+`set -a && . ./.env` in eine Shell laden – Bash liest die Zuweisung bis zum
+Leerzeichen und hält den Rest für einen Befehl. `docker compose` kommt mit beidem
+zurecht und streift die Anführungszeichen ab.
 
 Das ist kein Zierrat. Steht dort ein fester Wert, laufen alle Aufrufe unter
 derselben Sitzung. Legt der Anbieter das so aus, dass er den Verlauf einer
