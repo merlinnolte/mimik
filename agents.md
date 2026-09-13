@@ -375,7 +375,28 @@ Damit es nicht noch einmal passiert:
 
 ---
 
-## 12. Was noch aussteht
+## 12. Allein spielen
+
+Der Einladungscode **`TEST`** setzt einen Testspieler an den Tisch: eine Party,
+in der die zweite Seite vom Server gespielt wird. Zu zweit zu spielen heißt
+sonst, zu zweit sein zu müssen – wer eine Frage, eine Runde oder den ganzen
+Ablauf ausprobieren will, bräuchte ein zweites Telefon und eine zweite Person.
+
+Der Testspieler ist ein **ganz normaler Spieler** mit Tags und Dossier; der
+einzige Unterschied steht in der Tabelle `bots`. Er antwortet über
+`PromptBotAntwort` – den einzigen zweiten Prompt im Projekt, und ausdrücklich
+kein Teil des Spiels: Er steht nicht in `harness.py` und wird von
+`pruefe-prompts.py` nicht verglichen.
+
+**Geraten wird gewürfelt, nicht gerechnet.** Geprüft werden soll der Ablauf für
+den Menschen davor, nicht wie gut ein Modell rät – und jeder Modellaufruf kostet
+hier eine weitere Minute.
+
+`BotRunden` liefert je Match **genau eine** Runde: die kleinste noch nicht
+aufgelöste. Ein Match legt seine Runden im Voraus an; ohne das beantwortete der
+Testspieler auf dem Gerät alle sechs auf einmal.
+
+## 13. Was noch aussteht
 
 - Release-Signierung der App – braucht einen Keystore mit Passwort.
 - Docker-Abbild in eine Registry – braucht `write:packages` am GitHub-Token.

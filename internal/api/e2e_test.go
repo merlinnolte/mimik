@@ -35,8 +35,15 @@ func stubModell(t *testing.T) *httptest.Server {
 			Messages []struct{ Role, Content string } `json:"messages"`
 		}
 		json.Unmarshal(roh, &in)
-		user := in.Messages[1].Content
+		system, user := in.Messages[0].Content, in.Messages[1].Content
 		lauf := n.Add(1)
+
+		// Der Testspieler benutzt einen eigenen, viel kleineren Prompt.
+		if strings.Contains(system, "Du bist ein Mensch mit den unten genannten") {
+			json_(w, 200, map[string]any{"choices": []map[string]any{{"message": map[string]string{
+				"content": fmt.Sprintf(`{"antwort":"Der Zug um sieben, Runde %d."}`, lauf)}}}})
+			return
+		}
 
 		// Die rohe Antwort steht im Material. Das Stubmodell "schreibt sie
 		// sauber", indem es den Satzanfang großmacht - genug, um zu prüfen,
@@ -801,4 +808,95 @@ func TestPartyVerlassen(t *testing.T) {
 	if code := c.ruf("POST", "/v1/parties/verlassen", nil, nil); code != 409 {
 		t.Fatalf("verlassen ohne party: %d, erwartet 409", code)
 	}
+}
+
+// TestTestpartie: allein spielen. Der Testspieler antwortet und tippt, der
+// Mensch merkt keinen Unterschied zu einem zweiten Telefon.
+func TestTestpartie(t *testing.T) {
+	srv, s, w := aufbauen(t)
+	ctx := context.Background()
+
+	k := &klient{t: t, basis: srv.URL}
+	var an struct {
+		Token string `json:"token"`
+	}
+	k.ruf("POST", "/v1/devices", map[string]string{"spitzname": "Merlin"}, &an)
+	k.token = an.Token
+	k.ruf("PUT", "/v1/tags", map[string]any{"tags": zehnTags()}, nil)
+
+	var bei struct {
+		Test bool `json:"test"`
+	}
+	if code := k.ruf("POST", "/v1/parties/join", map[string]string{"code": "test"}, &bei); code != 200 {
+		t.Fatalf("TEST beitreten: %d", code)
+	}
+	if !bei.Test {
+		t.Fatal("der server sagt nicht, dass es eine testpartie ist")
+	}
+
+	// Die Party ist sofort vollständig – kein Warten auf jemanden.
+	var z struct {
+		Party struct {
+			Partner *struct {
+				Spitzname string `json:"spitzname"`
+			} `json:"partner"`
+		} `json:"party"`
+	}
+	k.ruf("GET", "/v1/state", nil, &z)
+	if z.Party.Partner == nil {
+		t.Fatal("die testpartie hat keinen partner")
+	}
+	t.Logf("Gegenüber: %s", z.Party.Partner.Spitzname)
+
+	if code := k.ruf("POST", "/v1/matches", nil, nil); code != 201 {
+		t.Fatalf("match: %d", code)
+	}
+
+	// Eine ganze Runde, ohne zweites Gerät.
+	var st struct {
+		Runden []RundeAus `json:"runden"`
+	}
+	k.ruf("GET", "/v1/state", nil, &st)
+	rid := st.Runden[0].ID
+	k.ruf("POST", "/v1/rounds/"+rid+"/answer",
+		map[string]string{"original": "der stapel zeitschriften neben dem sofa"}, nil)
+
+	// Erster Takt: der Testspieler antwortet. Zweiter: MIMIK baut die Karten.
+	w.durchgang(ctx)
+
+	// Und zwar NUR in der Runde, die dran ist. Ein Match legt seine Runden im
+	// Voraus an; ohne diese Einschränkung beantwortete der Testspieler alle auf
+	// einmal – Modellaufrufe für Runden, die vielleicht nie gespielt werden.
+	var antworten int
+	if err := s.DB().QueryRow(
+		`SELECT COUNT(*) FROM answers a JOIN bots b ON b.player_id = a.player_id`).
+		Scan(&antworten); err != nil {
+		t.Fatal(err)
+	}
+	if antworten != 1 {
+		t.Fatalf("der Testspieler hat %d Runden auf einmal beantwortet", antworten)
+	}
+
+	w.durchgang(ctx)
+
+	k.ruf("GET", "/v1/state", nil, &st)
+	if len(st.Runden[0].Karten) != 4 {
+		t.Fatalf("nach zwei Takten %d Karten, Zustand %q, Fehler %q",
+			len(st.Runden[0].Karten), st.Runden[0].Zustand, st.Runden[0].Fehler)
+	}
+
+	// Der Mensch tippt, der Testspieler zieht nach, die Runde löst auf.
+	k.ruf("POST", "/v1/rounds/"+rid+"/guess", map[string]int{"pos": 1}, nil)
+	w.durchgang(ctx)
+	k.ruf("GET", "/v1/state", nil, &st)
+	if st.Runden[0].Zustand != game.Aufgeloest {
+		t.Fatalf("runde steht auf %q statt AUFGELOEST", st.Runden[0].Zustand)
+	}
+	if st.Runden[0].Aufloesung == nil {
+		t.Fatal("keine auflösung")
+	}
+
+	_ = s
+	t.Logf("Runde aufgelöst, Tipp des Menschen richtig: %v",
+		st.Runden[0].Aufloesung.MeinTippRichtig)
 }

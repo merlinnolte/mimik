@@ -49,6 +49,10 @@ func Open(pfad string) (*Store, error) {
 
 func (s *Store) Close() error { return s.db.Close() }
 
+// DB gibt die Verbindung heraus – nur für Tests, die etwas nachzählen wollen,
+// wofür es keine eigene Methode geben soll.
+func (s *Store) DB() *sql.DB { return s.db }
+
 func jetzt() string { return time.Now().UTC().Format(time.RFC3339) }
 
 func id() string {
@@ -241,6 +245,98 @@ func (s *Store) PartyCode(partyID string) string {
 	var c sql.NullString
 	s.db.QueryRow(`SELECT code FROM parties WHERE id = ?`, partyID).Scan(&c)
 	return c.String
+}
+
+// TestbotTags ist das Profil des Testspielers – dieselben zehn wie in
+// beispiele-kim.json, damit Werkbank und Testpartie denselben Menschen meinen.
+var TestbotTags = []string{
+	"kaffee", "kochen", "zugfahren", "nachrichten", "handarbeit",
+	"kartenspiele", "einkaufen", "kindheit", "wohnen", "pflanzen",
+}
+
+// TestpartyAnlegen setzt den Spieler in eine Party mit einem Testspieler.
+//
+// Wofuer: Zu zweit zu spielen heisst, zu zweit zu sein. Wer allein etwas
+// ausprobieren will – eine Frage, eine Runde, den ganzen Ablauf – braucht sonst
+// ein zweites Telefon und eine zweite Person. Der Testspieler ist ein ganz
+// normaler Spieler mit Tags und Dossier; der einzige Unterschied steht in der
+// Tabelle bots, und der Worker sieht dort nach, ob er fuer ihn ziehen muss.
+func (s *Store) TestpartyAnlegen(pid string) (game.Party, error) {
+	if _, err := s.PartyVon(pid); err == nil {
+		return game.Party{}, ErrSchonDrin
+	}
+	bot, _, err := s.SpielerAnlegen("Kim (Testbot)")
+	if err != nil {
+		return game.Party{}, err
+	}
+	pa := game.Party{ID: id(), A: game.PlayerID(pid), B: game.PlayerID(bot.ID)}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return pa, err
+	}
+	defer tx.Rollback()
+	// Ohne Code: Eine Testpartie laedt niemand ein.
+	if _, err := tx.Exec(
+		`INSERT INTO parties (id, code, code_bis, erstellt_am) VALUES (?,NULL,NULL,?)`,
+		pa.ID, jetzt()); err != nil {
+		return pa, err
+	}
+	for seite, x := range map[string]string{"A": pid, "B": bot.ID} {
+		if _, err := tx.Exec(
+			`INSERT INTO party_members (party_id, player_id, seite) VALUES (?,?,?)`,
+			pa.ID, x, seite); err != nil {
+			return pa, err
+		}
+	}
+	if _, err := tx.Exec(`INSERT INTO bots (player_id) VALUES (?)`, bot.ID); err != nil {
+		return pa, err
+	}
+	for _, t := range TestbotTags {
+		if _, err := tx.Exec(
+			`INSERT INTO player_tags (player_id, tag) VALUES (?,?)`, bot.ID, t); err != nil {
+			return pa, err
+		}
+	}
+	return pa, tx.Commit()
+}
+
+// IstBot sagt, ob fuer diesen Spieler der Worker ziehen muss.
+func (s *Store) IstBot(pid string) bool {
+	var x string
+	return s.db.QueryRow(`SELECT player_id FROM bots WHERE player_id = ?`, pid).Scan(&x) == nil
+}
+
+// BotRunden liefert je laufendem Match mit Testspieler GENAU die Runde, die
+// gerade dran ist – die mit der kleinsten Nummer, die noch nicht aufgelöst ist.
+//
+// Ein Match legt seine Runden im Voraus an. Ohne diese Einschränkung beantwortet
+// der Testspieler sie alle auf einmal: Modellaufrufe für Runden, die bei einem
+// Spiel bis zehn Punkten vielleicht nie gespielt werden, und ein Dossier, das in
+// der falschen Reihenfolge wächst.
+func (s *Store) BotRunden() ([]string, error) {
+	rows, err := s.db.Query(
+		`SELECT r.id FROM rounds r
+		   JOIN matches m ON m.id = r.match_id
+		   JOIN party_members pm ON pm.party_id = m.party_id
+		   JOIN bots b ON b.player_id = pm.player_id
+		  WHERE m.ergebnis = 'OFFEN' AND r.zustand != 'AUFGELOEST'
+		    AND r.nummer = (SELECT MIN(r2.nummer) FROM rounds r2
+		                     WHERE r2.match_id = m.id AND r2.zustand != 'AUFGELOEST')
+		  ORDER BY r.geoeffnet_am`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var x string
+		if err := rows.Scan(&x); err != nil {
+			return nil, err
+		}
+		out = append(out, x)
+	}
+	return out, rows.Err()
 }
 
 // PartyVerlassen loest die Party auf – für beide Seiten.

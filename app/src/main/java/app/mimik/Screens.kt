@@ -313,10 +313,12 @@ fun PartyBildschirm(modell: AppModel) {
                 Feld(code, { code = it.uppercase() }, hinweis = "ABC123")
             }
             Aktionen {
-                Knopf("Beitreten", aktiv = code.length >= 6 && !modell.laden) {
+                // Vier statt sechs, damit auch TEST durchgeht.
+                Knopf("Beitreten", aktiv = code.trim().length >= 4 && !modell.laden) {
                     modell.partyBeitreten(code)
                 }
             }
+            Zeile("Code TEST spielt gegen einen Testspieler.", p.fgDim, 11)
         } else {
             MimikKopf(Miene.Denkt, "Ich warte auf die zweite Person.")
             Zeile("Gib diesen Code weiter", p.fgDim, 11)

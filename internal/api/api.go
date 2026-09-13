@@ -20,6 +20,11 @@ import (
 
 // Grenzen für Felder, die ein Spieler frei füllt. Kurz gehalten: Ein Spitzname
 // steht in der Benachrichtigung des anderen Geräts, ein Tag in einem Prompt.
+// TestCode ist der Einladungscode, der eine Partie gegen einen Testspieler
+// eröffnet. Sechs Zeichen kann er nicht sein – dann ließe er sich nicht von
+// einem echten Code unterscheiden.
+const TestCode = "TEST"
+
 const (
 	MaxSpitzname = 24
 	MaxTag       = 40
@@ -214,7 +219,26 @@ func (s *Server) partyBeitreten(w http.ResponseWriter, r *http.Request) {
 		Code string `json:"code"`
 	}
 	lies(r, &in)
-	pa, err := s.S.PartyBeitreten(sicher.Text(in.Code, 12), spieler(r).ID)
+	code := strings.ToUpper(strings.TrimSpace(sicher.Text(in.Code, 12)))
+
+	// TEST setzt einen allein spielbaren Gegner an den Tisch. Zu zweit zu
+	// spielen heißt sonst, zu zweit sein zu müssen – wer eine Frage, eine Runde
+	// oder den ganzen Ablauf ausprobieren will, bräuchte ein zweites Telefon.
+	if code == TestCode {
+		pa, err := s.S.TestpartyAnlegen(spieler(r).ID)
+		switch {
+		case errors.Is(err, store.ErrSchonDrin):
+			fehler(w, 409, "du bist bereits in einer party")
+		case err != nil:
+			fehler(w, 500, err.Error())
+		default:
+			s.Worker.Anstossen()
+			json_(w, 200, map[string]any{"party_id": pa.ID, "test": true})
+		}
+		return
+	}
+
+	pa, err := s.S.PartyBeitreten(code, spieler(r).ID)
 	switch {
 	case errors.Is(err, store.ErrCodeUngueltig):
 		fehler(w, 404, "einladungscode ungültig oder abgelaufen")

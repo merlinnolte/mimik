@@ -34,7 +34,8 @@ Alles außer `POST /v1/devices` braucht `Authorization: Bearer <token>`.
 |---|---|
 | `POST /v1/devices` | Gerät anmelden, liefert Token |
 | `POST /v1/parties` | Party gründen, liefert Einladungscode |
-| `POST /v1/parties/join` | Beitreten (Code einmal einlösbar) |
+| `POST /v1/parties/join` | Beitreten (Code einmal einlösbar). Code `TEST` öffnet eine Partie gegen einen Testspieler |
+| `POST /v1/parties/verlassen` | Party auflösen, für beide Seiten |
 | `GET /v1/tags` | 20 Vorschläge + bereits gewählte |
 | `PUT /v1/tags` | Auswahl setzen, 422 unter 10 |
 | `GET /v1/state` | Kompletter Spielzustand |

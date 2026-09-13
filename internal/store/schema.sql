@@ -14,6 +14,13 @@ CREATE TABLE IF NOT EXISTS devices (
   erstellt_am TEXT NOT NULL
 );
 
+-- Testspieler. Eine eigene Tabelle statt einer Spalte in players: CREATE TABLE
+-- IF NOT EXISTS legt sie auch in einer bestehenden Datenbank an, ein ALTER
+-- TABLE braeuchte eine Wanderung.
+CREATE TABLE IF NOT EXISTS bots (
+  player_id TEXT PRIMARY KEY REFERENCES players(id)
+);
+
 CREATE TABLE IF NOT EXISTS parties (
   id          TEXT PRIMARY KEY,
   code        TEXT UNIQUE,              -- NULL sobald eingelöst

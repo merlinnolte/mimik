@@ -95,6 +95,33 @@ func ErsatzNormalform(roh string) string {
 	return t
 }
 
+// BotAntwort laesst den Testspieler antworten. Nur fuer die Testpartie.
+func (c *Client) BotAntwort(ctx context.Context, frage string, interessen, schonGesagt []string) (string, error) {
+	var b strings.Builder
+	fmt.Fprintf(&b, "[frage]\n%s", frage)
+	if len(interessen) > 0 {
+		b.WriteString("\n\n[interessen]\n" + strings.Join(interessen, ", "))
+	}
+	if len(schonGesagt) > 0 {
+		b.WriteString("\n\n[schon gesagt]\n- " + strings.Join(schonGesagt, "\n- "))
+	}
+	inhalt, err := c.Chat(ctx, PromptBotAntwort, Huelle(b.String()), 1.0)
+	if err != nil {
+		return "", err
+	}
+	var z struct {
+		Antwort string `json:"antwort"`
+	}
+	if err := LiesJSON(inhalt, &z); err != nil {
+		return "", err
+	}
+	t := sicher.Text(z.Antwort, MaxKarte)
+	if len([]rune(t)) < game.MinAntwort {
+		return "", fmt.Errorf("testspieler antwortet zu kurz: %q", t)
+	}
+	return t, nil
+}
+
 // Faelschungen erzeugt drei Fälschungen und prüft sie. Verstößt ein Satz gegen
 // die Themensperre oder das Abstandsfenster, wird neu erzeugt – höchstens
 // MaxVersuche mal. Danach gilt der beste Satz: eine schwache Karte ist besser

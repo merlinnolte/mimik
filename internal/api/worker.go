@@ -49,6 +49,10 @@ func (w *Worker) Laufen(ctx context.Context) {
 }
 
 func (w *Worker) durchgang(ctx context.Context) {
+	// Erst die Testspieler ziehen lassen, dann die Karten bauen: Sonst stünde
+	// eine Testpartie nach jedem Zug eine Taktlänge still.
+	w.botzuege(ctx)
+
 	ids, err := w.S.OffeneRunden()
 	if err != nil {
 		log.Printf("worker: offene runden: %v", err)
@@ -62,6 +66,87 @@ func (w *Worker) durchgang(ctx context.Context) {
 		}
 		w.rundeBearbeiten(ctx, rid)
 	}
+}
+
+// botzuege spielt die Zuege des Testspielers: antworten und raten.
+//
+// Er ist ein ganz normaler Spieler – dieselben Endpunkte waeren es auch, wenn er
+// ein Telefon haette. Deshalb laeuft alles ueber dieselben Regeln in
+// internal/game; hier steht nur, WANN er dran ist.
+func (w *Worker) botzuege(ctx context.Context) {
+	ids, err := w.S.BotRunden()
+	if err != nil {
+		log.Printf("worker: botrunden: %v", err)
+		return
+	}
+	for _, rid := range ids {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+		if err := w.botzug(ctx, rid); err != nil {
+			log.Printf("worker: testspieler in runde %s: %v", rid[:8], err)
+		}
+	}
+}
+
+func (w *Worker) botzug(ctx context.Context, rid string) error {
+	pa, m, err := w.S.PartyVonRunde(rid)
+	if err != nil {
+		return err
+	}
+	var bot game.PlayerID
+	for _, x := range []game.PlayerID{pa.A, pa.B} {
+		if w.S.IstBot(string(x)) {
+			bot = x
+		}
+	}
+	if bot == "" {
+		return nil
+	}
+	rd, err := w.S.Runde(rid)
+	if err != nil {
+		return err
+	}
+
+	// Antworten.
+	if _, hat := rd.Antworten[bot]; !hat {
+		fakten, _ := w.S.Fakten(string(bot), 12)
+		tags, _ := w.S.Tags(string(bot))
+		ctx, abbruch := context.WithTimeout(ctx, 4*time.Minute)
+		defer abbruch()
+		text, err := w.M.BotAntwort(ctx, rd.Frage, tags, fakten)
+		if err != nil {
+			return err
+		}
+		a := game.Antwort{Original: text, Normalform: mimik.ErsatzNormalform(text)}
+		if err := rd.AntwortAbgeben(pa, bot, a); err != nil {
+			return err
+		}
+		if err := w.S.AntwortSpeichern(rid, string(bot), a); err != nil {
+			return err
+		}
+		w.S.ZustandSetzen(rid, rd.Ableiten(pa), "")
+		log.Printf("worker: testspieler antwortet in %s: %q", rid[:8], text)
+		return nil
+	}
+
+	// Raten. Bewusst gewuerfelt und nicht vom Modell: Geprueft werden soll der
+	// Ablauf fuer den Menschen davor, nicht wie gut ein Modell raet – und jeder
+	// Modellaufruf kostet hier eine weitere Minute.
+	if _, hat := rd.Tipps[bot]; !hat && len(rd.KartenFuer(pa, bot)) == 4 {
+		pos := 1 + rand.IntN(4)
+		if _, err := rd.TippAbgeben(pa, bot, pos); err != nil {
+			return err
+		}
+		if _, _, err := w.S.TippSpeichern(m, pa, rd, string(bot)); err != nil {
+			return err
+		}
+		w.S.ZustandSetzen(rid, rd.Ableiten(pa), "")
+		log.Printf("worker: testspieler tippt in %s auf %d", rid[:8], pos)
+	}
+	return nil
 }
 
 func (w *Worker) rundeBearbeiten(ctx context.Context, rid string) {
