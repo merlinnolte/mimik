@@ -1,5 +1,8 @@
 package app.mimik
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,6 +21,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,6 +33,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 
 /** Entspricht ui/components/Panel.svelte: Titel in accent, Versalien, 1px Rahmen. */
 @Composable
@@ -110,19 +119,44 @@ fun Feld(
     )
 }
 
-/** Punktestand als zwei Balken: accent2 gegen accent, im Monospace-Raster. */
+/**
+ * Punktestand als zwei Balken: accent2 gegen accent, im Monospace-Raster.
+ *
+ * `vonMensch` / `vonMimik` sind der Stand VOR der gerade gezeigten Runde. Der
+ * Balken startet dort und läuft auf den neuen Stand zu; die Zahl daneben zählt
+ * mit. Ohne diese Angabe steht er sofort richtig – auf dem Basisbildschirm
+ * wäre eine Animation nur Zappeln, in der Auflösung ist sie die Nachricht.
+ */
 @Composable
-fun Punktebalken(mensch: Int, mimik: Int, ziel: Int, modifier: Modifier = Modifier) {
+fun Punktebalken(
+    mensch: Int,
+    mimik: Int,
+    ziel: Int,
+    modifier: Modifier = Modifier,
+    vonMensch: Int = mensch,
+    vonMimik: Int = mimik,
+) {
     val p = LokalePalette.current
     Column(modifier.fillMaxWidth()) {
-        Balken("MENSCH", mensch, ziel, p.accent2)
-        Balken("MIMIK", mimik, ziel, p.accent)
+        Balken("MENSCH", mensch, vonMensch, ziel, p.accent2)
+        Balken("MIMIK", mimik, vonMimik, ziel, p.accent)
     }
 }
 
 @Composable
-private fun Balken(name: String, wert: Int, ziel: Int, farbe: Color) {
+private fun Balken(name: String, wert: Int, von: Int, ziel: Int, farbe: Color) {
     val p = LokalePalette.current
+    // Der Bildschirm wird mit dem NEUEN Stand frisch aufgebaut. Eine Animation,
+    // die beim Kompositionswert beginnt, hätte also nichts zu tun. Deshalb
+    // startet der Zustand beim alten Wert, und der Effekt schiebt ihn danach
+    // auf den neuen – erst dadurch gibt es eine Strecke zu laufen.
+    var bis by remember { mutableFloatStateOf(von.toFloat()) }
+    LaunchedEffect(wert) { bis = wert.toFloat() }
+    val jetzt by animateFloatAsState(
+        targetValue = bis,
+        animationSpec = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+        label = name,
+    )
     Row(
         Modifier.fillMaxWidth().padding(vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -132,12 +166,12 @@ private fun Balken(name: String, wert: Int, ziel: Int, farbe: Color) {
             Modifier.weight(1f).height(10.dp).background(p.bgAlt).border(1.dp, p.border),
         ) {
             Box(
-                Modifier.fillMaxWidth(if (ziel > 0) (wert.toFloat() / ziel).coerceIn(0f, 1f) else 0f)
+                Modifier.fillMaxWidth(if (ziel > 0) (jetzt / ziel).coerceIn(0f, 1f) else 0f)
                     .height(10.dp).background(farbe),
             )
         }
         Text(
-            wert.toString(), color = farbe, fontSize = 13.sp,
+            jetzt.roundToInt().toString(), color = farbe, fontSize = 13.sp,
             modifier = Modifier.width(30.dp).padding(start = 8.dp),
         )
     }

@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -95,42 +94,26 @@ private fun Aktionen(inhalt: @Composable () -> Unit) {
 }
 
 /**
- * Statt eines Knopfes, der nichts bewirkt: ein Satz und ein laufender Punkt.
+ * Statt eines Knopfes, der nichts bewirkt: ein Satz, mittig unter dem Inhalt.
  *
  * Auf Wartebildschirmen stand früher "Nachsehen". Der Knopf tat fast nie etwas –
  * er wurde gedrückt, WEIL nichts passierte, und es passierte nichts, weil die
  * andere Seite noch nicht gezogen hatte. Die App fragt jetzt selbst nach; hier
  * steht nur noch, worauf gewartet wird.
+ *
+ * Die drei laufenden Punkte daneben sind wieder raus. Sie standen rechts, also
+ * saß der Satz linksbündig neben einer leeren Spalte, und getaktete Animation
+ * auf einem Bildschirm, auf dem man minutenlang wartet, ist Unruhe ohne
+ * Aussage: Dass gewartet wird, sagt schon der Satz.
  */
 @Composable
 private fun Wartezeile(text: String) {
     val p = LokalePalette.current
-    var punkte by remember { mutableIntStateOf(0) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(500)
-            punkte = (punkte + 1) % 4
-        }
-    }
-    // Beide Breiten stehen fest, und das ist der ganze Witz.
-    //
-    // Vorher richtete sich der Row nach seinem Inhalt. Der Punkte-Text wurde
-    // alle 500 ms breiter und schmaler – nachgestellte Leerzeichen zählen im
-    // Layout nicht mit –, dadurch brach der Satz daneben zwischen zwei und drei
-    // Zeilen um, und weil die Hülle alles vertikal zentriert, hüpfte der GANZE
-    // Bildschirm im Halbsekundentakt. Genau dann zu sehen, wenn man am längsten
-    // hinschaut: während MIMIK arbeitet.
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-        Text(
-            text, color = p.fgDim, fontSize = 11.sp, lineHeight = 17.sp,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            ".".repeat(punkte),
-            color = p.accent, fontSize = 11.sp, lineHeight = 17.sp,
-            modifier = Modifier.width(16.dp),
-        )
-    }
+    Text(
+        text, color = p.fgDim, fontSize = 11.sp, lineHeight = 17.sp,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 /**
@@ -337,6 +320,13 @@ fun PartyBildschirm(modell: AppModel) {
             Zeile("Gib diesen Code weiter", p.fgDim, 11)
             Text(party.code.ifBlank { "—" }, color = p.accent2, fontSize = 38.sp, letterSpacing = 8.sp)
             Wartezeile("Sobald sie beitritt, geht es hier von selbst weiter.")
+            // Wer sich vertippt oder es sich anders überlegt, kam hier bisher
+            // nicht mehr heraus: Der Bildschirm hängt an der Party, und die
+            // Party bestand schon. Ohne Rückfrage – es ist noch niemand dabei,
+            // und ein neuer Code ist einen Knopfdruck entfernt.
+            Aktionen {
+                Knopf("Abbrechen", aktiv = !modell.laden) { modell.partyVerlassen() }
+            }
         }
     }
 }
@@ -597,7 +587,18 @@ fun AufloesungBildschirm(modell: AppModel) {
             if (richtig) "Erwischt. Punkt für euch." else "Das war ich. Punkt für mich.",
             haltend = true, schrift = 19,
         )
-        if (m != null) Punktebalken(m.stand.mensch, m.stand.mimik, m.ziel)
+        // Eine Runde vergibt immer genau zwei Punkte, einen je Tipp. Also steht
+        // der Stand von vorher fest, ohne dass der Server ihn mitschicken muss:
+        // was diese Runde gebracht hat, wieder abgezogen. Von dort laufen die
+        // Balken los.
+        if (m != null) {
+            val fuerMensch = (if (richtig) 1 else 0) + (if (a?.partnerRichtig == true) 1 else 0)
+            Punktebalken(
+                m.stand.mensch, m.stand.mimik, m.ziel,
+                vonMensch = (m.stand.mensch - fuerMensch).coerceAtLeast(0),
+                vonMimik = (m.stand.mimik - (2 - fuerMensch)).coerceAtLeast(0),
+            )
+        }
         Frage(r.frage)
         // Nur zeigen, worum es geht: bei einem Treffer die echte Karte, sonst
         // die falsch gewählte neben der echten. Alle vier noch einmal
@@ -622,7 +623,7 @@ fun AufloesungBildschirm(modell: AppModel) {
                 if (a.doppeltreffer) p.warn else p.fgDim, 12,
             )
         }
-        Aktionen { Knopf("Nächste Frage", betont = true, aktiv = !modell.laden) { modell.weiter() } }
+        Aktionen { Knopf("Weiter", betont = true, aktiv = !modell.laden) { modell.weiter() } }
     }
 }
 
