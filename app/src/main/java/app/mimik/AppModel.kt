@@ -315,6 +315,11 @@ class AppModel(app: Application) : AndroidViewModel(app) {
                     }
                 }.onSuccess { (l, z) ->
                     fehlschlaege = 0
+                    // Und die Meldung wieder weg. Sie wird hier gesetzt, also
+                    // muss sie hier auch verschwinden: Ein kurzer Aussetzer im
+                    // WLAN hinterliess sonst eine Fehlerzeile, die stehen
+                    // blieb, obwohl laengst wieder alles lief.
+                    fehler = null
                     lobbyUebernehmen(l)
                     if (z != null) zustandUebernehmen(z)
                 }.onFailure { e ->
