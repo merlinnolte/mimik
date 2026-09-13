@@ -248,6 +248,28 @@ func (s *Store) AntwortSpeichern(rid, pid string, a game.Antwort) error {
 	return err
 }
 
+// AntwortSeit sagt, wie viele Sekunden vergangen sind, seit dieser Spieler
+// geantwortet hat. Genau in diesem Moment nimmt der Worker die Runde auf, also
+// ist es auch der Beginn der Wartezeit - der Fortschrittsbalken in der App
+// haengt daran und ueberlebt so einen Neustart der App. Ohne Antwort: 0.
+func (s *Store) AntwortSeit(rid, pid string) int {
+	var roh string
+	if err := s.db.QueryRow(
+		`SELECT erstellt_am FROM answers WHERE round_id=? AND player_id=?`,
+		rid, pid).Scan(&roh); err != nil {
+		return 0
+	}
+	t, err := time.Parse(time.RFC3339, roh)
+	if err != nil {
+		return 0
+	}
+	d := int(time.Since(t).Seconds())
+	if d < 0 {
+		return 0
+	}
+	return d
+}
+
 // NormalformSetzen trägt die vom Modell geschriebene Fassung nach. Beim
 // Absenden stand hier die regelbasierte Notfassung – sie hält den
 // Wartebildschirm gefüllt, bis der Worker durch ist.

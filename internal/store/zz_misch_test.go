@@ -3,6 +3,7 @@ package store
 import (
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 // Zwei Spieler sollen verschiedene erste Seiten sehen, derselbe Spieler aber
@@ -42,5 +43,39 @@ func TestVorschlaegeMischenStabil(t *testing.T) {
 		if erste[x] {
 			t.Fatalf("%q steht auf Seite 1 und Seite 2", x)
 		}
+	}
+}
+
+// Der Fortschrittsbalken in der App haengt daran, dass der Server sagt, wie
+// lange MIMIK schon arbeitet. Ohne Antwort darf das 0 sein und nicht raten.
+func TestAntwortSeit(t *testing.T) {
+	s, err := Open(filepath.Join(t.TempDir(), "t.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if got := s.AntwortSeit("gibt-es-nicht", "auch-nicht"); got != 0 {
+		t.Fatalf("ohne Antwort %d Sekunden statt 0", got)
+	}
+	// Eltern zuerst: answers haengt an rounds und players.
+	for _, q := range []string{
+		`INSERT INTO players (id, spitzname, erstellt_am) VALUES ('p1','Kim','2026-01-01T00:00:00Z')`,
+		`INSERT INTO parties (id, code, code_bis, erstellt_am) VALUES ('pa1',NULL,NULL,'2026-01-01T00:00:00Z')`,
+		`INSERT INTO matches (id, party_id, erstellt_am) VALUES ('m1','pa1','2026-01-01T00:00:00Z')`,
+		`INSERT INTO rounds (id, match_id, nummer, frage, rubrik, geoeffnet_am)
+		 VALUES ('r1','m1',1,'Frage?','a','2026-01-01T00:00:00Z')`,
+	} {
+		if _, err := s.DB().Exec(q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := s.DB().Exec(
+		`INSERT INTO answers (round_id, player_id, original, normalform, erstellt_am)
+		 VALUES (?,?,?,?,?)`, "r1", "p1", "roh", "glatt",
+		time.Now().UTC().Add(-30*time.Second).Format(time.RFC3339)); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.AntwortSeit("r1", "p1"); got < 29 || got > 40 {
+		t.Fatalf("30 Sekunden alt, gemeldet werden %d", got)
 	}
 }

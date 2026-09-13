@@ -21,8 +21,9 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## Serveradresse
 
-Beim ersten Start abfragbar. Voreinstellung `https://mimik.merlinnolte.de` –
-der eigene Server hinter dem Reverse Proxy. Zum Testen überschreibt man das Feld:
+Fest voreingestellt auf `https://mimik.merlinnolte.de` – den eigenen Server
+hinter dem Reverse Proxy. Wer spielt, bekommt das Feld nicht zu sehen; es steht
+hinter der Zeile „Anderer Server" unter dem Anmeldefeld. Zum Testen:
 `http://10.0.2.2:8080` ist der Host aus Sicht des Emulators, im eigenen WLAN die
 LAN-Adresse mit dem Port aus `MIMIK_PORT`.
 
@@ -76,9 +77,23 @@ im selben Aufruf wie die Fälschungen, also im Worker. Synchron ginge es nicht:
 Der Endpunkt braucht 15 bis 190 Sekunden.
 
 Eine Vorschau, die etwas anderes zeigt als später auf der Karte steht, wäre
-schlimmer als keine. Stattdessen sagt eine Zeile unter dem Feld, was passiert,
-und der Wartebildschirm zeigt die Fassung, sobald sie da ist – mit dem Zusatz
-„wird noch geglättet", solange MIMIK arbeitet.
+schlimmer als keine. Der Wartebildschirm zeigt die Fassung, sobald sie da ist –
+mit dem Zusatz „wird noch geglättet", solange MIMIK arbeitet.
+
+Unter dem Eingabefeld stand dazu einmal eine erklärende Zeile. Sie ist raus:
+Wer eine Frage beantwortet, soll über die Antwort nachdenken und nicht über die
+Mechanik dahinter.
+
+### Der Fortschrittsbalken
+
+`wartet_seit` aus `/v1/state` sind die Sekunden seit dem Absenden – genau der
+Moment, in dem der Worker die Runde aufnimmt. Weil der Wert vom Server kommt,
+steht der Balken auch nach einem Neustart der App richtig.
+
+Er wächst nach 1 − e^(−t/18 s) und bleibt unter 97 %. Gemessen liegt ein Aufruf
+bei rund zehn Sekunden Median, aber weist die Abstandsprüfung eine Fassung
+zurück, kommt ein zweiter dazu – eine Restzeit wäre geraten, und ein Balken, der
+volllauft und dann steht, wäre eine Lüge.
 
 ## Benachrichtigungen
 

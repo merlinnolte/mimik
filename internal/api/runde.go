@@ -30,6 +30,10 @@ type RundeAus struct {
 	MeinTreffer  *bool        `json:"mein_treffer,omitempty"`
 	Aufloesung   *Aufloesung  `json:"aufloesung,omitempty"`
 	Fehler       string       `json:"fehler,omitempty"`
+	// Sekunden, seit dieser Spieler geantwortet hat - der Beginn von MIMIKs
+	// Arbeit. Nur gesetzt, solange sie arbeitet; die App zeichnet daraus den
+	// Fortschrittsbalken und findet ihn nach einem Neustart wieder.
+	WartetSeit int `json:"wartet_seit,omitempty"`
 }
 
 type Aufloesung struct {
@@ -102,6 +106,9 @@ func (s *Server) zustand(w http.ResponseWriter, r *http.Request) {
 			Fehler: s.S.RundenFehler(rd.ID)}
 		if a, ok := rd.Antworten[ich]; ok {
 			ra.MeineAntwort = a.Normalform
+			if z == game.MimikArbeitet {
+				ra.WartetSeit = s.S.AntwortSeit(rd.ID, p.ID)
+			}
 		} else {
 			dran = append(dran, map[string]string{"was": "schreiben", "runde": rd.ID})
 		}

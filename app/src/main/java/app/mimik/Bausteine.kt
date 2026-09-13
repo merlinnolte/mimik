@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -24,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -31,8 +33,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlin.math.exp
 import kotlin.math.roundToInt
 
 /** Entspricht ui/components/Panel.svelte: Titel in accent, Versalien, 1px Rahmen. */
@@ -173,6 +178,48 @@ private fun Balken(name: String, wert: Int, von: Int, ziel: Int, farbe: Color) {
         Text(
             jetzt.roundToInt().toString(), color = farbe, fontSize = 13.sp,
             modifier = Modifier.width(30.dp).padding(start = 8.dp),
+        )
+    }
+}
+
+/**
+ * Fortschritt beim Fälschen: ein Balken, der sich dem Ende nähert, ohne es zu
+ * erreichen.
+ *
+ * Wie lange ein Aufruf dauert, weiß niemand vorher – gemessen liegt der Median
+ * bei gut zehn Sekunden je Aufruf, und weist die Abstandsprüfung eine Fassung
+ * zurück, kommt ein zweiter dazu. Ein Balken, der auf hundert Prozent läuft und
+ * dann stehen bleibt, lügt. Dieser hier wächst nach 1 − e^(−t/T): schnell am
+ * Anfang, immer langsamer, und der letzte Rest bleibt bis zum Schluss offen.
+ *
+ * `seit` sind Sekunden seit dem Absenden. Der Wert kommt vom Server, also
+ * stimmt er auch, wenn die App zwischendurch zu war.
+ */
+@Composable
+fun Fortschritt(seit: Int, modifier: Modifier = Modifier) {
+    val p = LokalePalette.current
+    var sekunden by remember(seit) { mutableIntStateOf(seit) }
+    LaunchedEffect(seit) {
+        while (true) {
+            delay(1000)
+            sekunden += 1
+        }
+    }
+    val anteil = 1f - exp(-sekunden / 18f)
+    Column(modifier.fillMaxWidth()) {
+        Box(Modifier.fillMaxWidth().height(10.dp).background(p.bgAlt).border(1.dp, p.border)) {
+            Box(Modifier.fillMaxWidth(anteil.coerceIn(0f, 0.97f)).height(10.dp).background(p.accent))
+        }
+        Spacer(Modifier.height(5.dp))
+        Text(
+            // Zwei feste Zeilen wären Unsinn, eine wechselnde Länge lässt den
+            // zentrierten Text wandern - deshalb steht die Zeit am Anfang und
+            // der Satz danach, beide in einer Zeile.
+            if (sekunden < 60) "%d s · MIMIK schreibt".format(sekunden)
+            else "%d:%02d · MIMIK schreibt noch".format(sekunden / 60, sekunden % 60),
+            color = p.fgDim, fontSize = 11.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

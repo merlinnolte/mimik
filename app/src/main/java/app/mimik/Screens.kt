@@ -150,6 +150,7 @@ fun StartBildschirm(modell: AppModel) {
     var name by remember { mutableStateOf("") }
     var url by remember { mutableStateOf(modell.server) }
     var einladung by remember { mutableStateOf("") }
+    var serverZeigen by remember { mutableStateOf(false) }
     Huelle(modell) {
         MimikKopf(Miene.Bereit, "Wir kennen uns noch nicht.", schrift = 19)
         Text(
@@ -158,14 +159,24 @@ fun StartBildschirm(modell: AppModel) {
         )
         Zeile("Vier Antworten. Eine ist echt.", p.fgDim, 12)
         Panel(titel = "Anmelden") {
-            Zeile("Serveradresse", p.fgDim, 11)
-            Feld(url, { url = it }, hinweis = "https://…")
-            Spacer(Modifier.height(10.dp))
             Zeile("Dein Spitzname", p.fgDim, 11)
             Feld(name, { name = it }, hinweis = "Wie heißt du im Spiel?")
             Spacer(Modifier.height(10.dp))
-            Zeile("Einladung, falls der Server eine verlangt", p.fgDim, 11)
-            Feld(einladung, { einladung = it }, hinweis = "leer lassen, wenn keine")
+            Zeile("Einladungs-Code", p.fgDim, 11)
+            Feld(einladung, { einladung = it }, hinweis = "leer lassen, wenn keiner")
+            // Die Serveradresse steht voreingestellt und geht niemanden etwas
+            // an, der einfach spielen will. Für einen Test gegen einen anderen
+            // Server bleibt sie erreichbar - aber erst auf Verlangen.
+            if (serverZeigen) {
+                Spacer(Modifier.height(10.dp))
+                Zeile("Serveradresse", p.fgDim, 11)
+                Feld(url, { url = it }, hinweis = "https://…")
+            }
+        }
+        if (!serverZeigen) {
+            Klickbar(beiKlick = { serverZeigen = true }) {
+                Zeile("Anderer Server", p.fgDim, 11)
+            }
         }
         Aktionen {
             Knopf("Gerät anmelden", betont = true, aktiv = name.isNotBlank() && !modell.laden) {
@@ -430,7 +441,6 @@ fun BasisBildschirm(modell: AppModel) {
 
 @Composable
 fun SchreibenBildschirm(modell: AppModel) {
-    val p = LokalePalette.current
     val r = modell.aktuelleRunde ?: return
     var text by remember(r.id) { mutableStateOf("") }
     val laenge = text.trim().length
@@ -439,16 +449,6 @@ fun SchreibenBildschirm(modell: AppModel) {
         MimikKopf(Miene.Bereit, "Runde ${r.nummer} · beantwortet das mal ehrlich.")
         Frage(r.frage)
         Feld(text, { text = it }, hinweis = "Ein bis drei Sätze reichen", zeilen = 4)
-        // Ein weicher Hinweis, kein Riegel: Kurze Antworten sind erlaubt und oft
-        // die besseren. Erst unter vier Zeichen weist der Server sie ab.
-        Zeile(
-            if (laenge in 1 until 20)
-                "Kurz ist erlaubt – MIMIK hat dann aber auch wenig zu imitieren."
-            else
-                "Rechtschreibung und Zeichensetzung bringt MIMIK in Ordnung, " +
-                    "bei allen vier Karten gleich. Deine Worte bleiben.",
-            p.fgDim, 11,
-        )
         Aktionen {
             Knopf("Absenden", betont = true, aktiv = laenge >= 4 && !modell.laden) {
                 modell.antwortSenden(r.id, text.trim())
@@ -481,10 +481,12 @@ fun WartenBildschirm(modell: AppModel) {
             )
         }
         if (r.fehler.isNotBlank()) Zeile(r.fehler, LokalePalette.current.warn, 11)
-        Wartezeile(
-            if (arbeitet) "Das kann ein paar Minuten dauern. Es geht von selbst weiter."
-            else "Es geht von selbst weiter, sobald sie geantwortet hat.",
-        )
+        if (arbeitet) {
+            Fortschritt(r.wartetSeit)
+            Wartezeile("Es geht von selbst weiter, du musst nicht warten.")
+        } else {
+            Wartezeile("Es geht von selbst weiter, sobald sie geantwortet hat.")
+        }
     }
 }
 

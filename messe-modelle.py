@@ -155,10 +155,19 @@ def messe(modell, system, laeufe):
 def main():
     if not KEY:
         sys.exit("MIMIK_API_KEY fehlt.")
-    args = [a for a in sys.argv[1:] if not a.startswith("-")]
+    # Der Wert hinter -n gehoert zu -n und ist kein Modellname. Ohne diesen
+    # Schritt landete "3" in der Liste der zu messenden Modelle.
     laeufe = 1
-    if "-n" in sys.argv:
-        laeufe = int(sys.argv[sys.argv.index("-n") + 1])
+    args = []
+    ueberspringen = False
+    for a in sys.argv[1:]:
+        if ueberspringen:
+            laeufe = int(a)
+            ueberspringen = False
+        elif a == "-n":
+            ueberspringen = True
+        elif not a.startswith("-"):
+            args.append(a)
 
     # Nur auflisten: Was gibt es ueberhaupt, und was steht sonst noch dabei?
     if "--liste" in sys.argv:

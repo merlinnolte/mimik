@@ -64,6 +64,7 @@ data class RundeAus(
     @SerialName("mein_treffer") val meinTreffer: Boolean? = null,
     val aufloesung: Aufloesung? = null,
     val fehler: String = "",
+    @SerialName("wartet_seit") val wartetSeit: Int = 0,
 )
 
 @Serializable
