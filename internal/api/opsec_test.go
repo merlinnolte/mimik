@@ -126,3 +126,79 @@ func TestSpielertextWirdGeputzt(t *testing.T) {
 		res.Body.Close()
 	}
 }
+
+// Hinter einem Reverse Proxy sieht der Server nur dessen Adresse. Ohne die
+// weitergereichte zaehlt die Grenze fuer alle gemeinsam - im Betrieb bekam eine
+// eingeladene Person deshalb "zu viele anmeldungen", weil jemand anders die
+// zehn Versuche laengst verbraucht hatte.
+func TestGrenzeZaehltJeWeitergereichterAdresse(t *testing.T) {
+	tor := Torwache{Hops: 1}
+	bau := func(xff string) *http.Request {
+		r := httptest.NewRequest("POST", "/v1/devices", nil)
+		r.RemoteAddr = "10.0.0.9:5000" // immer derselbe Proxy
+		r.Header.Set("X-Forwarded-For", xff)
+		return r
+	}
+	for i := 0; i < MaxAnmeldungen; i++ {
+		if !tor.Darf(bau("203.0.113.7"), false) {
+			t.Fatalf("versuch %d abgewiesen", i+1)
+		}
+	}
+	if tor.Darf(bau("203.0.113.7"), false) {
+		t.Fatal("die grenze greift nicht")
+	}
+	// Eine andere Person hinter demselben Proxy ist davon unberührt.
+	if !tor.Darf(bau("203.0.113.8"), false) {
+		t.Fatal("die zweite adresse haengt mit im zaehler")
+	}
+}
+
+// Die linken Eintraege der Kette kann ein Klient selbst mitschicken. Gezaehlt
+// wird deshalb von rechts.
+func TestGefaelschteKetteAendertNichts(t *testing.T) {
+	tor := Torwache{Hops: 1}
+	bau := func(xff string) *http.Request {
+		r := httptest.NewRequest("POST", "/v1/devices", nil)
+		r.RemoteAddr = "10.0.0.9:5000"
+		r.Header.Set("X-Forwarded-For", xff)
+		return r
+	}
+	for i := 0; i < MaxAnmeldungen; i++ {
+		// Der Klient denkt sich bei jedem Versuch eine neue erste Adresse aus.
+		if !tor.Darf(bau(fmt.Sprintf("198.51.100.%d, 203.0.113.7", i)), false) {
+			t.Fatalf("versuch %d abgewiesen", i+1)
+		}
+	}
+	if tor.Darf(bau("198.51.100.99, 203.0.113.7"), false) {
+		t.Fatal("eine erfundene kette hebelt die grenze aus")
+	}
+}
+
+// Ohne Hops wird nichts geglaubt: Steht der Server nackt im Netz, waere ein
+// X-Forwarded-For eine Einladung, die Grenze zu umgehen.
+func TestOhneHopsZaehltDieGegenstelle(t *testing.T) {
+	tor := Torwache{}
+	r := httptest.NewRequest("POST", "/v1/devices", nil)
+	r.RemoteAddr = "203.0.113.7:5000"
+	r.Header.Set("X-Forwarded-For", "1.2.3.4")
+	if got := tor.Adresse(r); got != "203.0.113.7" {
+		t.Fatalf("adresse %q statt der gegenstelle", got)
+	}
+}
+
+// Umbenennen braucht nur das Token. Die Einladungspruefung hier machte es auf
+// einem geschlossenen Server unmoeglich - die App schickt das Geheimnis nach
+// dem Anmelden nie wieder mit.
+func TestUmbenennenOhneEinladung(t *testing.T) {
+	srv, _, _ := bauen(t, "geheim")
+	k := &klient{t: t, basis: srv.URL}
+	var out struct {
+		Token string `json:"token"`
+	}
+	k.ruf("POST", "/v1/devices",
+		map[string]string{"spitzname": "Erst", "einladung": "geheim"}, &out)
+	k.token = out.Token
+	if code := k.ruf("POST", "/v1/me/name", map[string]string{"spitzname": "Dann"}, nil); code != 200 {
+		t.Fatalf("umbenennen: %d", code)
+	}
+}

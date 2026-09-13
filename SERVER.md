@@ -156,6 +156,31 @@ ausschließlich in `GET /v1/dossier`, nie in `/v1/state`, und fällt mit
 `DELETE /v1/dossier` und der Kontolöschung. Ins Betriebsprotokoll gehen nur
 Merkmalsschlüssel, nie Werte.
 
+## Wer sich anmelden darf
+
+`POST /v1/devices` ist der einzige Endpunkt ohne Token. Zwei Riegel: das
+Geheimnis aus `MIMIK_EINLADUNG` und eine Obergrenze je Adresse und Stunde – zehn
+ohne Einladung, vierzig mit gültiger. Das Geheimnis **ist** der Riegel; die
+Zählung schützt den offenen Server.
+
+**Hinter einem Reverse Proxy braucht es `MIMIK_PROXY_HOPS`.** Ohne die Angabe
+sieht der Server nur die Adresse des Proxys, und die Grenze gilt für alle
+gemeinsam – im Betrieb bekam so eine eingeladene Person „zu viele anmeldungen
+von dieser adresse", weil jemand anders die zehn Versuche verbraucht hatte. Mit
+`MIMIK_PROXY_HOPS=1` wird die weitergereichte Adresse gezählt, und zwar **von
+rechts**: Der letzte Eintrag stammt vom eigenen Proxy, alles weiter links kann
+ein Klient selbst mitschicken. Ohne Proxy bleibt die Angabe leer – sonst wäre
+`X-Forwarded-For` eine Einladung, die Grenze zu umgehen.
+
+Der Zähler steht im Speicher. Ein `docker compose restart` setzt ihn zurück –
+der schnellste Weg, jemanden wieder hereinzulassen.
+
+**Umbenennen verlangt nur das Token.** Hier standen einmal dieselbe
+Einladungsprüfung und derselbe Zähler: Damit war Umbenennen auf einem
+geschlossenen Server unmöglich (die App schickt das Geheimnis nach dem Anmelden
+nie wieder mit), und eine Umbenennung ging vom Anmeldebudget derselben Adresse
+ab.
+
 ## Sitzungen beim Anbieter
 
 `MIMIK_HEADERS` kennt einen Platzhalter: **`{zufall}`** wird bei jedem Aufruf

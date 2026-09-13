@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -46,6 +47,15 @@ func main() {
 			"kann sich anmelden und Modellaufrufe auf deine Rechnung auslösen")
 	}
 
+	// Wie viele Proxys vor dem Server stehen. Ohne diese Angabe zaehlt die
+	// Anmeldegrenze fuer alle gemeinsam - hinter einem Reverse Proxy sieht der
+	// Server nur dessen Adresse. Mit ihr wird die weitergereichte gezaehlt, und
+	// zwar von rechts: alles weiter links kann sich ein Klient ausdenken.
+	hops, _ := strconv.Atoi(os.Getenv("MIMIK_PROXY_HOPS"))
+	if hops > 0 {
+		log.Printf("hinter %d proxy(s): anmeldungen werden je weitergereichter adresse gezählt", hops)
+	}
+
 	ctx, stopp := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stopp()
 
@@ -58,7 +68,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              env("MIMIK_ADDR", ":8080"),
-		Handler:           (&api.Server{S: s, M: m, Worker: w, Tor: api.Torwache{Einladung: einladung}}).Routes(),
+		Handler:           (&api.Server{S: s, M: m, Worker: w, Tor: api.Torwache{Einladung: einladung, Hops: hops}}).Routes(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	go func() {

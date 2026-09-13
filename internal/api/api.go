@@ -147,7 +147,7 @@ func (s *Server) geraetAnlegen(w http.ResponseWriter, r *http.Request) {
 		fehler(w, 403, "dieser server verlangt eine einladung")
 		return
 	}
-	if !s.Tor.Darf(r) {
+	if !s.Tor.Darf(r, in.Einladung != "") {
 		fehler(w, 429, "zu viele anmeldungen von dieser adresse")
 		return
 	}
@@ -172,20 +172,20 @@ func (s *Server) geraetAnlegen(w http.ResponseWriter, r *http.Request) {
 	json_(w, 201, map[string]any{"spieler": p, "token": token})
 }
 
+// umbenennen verlangt NUR das Token.
+//
+// Hier standen einmal dieselbe Einladungspruefung und derselbe Zaehler wie beim
+// Anmelden. Beides war falsch: Wer ein Token hat, ist bereits eingelassen - die
+// App schickt das Geheimnis nach dem Anmelden nie wieder mit, also war
+// Umbenennen auf einem geschlossenen Server schlicht unmoeglich. Und ein
+// Namenswechsel kostet keinen Modellaufruf, also gibt es auch nichts zu
+// deckeln. Schlimmer noch: Er ass vom Anmeldebudget derselben Adresse, sodass
+// eine Umbenennung die naechste Anmeldung im Haushalt blockieren konnte.
 func (s *Server) umbenennen(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		Spitzname string `json:"spitzname"`
-		Einladung string `json:"einladung"`
 	}
 	lies(r, &in)
-	if !s.Tor.Passt(in.Einladung) {
-		fehler(w, 403, "dieser server verlangt eine einladung")
-		return
-	}
-	if !s.Tor.Darf(r) {
-		fehler(w, 429, "zu viele anmeldungen von dieser adresse")
-		return
-	}
 	name := sicher.Text(in.Spitzname, MaxSpitzname)
 	if name == "" {
 		fehler(w, 422, "spitzname darf nicht leer sein")

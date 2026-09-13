@@ -4,6 +4,7 @@ import (
 	"crypto/subtle"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -25,20 +26,34 @@ import (
 //     Minute hundert Konten bekommt.
 //
 // Hinter einem Reverse Proxy ist RemoteAddr die Adresse des Proxys. Dann zählt
-// die Grenze für alle gemeinsam; das ist gewollt konservativ, denn eine
-// weitergereichte Adresse kann sich der Klient selbst ausdenken.
+// die Grenze für ALLE GEMEINSAM – und genau das ist im Betrieb passiert: Eine
+// eingeladene Person bekam "zu viele anmeldungen von dieser adresse", weil
+// jemand anders die zehn Versuche längst verbraucht hatte.
+//
+// Weitergereichte Adressen sind trotzdem nichts, was man einfach glaubt: Steht
+// der Server nackt im Netz, kann sich jeder Klient ein X-Forwarded-For
+// ausdenken und die Grenze damit aushebeln. Deshalb ein ausdrücklicher
+// Schalter: Hops sagt, wie viele Proxys DAVOR stehen. Erst dann wird gezählt,
+// und zwar von rechts – der letzte Eintrag stammt vom eigenen Proxy, alles
+// weiter links kann gefälscht sein.
 type Torwache struct {
 	Einladung string
+	Hops      int
 
 	sperre  sync.Mutex
 	zugriff map[string][]time.Time
 }
 
-// MaxAnmeldungen je Adresse und Fenster. Zwei Personen, zwei Geräte, ein paar
-// Fehlversuche – zehn pro Stunde sind großzügig und trotzdem eine Grenze.
+// Grenzen je Adresse und Fenster.
+//
+// Mit gültiger Einladung darf es mehr sein: Das Geheimnis IST der Riegel, die
+// Zählung ist nur der Schutz für einen offenen Server. Ein Haushalt teilt sich
+// eine Adresse, und zwei Menschen mit drei Geräten und ein paar Fehlversuchen
+// sollen nicht an einer Zahl scheitern, die gegen jemand anderen gedacht war.
 const (
-	MaxAnmeldungen = 10
-	Fenster        = time.Hour
+	MaxAnmeldungen  = 10
+	MaxMitEinladung = 40
+	Fenster         = time.Hour
 )
 
 func (t *Torwache) Offen() bool { return t.Einladung == "" }
@@ -52,11 +67,43 @@ func (t *Torwache) Passt(gegeben string) bool {
 	return subtle.ConstantTimeCompare([]byte(gegeben), []byte(t.Einladung)) == 1
 }
 
-// Darf zählt einen Versuch und sagt, ob er noch im Rahmen liegt.
-func (t *Torwache) Darf(r *http.Request) bool {
-	adresse, _, err := net.SplitHostPort(r.RemoteAddr)
+// Adresse ermittelt, wer da anfragt.
+//
+// Ohne Hops: die Gegenstelle, sonst nichts. Mit Hops: der Eintrag, den der
+// eigene Proxy geschrieben hat – von rechts gezählt, weil ein Klient die linken
+// Einträge selbst mitschicken kann.
+func (t *Torwache) Adresse(r *http.Request) string {
+	direkt, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		adresse = r.RemoteAddr
+		direkt = r.RemoteAddr
+	}
+	if t.Hops <= 0 {
+		return direkt
+	}
+	kette := r.Header.Values("X-Forwarded-For")
+	var teile []string
+	for _, k := range kette {
+		for _, x := range strings.Split(k, ",") {
+			if x = strings.TrimSpace(x); x != "" {
+				teile = append(teile, x)
+			}
+		}
+	}
+	i := len(teile) - t.Hops
+	if i < 0 || i >= len(teile) {
+		// Weniger Einträge als angesagte Proxys: Die Kette passt nicht zur
+		// Einstellung. Dann lieber die Gegenstelle als eine geratene Adresse.
+		return direkt
+	}
+	return teile[i]
+}
+
+// Darf zählt einen Versuch und sagt, ob er noch im Rahmen liegt.
+func (t *Torwache) Darf(r *http.Request, eingeladen bool) bool {
+	adresse := t.Adresse(r)
+	grenze := MaxAnmeldungen
+	if eingeladen && !t.Offen() {
+		grenze = MaxMitEinladung
 	}
 	jetzt := time.Now()
 
@@ -80,7 +127,7 @@ func (t *Torwache) Darf(r *http.Request) bool {
 			t.zugriff[a] = frisch
 		}
 	}
-	if len(t.zugriff[adresse]) >= MaxAnmeldungen {
+	if len(t.zugriff[adresse]) >= grenze {
 		return false
 	}
 	t.zugriff[adresse] = append(t.zugriff[adresse], jetzt)
