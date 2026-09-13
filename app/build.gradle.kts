@@ -13,8 +13,8 @@ android {
         applicationId = "app.mimik"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.5"
+        versionCode = 6
+        versionName = "0.6"
     }
     buildTypes {
         release {
@@ -28,6 +28,11 @@ android {
     kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
     buildFeatures { compose = true }
 }
+
+// Das APK soll heissen, was es ist: mimik-0.6-debug.apk statt app-debug.apk.
+// Beim Herunterladen aus einem Release liegen sonst drei Dateien gleichen
+// Namens nebeneinander, und keine sagt, welche Fassung sie ist.
+base { archivesName.set("mimik-" + android.defaultConfig.versionName) }
 
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")

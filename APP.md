@@ -11,12 +11,14 @@ sich aus dem Spielzustand statt aus einem Navigationsgraphen.
 ```
 
 `local.properties` zeigt auf das Android-SDK. Das APK liegt danach unter
-`app/build/outputs/apk/debug/app-debug.apk`.
+`app/build/outputs/apk/debug/mimik-<version>-debug.apk` – der Name kommt aus
+`archivesName` in `app/build.gradle.kts` und trägt die Version, damit in einem
+Downloadordner nicht drei gleichnamige Dateien liegen.
 
 Auf ein Gerät oder den Emulator:
 
 ```bash
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/mimik-0.6-debug.apk
 ```
 
 ## Serveradresse
