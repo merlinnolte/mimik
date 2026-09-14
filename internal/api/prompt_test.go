@@ -16,30 +16,31 @@ import (
 // Profil, während der Worker eines füllt, und maß damit an der Wirklichkeit
 // vorbei.
 //
-// Gemessen am 14.09.2026 (Zeichen System + Material): ohne Dossier 9.188, mit
-// zwölf Fakten 10.349, mit zwölf Fakten und zwölf Merkmalen 11.330, mit vierzig
-// Fakten 13.009.
+// Gemessen am 14.09.2026 (Zeichen System + Material): ohne Dossier 10.366, mit
+// zwölf Fakten 11.527, mit zwölf Fakten und zwölf Merkmalen 12.508, mit vierzig
+// Fakten 14.187. Am Endpunkt gemessen sind 3,4 Zeichen ein Token.
 //
-// Der Prompt ist an einem Tag dreimal gewachsen, jedes Mal für etwas
-// Messbares: +727 Zeichen für die Begründung, woraus eine Fälschung gebaut ist
-// (Ausgabeseite rund 130 Token), und +869 für den Abschnitt VERLANGT, nach dem
-// jede Fälschung die Frage wirklich beantwortet - vorher lieferten bei fünf
-// harten Fragen mehrere Antworten etwas anderes als das Gefragte. Dazu +584
-// für das Längenfenster: Eine Fälschung, die dreimal so lang ist wie die echte
-// Antwort, ist erkannt, bevor jemand ein Wort davon gelesen hat.
+// Der Prompt ist an diesem einen Tag von 6.435 auf 9.500 Zeichen gewachsen -
+// und jeder Zuwachs steht für etwas Gemessenes:
 //
-// Dass das vertretbar ist, hängt an einer Messung: 87 Prozent der Eingabe
-// kommen aus dem Prefix-Cache, und gewachsen ist genau der cachefähige Teil.
-// Es ist aber keine Einladung: Der erste Aufruf jeder Sitzung zahlt alles, und
-// irgendwann leidet nicht die Rechnung, sondern die Aufmerksamkeit des Modells.
-// Wer hier etwas hinzufügt, nimmt besser etwas mit. Am Endpunkt gemessen sind 6.600 Zeichen rund 1.950
-// Eingabetoken, also 3,4 Zeichen je Token - ein Kontextüberlauf kann von diesem
-// Umfang nicht kommen, jedes brauchbare Modell trägt ein Vielfaches.
+//	+727  Begründung, woraus eine Fälschung gebaut ist
+//	+869  VERLANGT: dass sie die Frage überhaupt beantwortet
+//	      (vorher lieferten von 15 Karten mehrere etwas anderes als das Gefragte)
+//	+584  Längenfenster (Karten mit 128 Zeichen gegen 48)
+//	+900  Stilregeln aus der Lügenforschung: keine Begründung, kein Fazit,
+//	      gleicher Bau, nichts Überprüfbares erfinden
 //
-// Wichtiger als die Gesamtzahl: 6.435 Zeichen davon sind der Systemprompt und
-// bei JEDEM Aufruf derselbe Text. Genau das trägt der Prefix-Cache des
-// Anbieters (gemessen: 87 Prozent der Eingabe) - und deshalb darf variabler
-// Text nie in den Systemprompt wandern.
+// Dass das vertretbar ist, hängt an zwei Messungen, nicht an Geschmack. Erstens:
+// 87 Prozent der Eingabe kommen aus dem Prefix-Cache, und gewachsen ist genau
+// der cachefähige Teil. Zweitens, und das ist das stärkere Argument: Die
+// Wiederholungen sind von 2,0 auf 1,2 Versuche je Kartensatz gefallen. Ein
+// Wiederholungsversuch ist ein GANZER Aufruf; die zusätzlichen 3.000 Zeichen
+// kosten im Cache einen Bruchteil davon. Der längere Prompt ist billiger als
+// die Fehler, die er verhindert.
+//
+// Es bleibt trotzdem eine Grenze: Irgendwann leidet nicht die Rechnung, sondern
+// die Aufmerksamkeit des Modells. Wer hier etwas hinzufügt, nimmt besser etwas
+// mit - und weist mit einer Messung nach, dass es sich lohnt.
 func TestPromptbleibtklein(t *testing.T) {
 	var groesse int
 	modell := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +85,7 @@ func TestPromptbleibtklein(t *testing.T) {
 		t.Logf("%2d Fakten, %2d Merkmale -> %5d Zeichen (~%5d Token)",
 			f.fakten, f.merkmale, groesse, groesse*10/34)
 		// Zwölf Fakten und ein voller Profilblock sind der Betriebsfall.
-		if f.fakten == 12 && f.merkmale == 12 && groesse > 11800 {
+		if f.fakten == 12 && f.merkmale == 12 && groesse > 13000 {
 			t.Errorf("der Betriebsprompt ist auf %d Zeichen gewachsen", groesse)
 		}
 	}

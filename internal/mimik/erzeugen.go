@@ -149,7 +149,7 @@ const MaxVersuche = 3
 // stehen.
 func (c *Client) Faelschungen(ctx context.Context, frage, roh string, d Dossier) (Ergebnis, error) {
 	var best Ergebnis
-	bestLang := 4 // mehr Laengenverstoesse als es Karten gibt
+	bestStil := 99 // mehr Stilverstoesse als je vorkommen koennen
 	var letzterFehler error
 	// Der Verbrauch wird ueber alle Durchgaenge gesammelt, nicht je Durchgang
 	// zurueckgegeben: Ein verworfener Versuch ist bezahlt, und wer die Rechnung
@@ -179,8 +179,8 @@ func (c *Client) Faelschungen(ctx context.Context, frage, roh string, d Dossier)
 		erg.Befund = Abstandsfenster(erg.Normalform, texte)
 		bruch := Sperrbruch(texte, erg.Sperre)
 		form := FormPruefen(erg.Normalform, texte)
-		lang := Laengenbruch(erg.Normalform, texte)
-		if erg.Befund.OK() && len(bruch) == 0 && form.OK() && len(lang) == 0 {
+		stil, stilgrund := Stilbruch(erg.Normalform, texte)
+		if erg.Befund.OK() && len(bruch) == 0 && form.OK() && stil == 0 {
 			erg.Verbrauch = gesamt
 			return erg, nil
 		}
@@ -190,21 +190,20 @@ func (c *Client) Faelschungen(ctx context.Context, frage, roh string, d Dossier)
 		case len(bruch) > 0:
 			letzterFehler = fmt.Errorf("themensperre verletzt in %v", bruch)
 			erg.Befund.Grund = "Sperrbruch"
-		case len(lang) > 0:
-			min, max := Laengenfenster(erg.Normalform)
-			letzterFehler = fmt.Errorf("länge aus dem fenster [%d..%d] in %v", min, max, lang)
-			erg.Befund.Grund = "Länge"
+		case stil > 0:
+			letzterFehler = fmt.Errorf("stil: %s (%d verstöße)", stilgrund, stil)
+			erg.Befund.Grund = stilgrund
 		default:
 			letzterFehler = fmt.Errorf("form: %s", form.Grund())
 			erg.Befund.Grund = "Form"
 		}
 		// Der beste von drei schlechten Versuchen wird nach ZWEI Kriterien
-		// gewaehlt, nicht nach einem: Eine Karte, die aus dem Laengenfenster
-		// faellt, ist ohne ein Wort zu lesen erkannt - das wiegt schwerer als
-		// ein paar Hundertstel Abstand.
-		if best.Fakt == "" || (len(lang) < bestLang) ||
-			(len(lang) == bestLang && erg.Befund.MaxZuEcht < best.Befund.MaxZuEcht) {
-			best, bestLang = erg, len(lang)
+		// gewaehlt, nicht nach einem: Eine Karte, die an Laenge, Bau oder
+		// Begruendung aus der Reihe faellt, ist ohne ein Wort zu lesen erkannt -
+		// das wiegt schwerer als ein paar Hundertstel Abstand.
+		if best.Fakt == "" || stil < bestStil ||
+			(stil == bestStil && erg.Befund.MaxZuEcht < best.Befund.MaxZuEcht) {
+			best, bestStil = erg, stil
 		}
 	}
 	if best.Fakt != "" {

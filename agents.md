@@ -390,6 +390,13 @@ Damit es nicht noch einmal passiert:
 - **Meldungen zu einer Phase, die schon vorbei war.** Drei Ursachen, alle in
   `APP.md` festgehalten: keine Vordergrundprüfung, eine Meldung, die im Schacht
   stehen blieb, und ein Merker, der im Vordergrund nie gekürzt wurde.
+- **Drei Regeln an einem Tag, die nur im Prompt standen und nicht hielten:**
+  dass die Antwort die Frage beantwortet, dass sie nicht dreimal so lang ist wie
+  die echte, dass sie nicht aus dem Dossier kommt. **Eine Regel im Prompt ist
+  eine Bitte, eine Prüfung ist eine Bedingung.** Was sich mechanisch prüfen
+  lässt, gehört nach `internal/mimik` – und die Schwelle gehört gemessen: Das
+  Längenfenster stand zuerst zu eng und kostete einen ganzen Modellaufruf für
+  drei Zeichen.
 - **Das Modell baute aus dem Dossier und bog es dann zur Frage.** Auf „Welche
   Regel deiner Eltern findest du heute richtig?" kam „Beim Kochen ständig
   abschmecken" – begründet mit „du kochst regelmäßig". Das ist keine Regel der

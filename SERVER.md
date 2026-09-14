@@ -143,6 +143,49 @@ Antworten dürfen überhaupt auf Dossiermaterial stehen. Drei Antworten aus
 derselben kleinen Quelle sind als Satz erkennbar, ohne dass man die Person
 kennen muss: Die echte kommt aus dem Leben, nicht aus einer Liste.
 
+## Was eine Fälschung verrät, bevor man sie liest
+
+Vier Karten liegen nebeneinander, und der Mensch davor vergleicht. Daraus folgt
+die härteste Regel des Spiels: **Jede Eigenschaft, die genau eine der vier
+Karten hat, ist ein Signal** — ob sie für sich gut ist, spielt keine Rolle. Das
+Ziel ist nicht Glaubwürdigkeit, sondern **Ununterscheidbarkeit**.
+
+Die verbale Lügenforschung liefert dazu belastbare Befunde, und aus jedem ist
+eine Prüfung in `internal/mimik/stil.go` geworden:
+
+| Befund | Prüfung |
+|---|---|
+| Erfundene Erinnerungen tragen ihre Herleitung mit, echte nicht (*Reality Monitoring*, Johnson & Raye; Vrij) | `Kausalbruch` — höchstens **eine** der drei darf einen Kausalsatz enthalten |
+| Erfundene Schilderungen sind runder erzählt, mit weniger gewöhnlichen Unvollkommenheiten (DePaulo u. a. 2003) | `Floskelbruch` — keine Wendung, die das Gesagte einordnet |
+| Leicht zu Verarbeitendes wirkt wahrer (Reber & Schwarz) | `Laengenbruch` — Fenster um die Länge der Normalform |
+| Lügner meiden überprüfbare Details; hier gespiegelt, weil das Gegenüber die Person kennt (*Verifiability Approach*, Nahari u. a.) | im Prompt: nichts Überprüfbares erfinden, dafür konkret bei **Haltungen** |
+| Was nur eine Karte hat, verrät sie | `Satzbaubruch` — Satzzahl, Kommazahl, Schlusszeichen im Rahmen der Normalform |
+
+Alle sind **weich**: Sie lösen einen neuen Versuch aus, verhindern aber nicht,
+dass nach drei Versuchen der beste Satz hinausgeht. Dann gewinnt der mit den
+**wenigsten Stilverstößen**, nicht der mit dem besten Abstand: Ohne ein Wort
+erkannt zu sein wiegt schwerer als ein paar Hundertstel Ähnlichkeit.
+
+**Warum Prüfungen und nicht nur Prompttext:** An einem einzigen Tag hat dreimal
+eine Regel im Prompt nicht gehalten — dass die Antwort die Frage beantwortet,
+dass sie nicht dreimal so lang ist, dass sie nicht aus dem Dossier kommt. Eine
+Regel im Prompt ist eine Bitte, eine Prüfung ist eine Bedingung.
+
+**Die Schwellen sind gemessen, nicht geschätzt.** Das Längenfenster stand zuerst
+bei 1,6 und schlug bei Karten an, die drei Zeichen zu lang waren — jeder
+Anschlag kostet einen ganzen Modellaufruf. Mit 1,8 fallen alle Fälle, die im
+Betrieb aufgefallen waren (99 bis 128 Zeichen gegen 43 bis 48), immer noch
+durch, und die Wiederholungen sind von 2,0 auf 1,2 Versuche je Kartensatz
+gefallen.
+
+**Der harte Fall sind kurze Antworten.** Auf „Fenster auf." (12 Zeichen) kamen
+Fälschungen mit 78, 60 und 81 — dreimal verworfen, drei Aufrufe bezahlt. Das
+Fenster skaliert mit der echten Antwort und lässt dort fast keinen Raum, während
+das Modell von Natur aus ganze Sätze schreibt. Dagegen steht jetzt eine
+ausdrückliche Regel: unter dreißig Zeichen sind alle drei Fragmente, höchstens
+fünf Wörter, kein Komma. Danach: „Kaffee.", „Nachrichten im Bett.", „Aufs
+Handy."
+
 ## Der eigene Kartensatz
 
 `/v1/parties/{id}/state` liefert unter `meine_karten` den Satz **über einen

@@ -263,10 +263,18 @@ func abs(x int) int {
 // einer sehr kurzen echten Antwort ("Geh raus!", 9 Zeichen) waere die Haelfte
 // unerreichbar und das Anderthalbfache belanglos. Deshalb je ein absoluter
 // Spielraum obendrauf.
+// Nachkalibriert am 14.09.2026, nachdem die Pruefung im Betrieb lief: Mit 1.6
+// und 20 Zeichen Luft schlug sie bei Karten an, die 3 bis 4 Zeichen zu lang
+// waren - und jeder Anschlag kostet einen ganzen Modellaufruf und zehn Sekunden
+// Wartezeit. Gesucht ist nicht Genauigkeit, sondern das SICHTBARE: Eine Karte
+// mit dem Anderthalb- bis Doppelten sieht niemand, eine mit dem Dreifachen
+// jeder. Mit 1.8 und 24 fallen alle Faelle, die im Betrieb aufgefallen sind
+// (99 bis 128 Zeichen gegen 43 bis 48), immer noch durch - und die
+// Wiederholungen halbieren sich.
 const (
 	LaengeMin  = 0.5
-	LaengeMax  = 1.6
-	LaengeLuft = 20 // Zeichen absoluter Spielraum nach oben
+	LaengeMax  = 1.8
+	LaengeLuft = 24 // Zeichen absoluter Spielraum nach oben
 	LaengeTief = 10 // ... und nach unten
 )
 

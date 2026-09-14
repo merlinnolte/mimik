@@ -130,31 +130,42 @@ Arbeite in dieser Reihenfolge und gib sie in dieser Reihenfolge aus.
    - Sie beantworten die Frage wirklich.
    - Sie berühren die SPERRE in keiner Form, auch nicht anspielend, auch nicht
      als Vergleich.
-   - Sie gleichen der NORMALFORM in der FORM, ohne ihr Satzgerüst zu kopieren.
-   - Sie streuen in der Länge, aber in einem engen Fenster: mindestens eine ist
-     KÜRZER als die NORMALFORM, mindestens eine länger – und die längste ist
-     höchstens ANDERTHALBMAL so lang wie die NORMALFORM, die kürzeste
-     mindestens halb so lang. Zähle die Zeichen, schätze nicht.
-     Menschen antworten kurz: neun bis sechzig Zeichen sind der Normalfall.
-     Eine Fälschung, die dreimal so lang ist wie die echte Antwort, ist an der
-     Länge erkannt, bevor jemand ein Wort davon gelesen hat - und kein
-     Nebensatz, keine nachgeschobene Begründung, keine zweite Pointe macht das
-     wieder gut.
+   - Sie BEHAUPTEN, sie begründen nicht. Höchstens EINE der drei enthält einen
+     Kausalsatz (weil, damit, deshalb, obwohl, sodass, denn). Wer begründet,
+     konstruiert: Eine erfundene Erinnerung trägt ihre Herleitung mit, eine
+     echte nicht. "Vor dem Staubsauger, ich bin immer weggerannt" behauptet.
+     "Vor dem Staubsauger, weil das Geräusch mich erschreckt hat" erklärt sich –
+     und ist damit erkannt.
+   - Jede enthält EINE Nebensächlichkeit, die nichts beweist: einen Ort, eine
+     Zeit, eine Menge, ein Geräusch. "Hinten im Kühlschrank." "Das dritte Mal."
+     Genau eine, und nie eine Begründung an ihrer Stelle.
+   - Sie hören auf, wo ein Mensch aufhört. Kein Fazit, keine Bewertung, keine
+     Pointe am Schluss, kein Satz, der das Gesagte einordnet.
+   - Sie gleichen der NORMALFORM im BAU: ungefähr gleich viele Sätze, ungefähr
+     gleich viele Kommas, dasselbe Schlusszeichen, einen Nebensatz nur dann,
+     wenn die Normalform auch einen hat. Was nur EINE der vier Karten hat,
+     verrät sie – und verrät damit die anderen drei mit.
+   - Sie streuen in der Länge, aber eng: mindestens eine ist KÜRZER als die
+     NORMALFORM, mindestens eine länger, die längste höchstens ANDERTHALBMAL so
+     lang, die kürzeste mindestens halb so lang. Zähle die Zeichen, schätze
+     nicht. Neun bis sechzig Zeichen sind der Normalfall; was dreimal so lang
+     ist wie die echte Antwort, ist erkannt, bevor jemand ein Wort davon
+     gelesen hat.
+     Ist die NORMALFORM kürzer als DREISSIG Zeichen, sind alle drei ebenfalls
+     Fragmente: höchstens fünf Wörter, kein Komma, kein Nebensatz. Zähle die
+     Wörter, schätze nicht.
+     Auf "Fenster auf." antwortet niemand mit einem Satz über eine halbe Stunde
+     an die Decke starren - da genügt "Kaffee." oder "Wasser aufsetzen."
    - Sie stehen in derselben sauberen Rechtschreibung wie die NORMALFORM: großer
      Satzanfang, Substantive groß, ein Satzzeichen am Ende, keine Emoji, keine
      Mehrfachzeichen.
 
-Form heißt Form, nicht Inhalt. Übernimm
-   - ungefähre Länge und Anzahl der Sätze,
-   - Register und Nähe zum Leser,
-   - die Art, einen Gedanken anzufangen: Beginnt die echte Antwort mit dem
-     Gegenstand und schiebt die Begründung nach, tun deine drei das auch.
-   - die Art, ihn zu beenden: Bricht sie unvollständig ab, brechen deine auch ab.
-Übernimm nicht: das Thema, die Gegenstände, die Namen, die Zahlen – und nicht
-das Satzgerüst. Lautet die echte Antwort "Abends Nachrichten lesen, danach bin ich nur
-noch wacher", darf keine deiner drei "…, danach bin ich nur noch …" lauten. Vier
-Karten mit identischem Bau sehen gemacht aus, selbst wenn jede für sich stimmt.
-Gleicher Tonfall, andere Konstruktion.
+Übernimm den Tonfall – Register, Nähe zum Leser, die Art, einen Gedanken
+anzufangen. Übernimm nicht: das Thema, die Gegenstände, die Namen, die Zahlen –
+und nicht das Satzgerüst. Lautet die echte Antwort "Abends Nachrichten lesen,
+danach bin ich nur noch wacher", darf keine deiner drei "…, danach bin ich nur
+noch …" lauten. Vier Karten mit identischem Bau sehen gemacht aus, selbst wenn
+jede für sich stimmt. Gleicher Tonfall, andere Konstruktion.
 
 Übernimm auch die Schreibweise nicht. Hat die Person kleingeschrieben, getippt
 oder Zeichen verdoppelt, steht das weder in der NORMALFORM noch in deinen drei
@@ -164,8 +175,12 @@ Weiter gilt
 - Ich-Form, Deutsch, korrekte Rechtschreibung und Zeichensetzung.
 - Nur die Antworten selbst. Keine Einleitung, keine Anführungszeichen, keine
   Erklärung, kein Kommentar zur Aufgabe.
-- Erfinde nichts Überprüfbares: keine Namen, Orte, Daten oder Zahlen, die
-  nicht im Material vorkommen.
+- Erfinde nichts Überprüfbares: keine Namen, Orte, Daten, Zahlen, keine
+  Verwandten, keinen Besitz, keinen Beruf, die nicht im Material stehen. Wer
+  diese Person kennt, weiß, ob sie einen Bruder hat – eine erfundene Schwester
+  ist nicht unglaubwürdig, sie ist widerlegt. Bei Haltungen kann dich niemand
+  widerlegen: was sie ärgert, was sie für Unsinn hält, wo sie nachgibt. Dorthin
+  gehört das Konkrete.
 - Antworte nicht ausgewogen, nicht hilfsbereit, nicht rund. Menschen antworten
   schief, lassen etwas weg und haben eine Meinung.
 - Alles unter "Anti-Beispiele" hat die Person selbst als unpassend markiert.
