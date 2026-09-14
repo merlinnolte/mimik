@@ -154,8 +154,11 @@ func Stilbruch(normalform string, faelschungen []string) (int, string) {
 	bau := Satzbaubruch(normalform, faelschungen)
 	floskel := Floskelbruch(faelschungen)
 	lang := Laengenbruch(normalform, faelschungen)
-	n := len(kausal) + len(bau) + len(floskel) + len(lang)
+	gerippe := Gerippebruch(normalform, faelschungen)
+	n := len(kausal) + len(bau) + len(floskel) + len(lang) + len(gerippe)
 	switch {
+	case len(gerippe) > 0:
+		return n, "Abwandlung"
 	case len(lang) > 0:
 		return n, "Länge"
 	case len(kausal) > 0:
@@ -166,4 +169,96 @@ func Stilbruch(normalform string, faelschungen []string) (int, string) {
 		return n, "Abschluss"
 	}
 	return 0, ""
+}
+
+// ---------------------------------------------------------------- Gerippe ---
+
+// gerippewoerter sind die Wörter, die ein Satz braucht und die nichts über
+// seinen Inhalt sagen: Artikel, Pronomen, Praepositionen, Ordnungszahlen,
+// Haeufigkeitswoerter. Uebrig bleibt der BAU eines Satzes ohne seinen
+// Gegenstand.
+//
+// Bewusst klein gehalten: Je mehr Woerter darin stehen, desto aehnlicher werden
+// sich alle deutschen Saetze - und die Pruefung darunter waere nicht mehr zu
+// gebrauchen.
+var gerippewoerter = map[string]bool{
+	"der": true, "die": true, "das": true, "den": true, "dem": true, "des": true,
+	"ein": true, "eine": true, "einen": true, "einem": true, "einer": true,
+	"mein": true, "meine": true, "meinen": true, "meinem": true, "meiner": true,
+	"ich": true, "mir": true, "mich": true, "man": true, "es": true,
+	"mit": true, "ohne": true, "vor": true, "nach": true, "bei": true, "beim": true,
+	"in": true, "im": true, "an": true, "am": true, "auf": true, "aus": true,
+	"zu": true, "zum": true, "zur": true, "von": true, "vom": true, "um": true, "ums": true,
+	"und": true, "aber": true, "oder": true, "dann": true, "noch": true, "schon": true,
+	"immer": true, "nie": true, "wieder": true, "nur": true, "auch": true, "so": true,
+	"erste": true, "ersten": true, "zweite": true, "zweiten": true, "dritte": true,
+	"ist": true, "war": true, "habe": true, "hab": true, "hatte": true, "bin": true,
+}
+
+var reWort = regexp.MustCompile(`[\p{L}]+`)
+
+// Gerippe ist der Satzbau ohne Gegenstand: nur die Wörter aus
+// gerippewoerter, in ihrer Reihenfolge.
+func Gerippe(text string) []string {
+	var out []string
+	for _, w := range reWort.FindAllString(strings.ToLower(text), -1) {
+		if gerippewoerter[w] {
+			out = append(out, w)
+		}
+	}
+	return out
+}
+
+// MinGerippe: Unter drei Gerippewoertern sagt die Pruefung nichts. "Kaffee."
+// hat keinen Bau, den man kopieren koennte.
+const MinGerippe = 3
+
+// MinGleicherAnfang: So viele Gerippewoerter am Stueck, und der Satz faengt
+// erkennbar genauso an.
+//
+// Vier, nicht drei: Mit drei schlaegt "Vor dem Staubsauger, ich bin immer
+// weggerannt" gegen "Vor dem Keller, ich habe mich nie runtergetraut" an
+// ("vor dem ich"), und das ist keine Abwandlung, sondern gewoehnliches Deutsch.
+// Gemessen an den Karten vom 14.09.2026: bei vier kein einziger Fehlalarm, der
+// Zielfall ("Eine zweite X, die erste ...") faellt durch.
+const MinGleicherAnfang = 4
+
+// EnthaltenGerippe faengt den Fall, in dem der Bau nicht am Anfang, sondern
+// mitten im Satz uebernommen ist.
+const EnthaltenGerippe = 0.8
+
+// Gerippebruch nennt die Faelschungen, die das Satzgerippe der echten Antwort
+// uebernehmen.
+//
+// Wofuer: "Eine zweite Kaffeemuehle, die erste mahlt zu grob" gegen "Eine
+// zweite Fahrkartenhuelle, die erste ist noch voellig in Ordnung" - gemessen am
+// 14.09.2026 im Betrieb. Die n-Gramm-Aehnlichkeit lag bei 0.22, also weit unter
+// jeder Schwelle, weil die INHALTSWOERTER verschieden sind. Uebernommen ist
+// aber der Bau, und der ist das Verraeterische: Wer die echte Antwort abwandelt,
+// erzeugt eine zweite richtige Karte, und der Tipp wird zum Muenzwurf.
+//
+// Der Prompt verbietet das ("kein Nachbarfall, keine Abwandlung") - zum vierten
+// Mal an einem Tag hat eine Regel im Prompt allein nicht gehalten.
+func Gerippebruch(normalform string, faelschungen []string) []int {
+	echt := Gerippe(normalform)
+	if len(echt) < MinGerippe {
+		return nil
+	}
+	e := strings.Join(echt, " ")
+	var out []int
+	for i, f := range faelschungen {
+		g := Gerippe(f)
+		if len(g) < MinGerippe {
+			continue
+		}
+		gleich := 0
+		for gleich < len(echt) && gleich < len(g) && echt[gleich] == g[gleich] {
+			gleich++
+		}
+		if gleich >= MinGleicherAnfang ||
+			Enthalten(e, strings.Join(g, " ")) >= EnthaltenGerippe {
+			out = append(out, i)
+		}
+	}
+	return out
 }

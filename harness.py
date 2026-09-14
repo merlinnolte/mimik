@@ -202,7 +202,11 @@ Arbeite in dieser Reihenfolge und gib sie in dieser Reihenfolge aus.
    Für alle drei gilt außerdem:
    - Sie beantworten die Frage wirklich.
    - Sie berühren die SPERRE in keiner Form, auch nicht anspielend, auch nicht
-     als Vergleich.
+     als Vergleich – und sie bauen NICHT auf der echten Antwort dieser Runde
+     auf: keine Abwandlung, kein Nachbarfall, kein "dasselbe, aber mit etwas
+     anderem". Die echte Antwort ist der Gegenstand, den sie umgeben, nicht das
+     Muster, dem sie folgen. Wer sie variiert, erzeugt eine zweite richtige
+     Karte, und der Tipp wird zum Münzwurf.
    - Sie BEHAUPTEN, sie begründen nicht. Höchstens EINE der drei enthält einen
      Kausalsatz (weil, damit, deshalb, obwohl, sodass, denn). Wer begründet,
      konstruiert: Eine erfundene Erinnerung trägt ihre Herleitung mit, eine
@@ -526,12 +530,48 @@ def floskelbruch(fakes):
             if any(w in f.lower() for w in ABSCHLUSS)]
 
 
+GERIPPE = set("""der die das den dem des ein eine einen einem einer
+mein meine meinen meinem meiner ich mir mich man es
+mit ohne vor nach bei beim in im an am auf aus zu zum zur von vom um ums
+und aber oder dann noch schon immer nie wieder nur auch so
+erste ersten zweite zweiten dritte ist war habe hab hatte bin""".split())
+MIN_GERIPPE, MIN_GLEICHER_ANFANG, ENTHALTEN_GERIPPE = 3, 4, 0.8
+
+
+def gerippe(text):
+    """Der Satzbau ohne Gegenstand - nur die Funktionswoerter, in ihrer Reihenfolge."""
+    return [w for w in re.findall(r"[^\W\d_]+", text.lower()) if w in GERIPPE]
+
+
+def gerippebruch(norm, fakes):
+    """Faengt die Abwandlung: gleicher Bau, ausgetauschter Gegenstand.
+    "Eine zweite Kaffeemuehle, die erste mahlt zu grob" gegen "Eine zweite
+    Fahrkartenhuelle, die erste ist noch in Ordnung" - n-Gramm-Aehnlichkeit 0.22,
+    weil die Inhaltswoerter verschieden sind. Uebernommen ist der Bau."""
+    e = gerippe(norm)
+    if len(e) < MIN_GERIPPE:
+        return []
+    out = []
+    for i, f in enumerate(fakes):
+        g = gerippe(f)
+        if len(g) < MIN_GERIPPE:
+            continue
+        gleich = 0
+        while gleich < len(e) and gleich < len(g) and e[gleich] == g[gleich]:
+            gleich += 1
+        if gleich >= MIN_GLEICHER_ANFANG or \
+                enthalten(" ".join(e), " ".join(g)) >= ENTHALTEN_GERIPPE:
+            out.append(i)
+    return out
+
+
 def stilbruch(norm, fakes):
     """Zahl der Verstoesse und der auffaelligste Grund - wie stil.go."""
     lang, kausal = laengenbruch(norm, fakes), kausalbruch(fakes)
     bau, flosk = satzbaubruch(norm, fakes), floskelbruch(fakes)
-    n = len(lang) + len(kausal) + len(bau) + len(flosk)
-    for xs, grund in ((lang, "Länge"), (kausal, "Begründung"),
+    ger = gerippebruch(norm, fakes)
+    n = len(lang) + len(kausal) + len(bau) + len(flosk) + len(ger)
+    for xs, grund in ((ger, "Abwandlung"), (lang, "Länge"), (kausal, "Begründung"),
                       (bau, "Bau"), (flosk, "Abschluss")):
         if xs:
             return n, grund

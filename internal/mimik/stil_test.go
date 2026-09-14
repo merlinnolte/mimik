@@ -86,3 +86,73 @@ func TestStilbruchZaehltUndBenennt(t *testing.T) {
 		t.Fatalf("%d verstöße, grund %q - erwartet Länge", n, grund)
 	}
 }
+
+// Der Fall, der die Pruefung ausgeloest hat: Am 14.09.2026 kam gegen "Eine
+// zweite Kaffeemuehle, die erste mahlt zu grob" die Faelschung "Eine zweite
+// Fahrkartenhuelle, die erste ist noch voellig in Ordnung". Die n-Gramm-
+// Aehnlichkeit lag bei 0.22 - weit unter jeder Schwelle, weil die
+// Inhaltswoerter verschieden sind. Uebernommen war der BAU.
+func TestGerippebruchFaengtDieAbwandlung(t *testing.T) {
+	echt := "Eine zweite Kaffeemühle, die erste mahlt zu grob."
+	abwandlung := "Eine zweite Fahrkartenhülle, die erste ist noch völlig in Ordnung."
+	if s := Aehnlichkeit(echt, abwandlung); s >= SimMaxEcht {
+		t.Fatalf("der fall braucht die neue prüfung nicht, sim=%.2f", s)
+	}
+	if b := Gerippebruch(echt, []string{abwandlung}); len(b) != 1 {
+		t.Fatalf("die abwandlung ging durch (gerippe %v gegen %v)",
+			Gerippe(echt), Gerippe(abwandlung))
+	}
+}
+
+// Und der wichtigere Teil: Karten, die am 14.09.2026 tatsaechlich erzeugt
+// wurden und in Ordnung waren, duerfen NICHT anschlagen. Eine Pruefung, die
+// unschuldige Karten trifft, kostet einen ganzen Modellaufruf je Fehlalarm.
+func TestGerippebruchOhneFehlalarm(t *testing.T) {
+	faelle := []struct {
+		echt  string
+		fakes []string
+	}{
+		{
+			"Mit meinem Bruder ums Aufräumen der Garage.",
+			[]string{
+				"Mit meiner Mutter, sie ruft immer sonntags an und ich hab nicht abgenommen.",
+				"Beim Kartenspielen, jemand hat gemogelt und ich habe es laut gesagt.",
+				"Mit meinem Nachbarn über den Balkon, es ging um Ranken an der Trennwand.",
+			},
+		},
+		{
+			"Vor dem Staubsauger, ich bin immer weggerannt.",
+			[]string{
+				"Vor der Kinderärztin, im Wartezimmer war es immer so still.",
+				"Vor Gewittern, ich habe die Decke über den Kopf gezogen.",
+				"Vor dem Keller, ich habe mich nie alleine runtergetraut.",
+			},
+		},
+		{
+			"Nicht mit vollem Mund reden, das nervt wirklich.",
+			[]string{
+				"Beim Essen bleibt das Handy weg.",
+				"Nichts stehen lassen, immer gleich abwaschen.",
+				"Erst zuhören, dann antworten.",
+			},
+		},
+		{
+			"Den kleinen Schirm.",
+			[]string{"Die Kaffeetasse vom Vortag.", "Ein Kartenspiel, für die Zugfahrt."},
+		},
+	}
+	for _, f := range faelle {
+		if b := Gerippebruch(f.echt, f.fakes); len(b) != 0 {
+			t.Errorf("fehlalarm bei %q: %v (gerippe echt %v, fake %v)",
+				f.echt, b, Gerippe(f.echt), Gerippe(f.fakes[b[0]]))
+		}
+	}
+}
+
+// Unter drei Gerippewoertern sagt die Pruefung nichts: "Kaffee." hat keinen
+// Bau, den man kopieren koennte.
+func TestGerippeZuKurzSchweigt(t *testing.T) {
+	if b := Gerippebruch("Fenster auf.", []string{"Kaffee.", "Aufs Handy."}); len(b) != 0 {
+		t.Fatalf("kurze karten angeschlagen: %v", b)
+	}
+}

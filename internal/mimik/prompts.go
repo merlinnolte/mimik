@@ -129,7 +129,11 @@ Arbeite in dieser Reihenfolge und gib sie in dieser Reihenfolge aus.
    Für alle drei gilt außerdem:
    - Sie beantworten die Frage wirklich.
    - Sie berühren die SPERRE in keiner Form, auch nicht anspielend, auch nicht
-     als Vergleich.
+     als Vergleich – und sie bauen NICHT auf der echten Antwort dieser Runde
+     auf: keine Abwandlung, kein Nachbarfall, kein "dasselbe, aber mit etwas
+     anderem". Die echte Antwort ist der Gegenstand, den sie umgeben, nicht das
+     Muster, dem sie folgen. Wer sie variiert, erzeugt eine zweite richtige
+     Karte, und der Tipp wird zum Münzwurf.
    - Sie BEHAUPTEN, sie begründen nicht. Höchstens EINE der drei enthält einen
      Kausalsatz (weil, damit, deshalb, obwohl, sodass, denn). Wer begründet,
      konstruiert: Eine erfundene Erinnerung trägt ihre Herleitung mit, eine

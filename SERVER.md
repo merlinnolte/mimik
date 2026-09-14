@@ -160,6 +160,7 @@ eine Prüfung in `internal/mimik/stil.go` geworden:
 | Leicht zu Verarbeitendes wirkt wahrer (Reber & Schwarz) | `Laengenbruch` — Fenster um die Länge der Normalform |
 | Lügner meiden überprüfbare Details; hier gespiegelt, weil das Gegenüber die Person kennt (*Verifiability Approach*, Nahari u. a.) | im Prompt: nichts Überprüfbares erfinden, dafür konkret bei **Haltungen** |
 | Was nur eine Karte hat, verrät sie | `Satzbaubruch` — Satzzahl, Kommazahl, Schlusszeichen im Rahmen der Normalform |
+| Eine Abwandlung der echten Antwort erzeugt eine zweite richtige Karte | `Gerippebruch` — gleiches Satzgerippe, ausgetauschter Gegenstand |
 
 Alle sind **weich**: Sie lösen einen neuen Versuch aus, verhindern aber nicht,
 dass nach drei Versuchen der beste Satz hinausgeht. Dann gewinnt der mit den
@@ -177,6 +178,26 @@ Anschlag kostet einen ganzen Modellaufruf. Mit 1,8 fallen alle Fälle, die im
 Betrieb aufgefallen waren (99 bis 128 Zeichen gegen 43 bis 48), immer noch
 durch, und die Wiederholungen sind von 2,0 auf 1,2 Versuche je Kartensatz
 gefallen.
+
+**Die Abwandlung war der Fall, den keine der anderen Prüfungen sah.** Gegen
+„Eine zweite Kaffeemühle, die erste mahlt zu grob" kam „Eine zweite
+Fahrkartenhülle, die erste ist noch völlig in Ordnung" — n-Gramm-Ähnlichkeit
+**0,22**, also weit unter jeder Schwelle, weil die Inhaltswörter verschieden
+sind. Übernommen war der **Bau**. `Gerippebruch` streicht deshalb alle
+Inhaltswörter weg und vergleicht, was übrig bleibt: „eine zweite die erste" auf
+beiden Seiten.
+
+Vier gleiche Gerippewörter am Stück sind die Grenze, nicht drei: Bei drei
+schlägt „Vor dem Staubsauger, ich bin immer weggerannt" gegen „Vor dem Keller,
+ich habe mich nie runtergetraut" an („vor dem ich"), und das ist keine
+Abwandlung, sondern gewöhnliches Deutsch. An den Karten vom 14.09.2026 gemessen:
+bei vier kein einziger Fehlalarm.
+
+**Was die Prüfungen nicht können:** dieselbe *Idee* in einem anderen Gegenstand.
+Gegen die zweite Kaffeemühle kam „Ein drittes Nudelsieb. Das zweite war noch
+original verpackt" — anderer Bau, anderes Thema, und trotzdem dieselbe Pointe
+(etwas doppelt gekauft). Das ist mit einem n-Gramm nicht zu fassen. Es steht als
+Regel im Prompt, und ob sie trägt, sagt am Ende nur der Punktestand.
 
 **Der harte Fall sind kurze Antworten.** Auf „Fenster auf." (12 Zeichen) kamen
 Fälschungen mit 78, 60 und 81 — dreimal verworfen, drei Aufrufe bezahlt. Das
