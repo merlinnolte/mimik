@@ -131,8 +131,15 @@ Arbeite in dieser Reihenfolge und gib sie in dieser Reihenfolge aus.
    - Sie berühren die SPERRE in keiner Form, auch nicht anspielend, auch nicht
      als Vergleich.
    - Sie gleichen der NORMALFORM in der FORM, ohne ihr Satzgerüst zu kopieren.
-   - Sie streuen in der Länge: mindestens eine ist KÜRZER als die NORMALFORM,
-     mindestens eine länger.
+   - Sie streuen in der Länge, aber in einem engen Fenster: mindestens eine ist
+     KÜRZER als die NORMALFORM, mindestens eine länger – und die längste ist
+     höchstens ANDERTHALBMAL so lang wie die NORMALFORM, die kürzeste
+     mindestens halb so lang. Zähle die Zeichen, schätze nicht.
+     Menschen antworten kurz: neun bis sechzig Zeichen sind der Normalfall.
+     Eine Fälschung, die dreimal so lang ist wie die echte Antwort, ist an der
+     Länge erkannt, bevor jemand ein Wort davon gelesen hat - und kein
+     Nebensatz, keine nachgeschobene Begründung, keine zweite Pointe macht das
+     wieder gut.
    - Sie stehen in derselben sauberen Rechtschreibung wie die NORMALFORM: großer
      Satzanfang, Substantive groß, ein Satzzeichen am Ende, keine Emoji, keine
      Mehrfachzeichen.

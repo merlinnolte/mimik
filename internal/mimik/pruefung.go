@@ -245,3 +245,54 @@ func abs(x int) int {
 	}
 	return x
 }
+
+// Laengenfenster: Wie weit eine Faelschung von der echten Antwort abweichen
+// darf.
+//
+// Wofuer: Alle vier Karten stehen nebeneinander. Ist eine dreimal so lang wie
+// die anderen, ist sie an der Laenge erkannt, bevor jemand ein Wort davon
+// gelesen hat - genau wie eine, die aus der Form fällt (siehe form.go).
+//
+// Der Prompt verlangt Streuung ("mindestens eine kuerzer, mindestens eine
+// laenger"), und "laenger" war unbegrenzt. Gemessen am 14.09.2026: echte
+// Antworten liegen bei 9 bis 60 Zeichen (Median 45, siehe beispiele-kim.json),
+// die Faelschungen kamen mit bis zu 190. Eine Regel im Prompt allein hat
+// dagegen nicht gehalten - deshalb steht hier eine Pruefung.
+//
+// Die Grenzen sind nicht symmetrisch, und die Summanden sind kein Zierrat: Bei
+// einer sehr kurzen echten Antwort ("Geh raus!", 9 Zeichen) waere die Haelfte
+// unerreichbar und das Anderthalbfache belanglos. Deshalb je ein absoluter
+// Spielraum obendrauf.
+const (
+	LaengeMin  = 0.5
+	LaengeMax  = 1.6
+	LaengeLuft = 20 // Zeichen absoluter Spielraum nach oben
+	LaengeTief = 10 // ... und nach unten
+)
+
+// Laengenfenster gibt die erlaubte Spanne in Runen zurueck.
+func Laengenfenster(normalform string) (min, max int) {
+	n := float64(len([]rune(normalform)))
+	min = int(n*LaengeMin) - LaengeTief
+	if min < 1 {
+		min = 1
+	}
+	return min, int(n*LaengeMax) + LaengeLuft
+}
+
+// Laengenbruch nennt die Faelschungen, die aus dem Fenster fallen.
+//
+// Weich wie Sperrbruch, nicht hart wie Unzumutbar: Sie loest einen neuen
+// Versuch aus, verhindert aber nicht, dass am Ende der beste von drei Saetzen
+// hinausgeht. Eine zu lange Karte ist eine schwache Runde, keine kaputte.
+func Laengenbruch(normalform string, faelschungen []string) []int {
+	min, max := Laengenfenster(normalform)
+	var out []int
+	for i, f := range faelschungen {
+		n := len([]rune(f))
+		if n < min || n > max {
+			out = append(out, i)
+		}
+	}
+	return out
+}

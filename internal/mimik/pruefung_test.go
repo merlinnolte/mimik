@@ -305,3 +305,38 @@ func TestZweiGleicheKartenGehenNieHinaus(t *testing.T) {
 		t.Fatal("ein harmloser Kartensatz wurde abgelehnt")
 	}
 }
+
+// Alle vier Karten stehen nebeneinander: Eine, die dreimal so lang ist wie die
+// anderen, ist an der Laenge erkannt, bevor jemand ein Wort davon liest.
+func TestLaengenbruch(t *testing.T) {
+	echt := "Nicht mit vollem Mund reden, das nervt wirklich." // 47 Zeichen
+	min, max := Laengenfenster(echt)
+	if min > 20 || max < 80 || max > 110 {
+		t.Fatalf("fenster [%d..%d] fuer 47 zeichen ist unplausibel", min, max)
+	}
+	ok := []string{
+		"Wenn alle gleichzeitig reden, versteht man niemanden mehr.",
+		"Hände waschen, bevor es Essen gibt.",
+		"Erst aufessen, dann aufstehen, das gilt bei mir noch.",
+	}
+	if b := Laengenbruch(echt, ok); len(b) != 0 {
+		t.Fatalf("brauchbare laengen abgewiesen: %v", b)
+	}
+	// Die Faelschung, die im Betrieb aufgefallen ist: 168 Zeichen gegen 47.
+	zulang := "Dass man beim Kochen die Töpfe nicht bis zum Rand füllt, habe ich " +
+		"früher für Schikane gehalten und inzwischen zweimal eine Herdplatte " +
+		"geputzt, die das Gegenteil beweist."
+	if b := Laengenbruch(echt, []string{zulang}); len(b) != 1 {
+		t.Fatalf("die zu lange karte ging durch (%d zeichen)", len([]rune(zulang)))
+	}
+	// Und ein Wortfetzen gegen einen ganzen Satz faellt nach unten heraus.
+	if b := Laengenbruch(echt, []string{"Ja."}); len(b) != 1 {
+		t.Fatal("die viel zu kurze karte ging durch")
+	}
+	// Bei einer sehr kurzen echten Antwort darf niemand an der Haelfte
+	// scheitern - dort traegt der absolute Spielraum.
+	kurz := "Geh raus!"
+	if b := Laengenbruch(kurz, []string{"Mach die Tür zu.", "Lies ein Buch."}); len(b) != 0 {
+		t.Fatalf("bei neun zeichen ist das fenster zu eng: %v", b)
+	}
+}

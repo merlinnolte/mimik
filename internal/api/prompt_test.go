@@ -16,15 +16,17 @@ import (
 // Profil, während der Worker eines füllt, und maß damit an der Wirklichkeit
 // vorbei.
 //
-// Gemessen am 14.09.2026 (Zeichen System + Material): ohne Dossier 8.672, mit
-// zwölf Fakten 9.833, mit zwölf Fakten und zwölf Merkmalen 10.814, mit vierzig
-// Fakten 12.493.
+// Gemessen am 14.09.2026 (Zeichen System + Material): ohne Dossier 9.188, mit
+// zwölf Fakten 10.349, mit zwölf Fakten und zwölf Merkmalen 11.330, mit vierzig
+// Fakten 13.009.
 //
-// Der Prompt ist an einem Tag zweimal gewachsen, beide Male für etwas
+// Der Prompt ist an einem Tag dreimal gewachsen, jedes Mal für etwas
 // Messbares: +727 Zeichen für die Begründung, woraus eine Fälschung gebaut ist
 // (Ausgabeseite rund 130 Token), und +869 für den Abschnitt VERLANGT, nach dem
 // jede Fälschung die Frage wirklich beantwortet - vorher lieferten bei fünf
-// harten Fragen mehrere Antworten etwas anderes als das Gefragte.
+// harten Fragen mehrere Antworten etwas anderes als das Gefragte. Dazu +584
+// für das Längenfenster: Eine Fälschung, die dreimal so lang ist wie die echte
+// Antwort, ist erkannt, bevor jemand ein Wort davon gelesen hat.
 //
 // Dass das vertretbar ist, hängt an einer Messung: 87 Prozent der Eingabe
 // kommen aus dem Prefix-Cache, und gewachsen ist genau der cachefähige Teil.
@@ -82,7 +84,7 @@ func TestPromptbleibtklein(t *testing.T) {
 		t.Logf("%2d Fakten, %2d Merkmale -> %5d Zeichen (~%5d Token)",
 			f.fakten, f.merkmale, groesse, groesse*10/34)
 		// Zwölf Fakten und ein voller Profilblock sind der Betriebsfall.
-		if f.fakten == 12 && f.merkmale == 12 && groesse > 11200 {
+		if f.fakten == 12 && f.merkmale == 12 && groesse > 11800 {
 			t.Errorf("der Betriebsprompt ist auf %d Zeichen gewachsen", groesse)
 		}
 	}

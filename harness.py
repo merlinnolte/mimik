@@ -72,6 +72,8 @@ def parse_headers(raw):
 SIM_MAX_ECHT = 0.35      # Fälschung darf der echten Antwort nicht näher kommen
 SIM_ENTHALTEN = 0.75     # ab hier steckt der eine Text im anderen
 SIM_STREUUNG = 0.15      # Fälschungen dürfen nicht enger beieinander liegen
+LAENGE_MIN, LAENGE_MAX = 0.5, 1.6   # Fenster um die Länge der Normalform
+LAENGE_TIEF, LAENGE_LUFT = 10, 20   # absoluter Spielraum, fuer kurze Antworten
 MAX_VERSUCHE = 3
 
 FARBE = sys.stdout.isatty() and not os.environ.get("NO_COLOR")
@@ -202,8 +204,15 @@ Arbeite in dieser Reihenfolge und gib sie in dieser Reihenfolge aus.
    - Sie berühren die SPERRE in keiner Form, auch nicht anspielend, auch nicht
      als Vergleich.
    - Sie gleichen der NORMALFORM in der FORM, ohne ihr Satzgerüst zu kopieren.
-   - Sie streuen in der Länge: mindestens eine ist KÜRZER als die NORMALFORM,
-     mindestens eine länger.
+   - Sie streuen in der Länge, aber in einem engen Fenster: mindestens eine ist
+     KÜRZER als die NORMALFORM, mindestens eine länger – und die längste ist
+     höchstens ANDERTHALBMAL so lang wie die NORMALFORM, die kürzeste
+     mindestens halb so lang. Zähle die Zeichen, schätze nicht.
+     Menschen antworten kurz: neun bis sechzig Zeichen sind der Normalfall.
+     Eine Fälschung, die dreimal so lang ist wie die echte Antwort, ist an der
+     Länge erkannt, bevor jemand ein Wort davon gelesen hat - und kein
+     Nebensatz, keine nachgeschobene Begründung, keine zweite Pointe macht das
+     wieder gut.
    - Sie stehen in derselben sauberen Rechtschreibung wie die NORMALFORM: großer
      Satzanfang, Substantive groß, ein Satzzeichen am Ende, keine Emoji, keine
      Mehrfachzeichen.
@@ -463,6 +472,19 @@ def faelschungen(frage, roh, profil):
     return chat(PROMPT_B, huelle("\n\n".join(mat)), 1.0)
 
 
+def laengenfenster(norm):
+    """Erlaubte Spanne in Zeichen. Siehe pruefung.go - dieselben Werte."""
+    n = len(norm)
+    return max(1, int(n * LAENGE_MIN) - LAENGE_TIEF), int(n * LAENGE_MAX) + LAENGE_LUFT
+
+
+def laengenbruch(norm, fakes):
+    """Alle vier Karten stehen nebeneinander: Eine, die dreimal so lang ist,
+    ist an der Laenge erkannt, bevor jemand ein Wort davon liest."""
+    lo, hi = laengenfenster(norm)
+    return [i for i, f in enumerate(fakes) if not (lo <= len(f) <= hi)]
+
+
 def abstandsfenster(echt, fakes):
     """Die zwei Prüfungen aus §3.3. Gibt Messwerte und die Indizes der Problemkarten zurück."""
     zu_echt = [aehnlichkeit(echt, f) for f in fakes]
@@ -521,10 +543,14 @@ def runde(profil, r, nr):
             print(GRAU("  Modell lieferte %d statt 3 Antworten, neuer Versuch" % len(fakes)))
             continue
         mess = abstandsfenster(norm, fakes)
-        if mess["naehe_ok"] and mess["streuung_ok"]:
+        lang = laengenbruch(norm, fakes)
+        if mess["naehe_ok"] and mess["streuung_ok"] and not lang:
             break
         print(GRAU("  Versuch %d verworfen: %s" % (
-            versuch, "Nähe" if not mess["naehe_ok"] else "Streuung")))
+            versuch,
+            "Nähe" if not mess["naehe_ok"]
+            else "Streuung" if not mess["streuung_ok"]
+            else "Länge %s" % lang)))
     if len(fakes) < 3:
         print(GRAU("  Modell lieferte nach %d Versuchen keine drei Antworten." % MAX_VERSUCHE))
     print()
@@ -535,6 +561,10 @@ def runde(profil, r, nr):
     print()
     richtungen = [a.get("richtung", "?") for a in out.get("antworten", [])][:3]
     print(GRAU("  Richtungen         ") + ", ".join(richtungen))
+    lo, hi = laengenfenster(norm)
+    print(GRAU("  Längen             ") + "%d | %s   (Fenster %d..%d)" % (
+        len(norm), ", ".join(str(len(f)) for f in fakes), lo, hi))
+    print(GRAU("  Verlangt           ") + (out.get("verlangt") or "—"))
     print(AMBER("  Fakt fürs Dossier  ") + out.get("fakt", "—"))
     print(CYAN("  Themensperre       ") + ", ".join(out.get("sperre", [])))
     print()
