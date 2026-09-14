@@ -202,6 +202,79 @@ und irgendwann meldet er einen Kontextüberlauf, obwohl der eigene Prompt klein
 geblieben ist. Das Spiel braucht keine Sitzung: Jeder Aufruf trägt sein
 gesamtes Material selbst.
 
+## Was ein Match kostet
+
+Bis zum 14.09.2026 war die Frage nicht beantwortbar: Der Klient las das
+`usage`-Objekt der Antwort gar nicht, und die Protokollzeile zählte Zeichen.
+Jetzt steht jeder Aufruf in der Tabelle `aufrufe` — Zweck, Runde, Eingabe- und
+Ausgabetoken, Denkspur, Cachetreffer, Zeichen, Sekunden. Einmal je Stunde
+schreibt der Worker eine Summe ins Protokoll:
+
+```
+kosten (1h): 14 aufrufe, 27.412 token ein (86% aus dem cache), 3.140 aus (0 denkspur)
+```
+
+Drei Messungen am 14.09.2026 an `opencode.ai/zen/go/v1` mit
+`deepseek-v4.1-flash` und dem echten Prompt haben den Preis erklärt:
+
+**1. Die Denkspur war der größte Posten.** Mit Denkspur 2.019 Ausgabetoken,
+davon rund 1.800 reines Nachdenken — ohne 227. Die Qualität war in sechs Fällen
+nicht schlechter: beide 6/6 im Abstandsfenster, beide 24/24 in der Form, Nähe
+0,06 gegen 0,07. Ausgabetoken sind die teure Seite, das Denken kostete also rund
+neunzig Prozent davon für nichts. **Deshalb ist `MIMIK_DENKEN` standardmäßig
+aus.** Ein Deckel auf die Ausgabe gilt nur ohne Denkspur — mit ihr schneidet er
+das Denken ab und es kommt gar kein Inhalt zurück, voll bezahlt und die Runde
+kaputt (auch das gemessen).
+
+**2. Der Prefix-Cache hängt an der Sitzung.** 6.435 der rund 8.900 Zeichen eines
+Kartenbau-Aufrufs sind derselbe Systemprompt. Mit frischer Sitzungskennung kam
+davon **nichts** aus dem Cache (0 von 1.953 Token), mit fester **87 Prozent**
+(1.664 von 1.920). Deshalb heißt die Marke in `MIMIK_HEADERS` jetzt
+`{sitzung}` und dreht sich erst alle `MIMIK_SITZUNG_AUFRUFE` Aufrufe.
+
+Der Grund für `{zufall}` — ein Anbieter, dessen Sitzungsverlauf mit jeder Runde
+wächst, bis der Kontext überläuft — trägt dabei nicht mehr: Fünf Aufrufe in
+einer Sitzung ließen `prompt_tokens` flach bei ~1.920. Die Sitzung ist hier
+allein ein Cacheschlüssel. Der Block ist die Vorsicht, falls sich das ändert,
+und der Server warnt, sobald die Eingabetoken über die Zeichenzahl steigen —
+mehr Token als Zeichen kann nur fremder Kontext sein.
+
+**3. Das Review lief je Runde.** Es hat die Aufrufe verdoppelt, als es am
+13.09. dazukam. Ein Aufruf wertet jetzt **drei Runden desselben Spielers
+zusammen** aus (`ReviewBuendelGroesse`): Von zwanzig Reviewaufrufen je Match
+bleiben etwa sieben. Weniger als drei Runden laufen erst nach
+`ReviewSchonfrist` (15 Minuten) — sonst blieben die letzten Runden eines
+Matches liegen. Der Preis steht in `ProfilVerrechnen`: Ein Bündel zählt als
+**ein** Beleg, das Profil festigt sich also langsamer. Das ist die richtige
+Richtung — ein Profil, das langsam sicher wird, ist besser als eines, das sich
+schnell in eine Annahme einspinnt.
+
+### Der Deckel, der gefehlt hat
+
+`OffeneRunden` kannte keinen Versuchszähler. Eine dauerhaft scheiternde Runde
+rief **alle 20 Sekunden** erneut an, bis zu dreimal je Takt, unbegrenzt, solange
+das Match offen stand: bis 540 Aufrufe je Stunde. Eine Nacht davon kostet mehr
+als hundert Matches.
+
+Die Tabelle `kartenbau` zählt jetzt mit und stellt zurück: 20 Sekunden, dann 40,
+dann 80, höchstens eine Stunde. **Kein harter Stopp** — der parkte die Runde für
+immer und blockierte das Match, und das ist für den Menschen davor schlimmer als
+eine schwache Karte.
+
+### Was nicht gedeckelt war
+
+`gesperrte_themen` wächst um ein bis drei Themen je Runde, hängt am Spieler und
+überlebt jedes Match — nach zehn Matches wären das rund 200 Themen in **jedem**
+Aufruf, und genau dieser Teil ist nicht cachebar. `ThemenFuerPrompt` nimmt jetzt
+die sechs jüngsten plus die fragennächsten, höchstens sechzehn. Nach Nähe, nicht
+nach Alter: Ein Thema über Rennräder ist bei „Was isst du zum Frühstück?"
+harmlos und kostet Tokens für nichts.
+
+Dabei fiel ein stiller Fehler auf: `GesperrteThemen` gab eine `map[string]bool`
+zurück, und Go durchläuft eine Map in zufälliger Reihenfolge. Der Block stand
+also bei jedem Aufruf anders im Prompt — das verrauscht jeden Vergleich zweier
+Prompts und verhindert, dass ein Cache je etwas davon tragen kann.
+
 ## Wie lange MIMIK braucht
 
 Gemessen gegen OpenCode Go am 12.09.2026: **15 s bis über 5 min je Aufruf**, mit

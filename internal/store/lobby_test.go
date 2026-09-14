@@ -1,8 +1,10 @@
 package store
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"mimik/internal/game"
 )
@@ -273,5 +275,91 @@ func TestLobbySagtWasAnsteht(t *testing.T) {
 	}
 	if !offenerCode {
 		t.Fatalf("die gegruendete partie fehlt oder hat keinen code: %+v", l)
+	}
+}
+
+// Der Kartenbau hatte keinen Versuchszaehler: Eine dauerhaft scheiternde Runde
+// rief alle 20 Sekunden erneut an, bis zu dreimal je Takt, unbegrenzt. Eine
+// Nacht davon kostet mehr als hundert Matches.
+func TestKartenbauWirdZurueckgestellt(t *testing.T) {
+	s := offen(t)
+	// kartenbau haengt an rounds und players - also erst die Eltern.
+	p := spieler(t, s, "Karten")
+	for _, q := range []string{
+		`INSERT INTO parties (id, code, code_bis, erstellt_am) VALUES ('pa1',NULL,NULL,'2026-01-01T00:00:00Z')`,
+		`INSERT INTO matches (id, party_id, erstellt_am) VALUES ('m1','pa1','2026-01-01T00:00:00Z')`,
+		`INSERT INTO rounds (id, match_id, nummer, frage, rubrik, geoeffnet_am)
+		 VALUES ('r1','m1',1,'Frage?','a','2026-01-01T00:00:00Z')`,
+	} {
+		if _, err := s.DB().Exec(q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if s.KartenbauWartet("r1", p.ID) {
+		t.Fatal("ohne versuch schon zurueckgestellt")
+	}
+	if err := s.KartenbauBeanspruchen("r1", p.ID); err != nil {
+		t.Fatal(err)
+	}
+	// Nach dem ersten Versuch gilt eine Wartezeit - sonst waere der Zaehler
+	// wirkungslos.
+	if !s.KartenbauWartet("r1", p.ID) {
+		t.Fatal("nach dem ersten versuch keine wartezeit")
+	}
+	var versuche int
+	s.DB().QueryRow(`SELECT versuche FROM kartenbau WHERE round_id='r1'`).Scan(&versuche)
+	if versuche != 1 {
+		t.Fatalf("%d versuche statt 1", versuche)
+	}
+	// Die Wartezeit verdoppelt sich und kommt nie ueber eine Stunde.
+	for i := 0; i < MaxKartenversuche+3; i++ {
+		s.KartenbauBeanspruchen("r1", p.ID)
+	}
+	var bis string
+	s.DB().QueryRow(`SELECT naechster_versuch_am FROM kartenbau WHERE round_id='r1'`).Scan(&bis)
+	tt, err := time.Parse(time.RFC3339, bis)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d := time.Until(tt); d > KartenbauMaxwarte+time.Minute {
+		t.Fatalf("wartezeit %s ueber der obergrenze", d)
+	}
+	// Und mit den Karten ist der Zaehler weg.
+	if err := s.KartenbauFertig("r1", p.ID); err != nil {
+		t.Fatal(err)
+	}
+	if s.KartenbauWartet("r1", p.ID) {
+		t.Fatal("der zaehler steht noch, obwohl die karten fertig sind")
+	}
+}
+
+// Verbrauchte Themen kommen juengste-zuerst und deterministisch - vorher war es
+// eine Map, und Go durchlaeuft die in zufaelliger Reihenfolge.
+func TestGesperrteThemenSindGeordnetUndGedeckelt(t *testing.T) {
+	s := offen(t)
+	p := spieler(t, s, "Themen")
+	for i := 0; i < 20; i++ {
+		if err := s.ThemenSperren(p.ID, "r1", []string{fmt.Sprintf("thema%02d", i)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	erste, err := s.GesperrteThemen(p.ID, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(erste) != 5 || erste[0] != "thema19" {
+		t.Fatalf("%v", erste)
+	}
+	for i := 0; i < 5; i++ {
+		wieder, _ := s.GesperrteThemen(p.ID, 5)
+		for j := range erste {
+			if wieder[j] != erste[j] {
+				t.Fatalf("reihenfolge wechselt: %v gegen %v", erste, wieder)
+			}
+		}
+	}
+	alle, _ := s.GesperrteThemen(p.ID, 0)
+	if len(alle) != 20 {
+		t.Fatalf("ohne grenze %d statt 20", len(alle))
 	}
 }

@@ -11,8 +11,12 @@ const (
 	MaxMerkmalName = 40
 	MaxMerkmalWert = 160
 	MaxBeleg       = 300
-	MaxMerkmale    = 12  // je Spieler
-	MaxJeReview    = 3   // je Runde
+	MaxMerkmale    = 12 // je Spieler
+	MaxJeReview    = 3  // je Runde
+	// MaxJeBuendel gilt fuer ein Sammelreview ueber mehrere Runden. Vier statt
+	// drei: Drei Runden auf einmal geben mehr her als eine, aber nicht dreimal
+	// so viel - was wirklich traegt, zeigt sich in wenigen Merkmalen.
+	MaxJeBuendel   = 4
 	ProfilSchwelle = 0.4 // ab hier geht ein Merkmal in den Faelschungsprompt
 	ProfilVerfall  = 0.15
 	ProfilKappe    = 0.9 // nie 1.0: Das hier ist eine Einschaetzung
@@ -110,12 +114,15 @@ func ProfilVerrechnen(alt []Merkmal, urteile []Urteil, rundeID string) []Aenderu
 	gesehen := map[string]bool{}
 
 	for _, u := range urteile {
-		if len(out) >= MaxJeReview {
+		if len(out) >= MaxJeBuendel {
 			break
 		}
 		k := MerkmalSchluessel(u.Merkmal)
-		// Zwei Urteile zum selben Merkmal in einer Runde sind ein Beleg, nicht
-		// zwei - sie stammen aus demselben Blick auf dasselbe Material.
+		// Zwei Urteile zum selben Merkmal aus EINEM Aufruf sind ein Beleg,
+		// nicht zwei - sie stammen aus demselben Blick auf dasselbe Material.
+		// Seit ein Aufruf drei Runden auf einmal auswertet, heisst das: Das
+		// Profil festigt sich langsamer. Gewollt: Ein Profil, das langsam
+		// sicher wird, ist besser als eines, das sich schnell einspinnt.
 		if k == "" || gesehen[k] {
 			continue
 		}
@@ -258,6 +265,57 @@ func ProfilZeilen(ms []Merkmal, abKonfidenz float64) []string {
 }
 
 func min(a, b float64) float64 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// ThemenFuerPrompt waehlt aus, welche verbrauchten Themen mitfahren.
+//
+// Warum nicht einfach die juengsten: Der Block wirkt allein ueber den Prompt -
+// Sperrbruch prueft nur die Sperre der LAUFENDEN Runde nach. Ein Thema, das zur
+// Frage nicht passt, kann auch nicht versehentlich wiederholt werden; es kostet
+// nur Tokens. Gewaehlt wird deshalb nach Naehe zur FRAGE, plus die juengsten
+// wenigen: Das zuletzt verbrauchte Thema ist das, das dem Modell am naechsten
+// liegt.
+//
+// Wofuer ueberhaupt ein Deckel: Ein bis drei Themen kommen je Runde dazu, und
+// das Dossier haengt am Spieler, nicht am Match. Nach zehn Matches waeren das
+// rund 200 Themen in JEDEM Aufruf - und der Teil ist nicht cachebar.
+func ThemenFuerPrompt(juengsteZuerst []string, frage string, n int) []string {
+	if len(juengsteZuerst) <= n {
+		return juengsteZuerst
+	}
+	const jung = 6
+	drin := map[string]bool{}
+	out := make([]string, 0, n)
+	nimm := func(t string) {
+		if t == "" || drin[t] || len(out) >= n {
+			return
+		}
+		drin[t] = true
+		out = append(out, t)
+	}
+	for i := 0; i < len(juengsteZuerst) && i < jung; i++ {
+		nimm(juengsteZuerst[i])
+	}
+	// Der Rest nach Naehe zur Frage. Bei Gleichstand gewinnt das juengere:
+	// sort.SliceStable auf einer Liste, die schon juengste-zuerst steht.
+	rest := make([]string, 0, len(juengsteZuerst))
+	for _, t := range juengsteZuerst[minInt(jung, len(juengsteZuerst)):] {
+		rest = append(rest, t)
+	}
+	sort.SliceStable(rest, func(i, j int) bool {
+		return SperrNaehe(rest[i], frage) > SperrNaehe(rest[j], frage)
+	})
+	for _, t := range rest {
+		nimm(t)
+	}
+	return out
+}
+
+func minInt(a, b int) int {
 	if a < b {
 		return a
 	}

@@ -50,6 +50,9 @@ type Ergebnis struct {
 	Faelschungen []game.Faelschung
 	Versuche     int
 	Befund       Befund
+	// Verbrauch aller Durchgaenge, einzeln. Wiederholungen stehen jede fuer
+	// sich darin - genau dort steckt das Geld, und eine Summe verwischte es.
+	Verbrauch []Verbrauch
 }
 
 type antwortB struct {
@@ -109,7 +112,7 @@ func (c *Client) BotAntwort(ctx context.Context, frage string, interessen, schon
 	if len(schonGesagt) > 0 {
 		b.WriteString("\n\n[schon gesagt]\n- " + strings.Join(schonGesagt, "\n- "))
 	}
-	inhalt, err := c.Chat(ctx, PromptBotAntwort, Huelle(b.String()), 1.0)
+	inhalt, _, err := c.Chat(mimikKennung(ctx, "botantwort"), PromptBotAntwort, Huelle(b.String()), 1.0)
 	if err != nil {
 		return "", err
 	}
@@ -139,8 +142,14 @@ const MaxVersuche = 3
 func (c *Client) Faelschungen(ctx context.Context, frage, roh string, d Dossier) (Ergebnis, error) {
 	var best Ergebnis
 	var letzterFehler error
+	// Der Verbrauch wird ueber alle Durchgaenge gesammelt, nicht je Durchgang
+	// zurueckgegeben: Ein verworfener Versuch ist bezahlt, und wer die Rechnung
+	// liest, will die Wiederholungen sehen.
+	var gesamt []Verbrauch
 	for versuch := 1; versuch <= MaxVersuche; versuch++ {
 		erg, err := c.einDurchgang(ctx, frage, roh, d)
+		gesamt = append(gesamt, erg.Verbrauch...)
+		erg.Verbrauch = nil
 		if err != nil {
 			letzterFehler = err
 			continue
@@ -162,6 +171,7 @@ func (c *Client) Faelschungen(ctx context.Context, frage, roh string, d Dossier)
 		bruch := Sperrbruch(texte, erg.Sperre)
 		form := FormPruefen(erg.Normalform, texte)
 		if erg.Befund.OK() && len(bruch) == 0 && form.OK() {
+			erg.Verbrauch = gesamt
 			return erg, nil
 		}
 		switch {
@@ -179,9 +189,11 @@ func (c *Client) Faelschungen(ctx context.Context, frage, roh string, d Dossier)
 		}
 	}
 	if best.Fakt != "" {
+		best.Verbrauch = gesamt
 		return best, nil // notgedrungen, aber spielbar
 	}
-	return Ergebnis{}, fmt.Errorf("keine brauchbaren fälschungen: %w", letzterFehler)
+	return Ergebnis{Verbrauch: gesamt},
+		fmt.Errorf("keine brauchbaren fälschungen: %w", letzterFehler)
 }
 
 func (c *Client) einDurchgang(ctx context.Context, frage, roh string, d Dossier) (Ergebnis, error) {
@@ -203,16 +215,20 @@ func (c *Client) einDurchgang(ctx context.Context, frage, roh string, d Dossier)
 		b.WriteString("\n\n[anti-beispiele]\n- " + strings.Join(d.AntiBeispiele, "\n- "))
 	}
 
-	inhalt, err := c.Chat(ctx, PromptFaelschungen, Huelle(b.String()), 1.0)
+	inhalt, verbrauch, err := c.Chat(mimikKennung(ctx, "faelschungen"), PromptFaelschungen, Huelle(b.String()), 1.0)
+	// Der Verbrauch reist auch bei Fehlern mit: Ein Aufruf, der nichts
+	// Brauchbares liefert, ist trotzdem bezahlt - und genau der soll sichtbar
+	// sein.
 	if err != nil {
-		return Ergebnis{}, err
+		return Ergebnis{Verbrauch: []Verbrauch{verbrauch}}, err
 	}
 	var a antwortB
 	if err := LiesJSON(inhalt, &a); err != nil {
-		return Ergebnis{}, err
+		return Ergebnis{Verbrauch: []Verbrauch{verbrauch}}, err
 	}
 	if len(a.Antworten) < 3 {
-		return Ergebnis{}, fmt.Errorf("nur %d statt 3 antworten", len(a.Antworten))
+		return Ergebnis{Verbrauch: []Verbrauch{verbrauch}},
+			fmt.Errorf("nur %d statt 3 antworten", len(a.Antworten))
 	}
 	// Einziger Ort, an dem Modellausgabe das Programm betritt – hier wird sie
 	// geputzt, danach fasst sie niemand mehr an.
@@ -228,7 +244,11 @@ func (c *Client) einDurchgang(ctx context.Context, frage, roh string, d Dossier)
 	// Das ist billiger als ein neuer Aufruf und behebt genau die Mängel, die
 	// eine Regel beheben KANN. Was sie nicht kann - Substantive mitten im Satz -
 	// hat das Modell schon erledigt.
-	erg := Ergebnis{Normalform: ErsatzNormalform(norm), Fakt: sicher.Text(a.Fakt, MaxFakt)}
+	erg := Ergebnis{
+		Normalform: ErsatzNormalform(norm),
+		Fakt:       sicher.Text(a.Fakt, MaxFakt),
+		Verbrauch:  []Verbrauch{verbrauch},
+	}
 	for _, t := range a.Sperre {
 		if t = sicher.Text(t, MaxThema); t != "" {
 			erg.Sperre = append(erg.Sperre, t)
@@ -237,7 +257,8 @@ func (c *Client) einDurchgang(ctx context.Context, frage, roh string, d Dossier)
 	for i := 0; i < 3; i++ {
 		t := sicher.Text(a.Antworten[i].Text, MaxKarte)
 		if t == "" {
-			return Ergebnis{}, fmt.Errorf("leere fälschung an stelle %d", i+1)
+			return Ergebnis{Verbrauch: []Verbrauch{verbrauch}},
+				fmt.Errorf("leere fälschung an stelle %d", i+1)
 		}
 		t = ErsatzNormalform(t)
 		erg.Faelschungen = append(erg.Faelschungen, game.Faelschung{
@@ -248,18 +269,38 @@ func (c *Client) einDurchgang(ctx context.Context, frage, roh string, d Dossier)
 	return erg, nil
 }
 
+// mimikKennung haengt den Zweck an den Kontext, damit die Rechnung eines
+// Aufrufs sagen kann, wofuer er war.
+func mimikKennung(ctx context.Context, zweck string) context.Context {
+	alt := kennung(ctx)
+	return MitKennung(ctx, zweck, alt.RundeID)
+}
+
 // ---------------------------------------------------------------- Review ---
 
-// Reviewmaterial ist, was ein Review ueber EINEN Spieler zu sehen bekommt.
+// Reviewrunde ist eine gespielte Runde, wie das Review sie zu sehen bekommt.
 // Die Antwort des Partners steht bewusst nicht darin: Das Profil, das dieser
 // Spieler spaeter selbst lesen kann, darf nichts ueber den anderen enthalten.
-type Reviewmaterial struct {
+type Reviewrunde struct {
+	RundeID  string
 	Frage    string
 	Antwort  string // Normalform des Spielers
 	Karten   []game.Karte
 	Gewaehlt int // Position, auf die das Gegenueber getippt hat
 	Richtig  bool
-	Profil   []Merkmal
+}
+
+// Reviewmaterial ist ein Buendel: MEHRERE Runden desselben Spielers in einem
+// Aufruf.
+//
+// Vorher lief ein Aufruf je Runde, und der Systemprompt von 3.385 Zeichen ging
+// jedes Mal mit. Drei Runden zusammen kosten einen Systemprompt statt drei -
+// und das Modell sieht mehr Belege auf einmal, was der Sache eher hilft als
+// schadet. Der Preis steht in ProfilVerrechnen: Ein Buendel zaehlt als EIN
+// Beleg, das Profil festigt sich also langsamer. Das ist die richtige Richtung.
+type Reviewmaterial struct {
+	Runden []Reviewrunde
+	Profil []Merkmal
 }
 
 // Reviewergebnis ist, was das Modell zurueckgibt.
@@ -269,38 +310,47 @@ type Reviewergebnis struct {
 	Urteile   []Urteil `json:"merkmale"`
 }
 
-// Review wertet eine gespielte Runde aus.
-func (c *Client) Review(ctx context.Context, m Reviewmaterial) (Reviewergebnis, error) {
-	var b strings.Builder
-	fmt.Fprintf(&b, "[frage]\n%s", m.Frage)
-	b.WriteString("\n\n[echte_antwort]\n" + m.Antwort)
-	b.WriteString("\n\n[karten]")
-	for _, k := range m.Karten {
-		marke := ""
-		// Die Marken stehen an der Karte und nicht in einem eigenen Feld: Ein
-		// Modell, das die Zuordnung aus zwei getrennten Listen rekonstruieren
-		// muss, dreht sie gelegentlich um.
-		if k.IstEcht {
-			marke += " (echt)"
-		}
-		if k.Pos == m.Gewaehlt {
-			marke += " (gewählt)"
-		}
-		fmt.Fprintf(&b, "\n%d %s%s", k.Pos, k.Text, marke)
+// Review wertet ein Buendel gespielter Runden aus.
+func (c *Client) Review(ctx context.Context, m Reviewmaterial) (Reviewergebnis, Verbrauch, error) {
+	if len(m.Runden) == 0 {
+		return Reviewergebnis{}, Verbrauch{}, fmt.Errorf("review ohne runden")
 	}
-	fmt.Fprintf(&b, "\n\n[ergebnis]\nDas Gegenüber hat auf %d getippt und lag %s.",
-		m.Gewaehlt, map[bool]string{true: "richtig", false: "falsch"}[m.Richtig])
+	var b strings.Builder
+	for i, r := range m.Runden {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		fmt.Fprintf(&b, "\n[runde %d · frage]\n%s", i+1, r.Frage)
+		fmt.Fprintf(&b, "\n\n[runde %d · echte_antwort]\n%s", i+1, r.Antwort)
+		fmt.Fprintf(&b, "\n\n[runde %d · karten]", i+1)
+		for _, k := range r.Karten {
+			marke := ""
+			// Die Marken stehen an der Karte und nicht in einem eigenen Feld:
+			// Ein Modell, das die Zuordnung aus zwei getrennten Listen
+			// rekonstruieren muss, dreht sie gelegentlich um.
+			if k.IstEcht {
+				marke += " (echt)"
+			}
+			if k.Pos == r.Gewaehlt {
+				marke += " (gewählt)"
+			}
+			fmt.Fprintf(&b, "\n%d %s%s", k.Pos, k.Text, marke)
+		}
+		fmt.Fprintf(&b, "\n\n[runde %d · ergebnis]\nDas Gegenüber hat auf %d getippt und lag %s.",
+			i+1, r.Gewaehlt, map[bool]string{true: "richtig", false: "falsch"}[r.Richtig])
+	}
 	if zeilen := ProfilZeilen(m.Profil, 0); len(zeilen) > 0 {
 		b.WriteString("\n\n[profil]\n- " + strings.Join(zeilen, "\n- "))
 	}
 
-	inhalt, err := c.Chat(ctx, PromptReview, Huelle(b.String()), 0.4)
+	inhalt, verbrauch, err := c.Chat(
+		mimikKennung(ctx, "review"), PromptReview, Huelle(strings.TrimSpace(b.String())), 0.4)
 	if err != nil {
-		return Reviewergebnis{}, err
+		return Reviewergebnis{}, verbrauch, err
 	}
 	var erg Reviewergebnis
 	if err := LiesJSON(inhalt, &erg); err != nil {
-		return Reviewergebnis{}, err
+		return Reviewergebnis{}, verbrauch, err
 	}
 	erg.Gewaehlt = sicher.Text(erg.Gewaehlt, MaxBeleg)
 	erg.Verworfen = sicher.Text(erg.Verworfen, MaxBeleg)
@@ -321,10 +371,10 @@ func (c *Client) Review(ctx context.Context, m Reviewmaterial) (Reviewergebnis, 
 			continue
 		}
 		sauber = append(sauber, u)
-		if len(sauber) >= MaxJeReview {
+		if len(sauber) >= MaxJeBuendel {
 			break
 		}
 	}
 	erg.Urteile = sauber
-	return erg, nil
+	return erg, verbrauch, nil
 }

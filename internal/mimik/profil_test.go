@@ -139,3 +139,45 @@ func TestProfilZeilen(t *testing.T) {
 		t.Fatalf("zeile %q", got)
 	}
 }
+
+// Der Themenblock wird nach Naehe zur FRAGE gewaehlt, nicht nach Alter allein:
+// Ein Thema, das zur Frage nicht passt, kann auch nicht versehentlich
+// wiederholt werden - es kostet nur Tokens.
+func TestThemenFuerPromptWaehltNachNaehe(t *testing.T) {
+	// Sechs junge, dann alte. Unter den alten liegt eines, das zur Frage passt.
+	jung := []string{"a1", "a2", "a3", "a4", "a5", "a6"}
+	alt := []string{"rennrad", "zahnarzt", "frühstück müsli", "steuererklärung"}
+	aus := ThemenFuerPrompt(append(jung, alt...), "Was isst du zum Frühstück?", 8)
+	if len(aus) != 8 {
+		t.Fatalf("%d themen statt 8: %v", len(aus), aus)
+	}
+	for i, x := range jung {
+		if aus[i] != x {
+			t.Fatalf("die sechs juengsten fehlen oder stehen falsch: %v", aus)
+		}
+	}
+	if !contains(aus, "frühstück müsli") {
+		t.Fatalf("das fragennahe thema fehlt: %v", aus)
+	}
+}
+
+// Unter dem Deckel bleibt alles, wie es ist - und in der Reihenfolge, in der es
+// kam. Deterministisch, weil ein wechselnder Prompt jeden Vergleich verrauscht.
+func TestThemenFuerPromptUnterDeckel(t *testing.T) {
+	ein := []string{"eins", "zwei", "drei"}
+	for i := 0; i < 5; i++ {
+		aus := ThemenFuerPrompt(ein, "irgendeine Frage?", 16)
+		if len(aus) != 3 || aus[0] != "eins" || aus[2] != "drei" {
+			t.Fatalf("durchlauf %d: %v", i, aus)
+		}
+	}
+}
+
+func contains(xs []string, x string) bool {
+	for _, y := range xs {
+		if y == x {
+			return true
+		}
+	}
+	return false
+}

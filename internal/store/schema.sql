@@ -229,3 +229,41 @@ CREATE INDEX IF NOT EXISTS idx_matches_party  ON matches(party_id);
 CREATE INDEX IF NOT EXISTS idx_answers_player ON answers(player_id);
 CREATE INDEX IF NOT EXISTS idx_profil_player  ON profil_merkmale(player_id);
 CREATE INDEX IF NOT EXISTS idx_verlauf_player ON profil_verlauf(player_id, merkmal);
+
+-- ---------------------------------------------------------------- Kosten ---
+
+-- Ein Eintrag je Modellaufruf. Ohne diese Tabelle laesst sich nicht sagen, was
+-- ein Match kostet: Die Protokollzeile zaehlt mit, aber ein Protokoll ist weg,
+-- sobald der Container neu startet.
+--
+-- Bewusst OHNE Fremdschluessel auf rounds oder matches: Der Eintrag soll ein
+-- geloeschtes Match ueberleben, sonst verschwindet die Rechnung mit dem, was
+-- sie gekostet hat. Es stehen nur Kennungen und Zahlen darin, kein Spielertext
+-- - deshalb nimmt AllesLoeschen die Tabelle auch nicht mit.
+CREATE TABLE IF NOT EXISTS aufrufe (
+  id            INTEGER PRIMARY KEY,
+  round_id      TEXT NOT NULL DEFAULT '',
+  zweck         TEXT NOT NULL,
+  eingabe       INTEGER NOT NULL DEFAULT 0,
+  ausgabe       INTEGER NOT NULL DEFAULT 0,
+  denkspur      INTEGER NOT NULL DEFAULT 0,
+  cache_treffer INTEGER NOT NULL DEFAULT 0,
+  zeichen       INTEGER NOT NULL DEFAULT 0,
+  sekunden      REAL NOT NULL DEFAULT 0,
+  erstellt_am   TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_aufrufe_runde ON aufrufe(round_id);
+
+-- Zwillingstabelle zu reviews, gleicher Zweck fuer den Kartenbau: Ohne Zaehler
+-- ruft eine dauerhaft scheiternde Runde alle 20 Sekunden erneut an - bis zu
+-- dreimal je Takt, unbegrenzt, solange das Match offen steht. Eine Nacht davon
+-- kostet mehr als hundert Matches.
+CREATE TABLE IF NOT EXISTS kartenbau (
+  round_id             TEXT NOT NULL REFERENCES rounds(id),
+  ueber                TEXT NOT NULL REFERENCES players(id),
+  versuche             INTEGER NOT NULL DEFAULT 0,
+  naechster_versuch_am TEXT NOT NULL DEFAULT '',
+  fehler               TEXT NOT NULL DEFAULT '',
+  erstellt_am          TEXT NOT NULL,
+  PRIMARY KEY (round_id, ueber)
+);

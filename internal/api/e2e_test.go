@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"mimik/internal/game"
 	"mimik/internal/mimik"
@@ -56,7 +57,7 @@ func stubModell(t *testing.T) *httptest.Server {
 		// Das Material darueber wird hier gleich mitgeprueft: Es darf NICHTS
 		// vom Partner enthalten - das Profil, das ein Mensch selbst lesen kann,
 		// waere sonst ein Fenster in die Antworten des anderen.
-		if strings.Contains(system, "Eine Runde ist vorbei.") {
+		if strings.Contains(system, "Runden sind vorbei.") {
 			// Jede Seite hat ihr eigenes Review. Im Material darf immer nur
 			// EINE der beiden echten Antworten stehen - stuenden beide darin,
 			// waere das Profil, das ein Mensch selbst lesen kann, ein Fenster
@@ -1066,6 +1067,10 @@ func TestReviewBautProfil(t *testing.T) {
 	a.ruf("POST", "/v1/rounds/"+rid+"/guess", map[string]int{"pos": 1}, nil)
 	b.ruf("POST", "/v1/rounds/"+rid+"/guess", map[string]int{"pos": 1}, nil)
 
+	// Ein Buendel wartet normalerweise auf drei Runden. Fuer diesen Test zaehlt
+	// die einzelne, also die Schonfrist auf null.
+	store.ReviewSchonfrist = 0
+	t.Cleanup(func() { store.ReviewSchonfrist = 15 * time.Minute })
 	w.Reviews(ctx)
 
 	var d struct {
@@ -1149,4 +1154,86 @@ func TestFrischePartieTraegtIhreID(t *testing.T) {
 	if st.PartyID != neu.PartyID {
 		t.Fatalf("altpfad ohne party_id: %q", st.PartyID)
 	}
+}
+
+// TestReviewBuendeltDreiRunden: Der Systemprompt des Reviews ist 3.385 Zeichen
+// und ging vorher je Runde einmal hinaus. Drei Runden zusammen kosten EINEN
+// Aufruf - das ist der Sparhebel, und dieser Test haelt ihn fest.
+func TestReviewBuendeltDreiRunden(t *testing.T) {
+	srv, s, w := aufbauen(t)
+	ctx := context.Background()
+
+	a := &klient{t: t, basis: srv.URL}
+	b := &klient{t: t, basis: srv.URL}
+	for i, k := range []*klient{a, b} {
+		var out struct {
+			Token string `json:"token"`
+		}
+		k.ruf("POST", "/v1/devices", map[string]string{
+			"spitzname": fmt.Sprintf("Buendel%d", i)}, &out)
+		k.token = out.Token
+		k.ruf("PUT", "/v1/tags", map[string]any{"tags": zehnTags()}, nil)
+	}
+	var neu struct {
+		Code string `json:"code"`
+	}
+	a.ruf("POST", "/v1/parties", nil, &neu)
+	b.ruf("POST", "/v1/parties/join", map[string]string{"code": neu.Code}, nil)
+	a.ruf("POST", "/v1/matches", nil, nil)
+
+	// Drei Runden bis zur Auflösung spielen.
+	for i := 0; i < 3; i++ {
+		var st struct {
+			Runden []RundeAus `json:"runden"`
+		}
+		a.ruf("GET", "/v1/state", nil, &st)
+		var rid string
+		for _, r := range st.Runden {
+			if r.Zustand != game.Aufgeloest {
+				rid = r.ID
+				break
+			}
+		}
+		if rid == "" {
+			t.Fatalf("runde %d: keine offene runde", i+1)
+		}
+		a.ruf("POST", "/v1/rounds/"+rid+"/answer",
+			map[string]string{"original": fmt.Sprintf("antwort a in runde %d", i+1)}, nil)
+		b.ruf("POST", "/v1/rounds/"+rid+"/answer",
+			map[string]string{"original": fmt.Sprintf("antwort b in runde %d", i+1)}, nil)
+		w.durchgang(ctx)
+		a.ruf("POST", "/v1/rounds/"+rid+"/guess", map[string]int{"pos": 1}, nil)
+		b.ruf("POST", "/v1/rounds/"+rid+"/guess", map[string]int{"pos": 2}, nil)
+	}
+
+	// Sechs offene Reviews: drei Runden mal zwei Spieler. Vorher waren das
+	// sechs Modellaufrufe, jetzt zwei - einer je Spieler.
+	vorher := reviewaufrufe(t, s)
+	w.Reviews(ctx)
+	if got := reviewaufrufe(t, s) - vorher; got != 2 {
+		t.Fatalf("%d reviewaufrufe fuer sechs runden statt 2", got)
+	}
+	var fertig int
+	s.DB().QueryRow(`SELECT COUNT(*) FROM reviews WHERE fertig = 1`).Scan(&fertig)
+	if fertig != 6 {
+		t.Fatalf("%d runden als fertig vermerkt statt 6", fertig)
+	}
+	// Und jedes Buendel gehoerte genau einem Spieler: Zwei zu mischen heisst,
+	// ein Merkmal dem falschen Menschen zuzuschreiben.
+	var gemischt int
+	s.DB().QueryRow(`SELECT COUNT(*) FROM profil_verlauf`).Scan(&gemischt)
+	if gemischt == 0 {
+		t.Fatal("kein verlaufseintrag - das buendel hat nichts gelernt")
+	}
+}
+
+// reviewaufrufe zaehlt, was die Buchhaltung ueber Reviews sagt. Nebenbei der
+// Nachweis, dass die Tabelle ueberhaupt gefuellt wird.
+func reviewaufrufe(t *testing.T, s *store.Store) int {
+	t.Helper()
+	var n int
+	if err := s.DB().QueryRow(`SELECT COUNT(*) FROM aufrufe WHERE zweck = 'review'`).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	return n
 }

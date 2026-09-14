@@ -180,6 +180,11 @@ func (w *Worker) rundeBearbeiten(ctx context.Context, rid string) {
 			continue
 		}
 		if len(rd.Karten[ueber]) != 4 {
+			// Zurueckgestellt heisst zurueckgestellt. Ohne diese Zeile ruft
+			// eine dauerhaft scheiternde Runde alle 20 Sekunden erneut an.
+			if w.S.KartenbauWartet(rid, string(ueber)) {
+				continue
+			}
 			offen = append(offen, ueber)
 		}
 	}
@@ -227,6 +232,9 @@ func (w *Worker) kartenBauen(ctx context.Context, rid string, pa game.Party, ueb
 	if err != nil {
 		return err
 	}
+	if err := w.S.KartenbauBeanspruchen(rid, string(ueber)); err != nil {
+		return err
+	}
 	// Das Modell bekommt den rohen Text: Es soll den Stil sehen, bevor es ihn
 	// nachmacht. Die saubere Fassung schreibt es selbst und liefert sie zurück.
 	roh := rd.Antworten[ueber].Original
@@ -234,7 +242,9 @@ func (w *Worker) kartenBauen(ctx context.Context, rid string, pa game.Party, ueb
 	if err != nil {
 		return err
 	}
-	gesperrt, err := w.S.GesperrteThemen(string(ueber))
+	// Grosszuegig laden, dann auswaehlen: Welche mitfahren, entscheidet
+	// ThemenFuerPrompt nach Naehe zur Frage.
+	gesperrt, err := w.S.GesperrteThemen(string(ueber), 120)
 	if err != nil {
 		return err
 	}
@@ -249,13 +259,11 @@ func (w *Worker) kartenBauen(ctx context.Context, rid string, pa game.Party, ueb
 	// Muenzwurf zu bauen.
 	merkmale, _ := w.S.ProfilFuerModell(string(ueber))
 	profil := mimik.ProfilZeilen(merkmale, mimik.ProfilSchwelle)
-	verbraucht := make([]string, 0, len(gesperrt))
-	for t := range gesperrt {
-		verbraucht = append(verbraucht, t)
-	}
+	verbraucht := mimik.ThemenFuerPrompt(gesperrt, rd.Frage, MaxThemenImPrompt)
 
 	ctx, abbruch := context.WithTimeout(ctx, 4*time.Minute)
 	defer abbruch()
+	ctx = mimik.MitKennung(ctx, "faelschungen", rid)
 	erg, err := w.M.Faelschungen(ctx, rd.Frage, roh, mimik.Dossier{
 		Interessen: tags,
 		Fakten:     fakten,
@@ -266,7 +274,11 @@ func (w *Worker) kartenBauen(ctx context.Context, rid string, pa game.Party, ueb
 			"Am Ende zählt doch, dass man glücklich ist.",
 		},
 	})
+	// Gebucht wird IMMER, auch wenn der Aufruf nichts Brauchbares lieferte:
+	// bezahlt ist er trotzdem, und genau diese Aufrufe will man sehen.
+	w.S.AufrufeBuchen(erg.Verbrauch)
 	if err != nil {
+		w.S.KartenbauGescheitert(rid, string(ueber), err.Error())
 		return err
 	}
 
@@ -296,18 +308,27 @@ func (w *Worker) kartenBauen(ctx context.Context, rid string, pa game.Party, ueb
 	for _, f := range erg.Faelschungen {
 		richtungen = append(richtungen, f.Richtung)
 	}
-	log.Printf("worker: %s über %s fertig (versuche=%d, abstand=%.2f, richtungen=%v)",
-		rd.ID[:8], ueber, erg.Versuche, erg.Befund.MaxZuEcht, richtungen)
-	return nil
+	// Streuung und Grund gehoeren mit ins Protokoll: Steigt die Zahl der
+	// Versuche oder sinkt die Streuung, war eine Aenderung am Prompt schlecht -
+	// und ohne diese Zahlen merkt es niemand.
+	log.Printf("worker: %s über %s fertig (versuche=%d, abstand=%.2f, streuung=%.2f, richtungen=%v)",
+		rd.ID[:8], ueber, erg.Versuche, erg.Befund.MaxZuEcht,
+		erg.Befund.MittelPeers-erg.Befund.MaxZuEcht, richtungen)
+	return w.S.KartenbauFertig(rid, string(ueber))
 }
 
 // ----------------------------------------------------------------- Lernen ---
 
-// GleichzeitigeReviews ist absichtlich 1: Zwei Reviews ueber DENSELBEN Spieler
+// MaxThemenImPrompt deckelt den Block der verbrauchten Themen.
+const MaxThemenImPrompt = 16
+
+// BuendelJeTakt deckelt, wie viele Buendel ein Takt abarbeitet.
+const BuendelJeTakt = 3
+
+// Nacheinander, nicht nebenlaeufig: Zwei Reviews ueber DENSELBEN Spieler
 // wuerden sonst gleichzeitig dasselbe Merkmal verrechnen, und ein Beleg zaehlte
 // doppelt. Nebenlaeufigkeit spart hier ohnehin nichts - auf ein Review wartet
 // niemand.
-const ReviewsJeTakt = 4
 
 // LernenLaufen wertet aufgeloeste Runden aus.
 //
@@ -318,55 +339,109 @@ const ReviewsJeTakt = 4
 func (w *Worker) LernenLaufen(ctx context.Context) {
 	takt := time.NewTicker(60 * time.Second)
 	defer takt.Stop()
+	kosten := time.NewTicker(time.Hour)
+	defer kosten.Stop()
 	for {
 		w.Reviews(ctx)
 		select {
 		case <-ctx.Done():
 			return
+		case <-kosten.C:
+			w.kostenzeile()
 		case <-takt.C:
 		}
 	}
 }
 
-// Reviews arbeitet einen Schwung ab. Oeffentlich, damit ein Test ihn direkt
-// anstossen kann, statt auf den Takt zu warten.
-func (w *Worker) Reviews(ctx context.Context) {
-	auftraege, err := w.S.OffeneReviews(ReviewsJeTakt)
-	if err != nil {
-		log.Printf("worker: offene reviews: %v", err)
+// kostenzeile schreibt einmal je Stunde die Rechnung ins Protokoll.
+//
+// Wofuer: Die Tabelle "aufrufe" hat alles, aber im Container liegt kein
+// sqlite3, und wer die Rechnung nur nach dem Monatsende sieht, sieht sie zu
+// spaet. Eine Zeile je Stunde genuegt, um zu merken, dass etwas aus dem Ruder
+// laeuft - und die Cachequote sagt, ob der Prefix-Cache noch traegt.
+func (w *Worker) kostenzeile() {
+	k, err := w.S.Kosten(time.Now().Add(-time.Hour))
+	if err != nil || k.Aufrufe == 0 {
 		return
 	}
-	for _, a := range auftraege {
-		if err := w.review(ctx, a); err != nil {
-			log.Printf("worker: review %s: %v", kurz(a.RundeID), err)
-			w.S.ReviewGescheitert(a.RundeID, a.Ueber, err.Error())
+	log.Printf("kosten (1h): %d aufrufe, %d token ein (%.0f%% aus dem cache), %d aus (%d denkspur)",
+		k.Aufrufe, k.Eingabe, k.Cachequote*100, k.Ausgabe, k.Denkspur)
+}
+
+// Reviews arbeitet ein Buendel ab. Oeffentlich, damit ein Test es direkt
+// anstossen kann, statt auf den Takt zu warten.
+func (w *Worker) Reviews(ctx context.Context) {
+	// Mehrere Buendel je Takt, aber gedeckelt: Bei zwei Spielern haette ein
+	// einziges Buendel je Takt den zweiten eine Minute warten lassen - und der
+	// Deckel ist die Rechnung, die daran haengt.
+	for i := 0; i < BuendelJeTakt; i++ {
+		buendel, err := w.S.ReviewBuendel()
+		if err != nil {
+			log.Printf("worker: offene reviews: %v", err)
+			return
+		}
+		if len(buendel) == 0 {
+			return
+		}
+		if err := w.review(ctx, buendel); err != nil {
+			log.Printf("worker: review %s (+%d): %v",
+				kurz(buendel[0].RundeID), len(buendel)-1, err)
+			for _, a := range buendel {
+				w.S.ReviewGescheitert(a.RundeID, a.Ueber, err.Error())
+			}
+			return
 		}
 	}
 }
 
-func (w *Worker) review(ctx context.Context, a store.Reviewauftrag) error {
-	darf, err := w.S.ReviewBeanspruchen(a.RundeID, a.Ueber)
-	if err != nil {
-		return err
+// review wertet mehrere Runden EINES Spielers in einem Aufruf aus.
+func (w *Worker) review(ctx context.Context, buendel []store.Reviewauftrag) error {
+	ueberID := buendel[0].Ueber
+	ueber := game.PlayerID(ueberID)
+
+	var runden []mimik.Reviewrunde
+	var genommen []store.Reviewauftrag
+	for _, a := range buendel {
+		if a.Ueber != ueberID {
+			// Ein Buendel gehoert einem Spieler. Zwei zu mischen heisst,
+			// Merkmale dem falschen Menschen zuzuschreiben - und ein falsch
+			// zugeordnetes Merkmal verdirbt zwei Profile auf einmal.
+			continue
+		}
+		darf, err := w.S.ReviewBeanspruchen(a.RundeID, a.Ueber)
+		if err != nil {
+			return err
+		}
+		if !darf {
+			continue
+		}
+		pa, _, err := w.S.PartyVonRunde(a.RundeID)
+		if err != nil {
+			return err
+		}
+		rd, err := w.S.Runde(a.RundeID)
+		if err != nil {
+			return err
+		}
+		tipp, ok := rd.Tipps[pa.Gegner(ueber)]
+		if !ok {
+			continue
+		}
+		runden = append(runden, mimik.Reviewrunde{
+			RundeID:  a.RundeID,
+			Frage:    rd.Frage,
+			Antwort:  rd.Antworten[ueber].Normalform,
+			Karten:   rd.Karten[ueber],
+			Gewaehlt: tipp.Gewaehlt,
+			Richtig:  tipp.Richtig,
+		})
+		genommen = append(genommen, a)
 	}
-	if !darf {
+	if len(runden) == 0 {
 		return nil
 	}
-	pa, _, err := w.S.PartyVonRunde(a.RundeID)
-	if err != nil {
-		return err
-	}
-	rd, err := w.S.Runde(a.RundeID)
-	if err != nil {
-		return err
-	}
-	ueber := game.PlayerID(a.Ueber)
-	gegner := pa.Gegner(ueber)
-	tipp, ok := rd.Tipps[gegner]
-	if !ok {
-		return nil
-	}
-	merkmale, err := w.S.ProfilFuerModell(a.Ueber)
+
+	merkmale, err := w.S.ProfilFuerModell(ueberID)
 	if err != nil {
 		return err
 	}
@@ -375,19 +450,20 @@ func (w *Worker) review(ctx context.Context, a store.Reviewauftrag) error {
 	// kleiner, und ein haengendes Review kostet nur Rechenzeit.
 	ctx, abbruch := context.WithTimeout(ctx, 3*time.Minute)
 	defer abbruch()
-	erg, err := w.M.Review(ctx, mimik.Reviewmaterial{
-		Frage:    rd.Frage,
-		Antwort:  rd.Antworten[ueber].Normalform,
-		Karten:   rd.Karten[ueber],
-		Gewaehlt: tipp.Gewaehlt,
-		Richtig:  tipp.Richtig,
-		Profil:   merkmale,
+	ctx = mimik.MitKennung(ctx, "review", runden[0].RundeID)
+	erg, verbrauch, err := w.M.Review(ctx, mimik.Reviewmaterial{
+		Runden: runden,
+		Profil: merkmale,
 	})
+	w.S.AufrufBuchen(verbrauch)
 	if err != nil {
 		return err
 	}
-	aend := mimik.ProfilVerrechnen(merkmale, erg.Urteile, a.RundeID)
-	if err := w.S.ProfilAnwenden(a.Ueber, a.RundeID, aend); err != nil {
+	// Der Verlauf haengt an der juengsten Runde des Buendels - sie ist die, aus
+	// der die Beobachtung am ehesten stammt.
+	juengste := runden[len(runden)-1].RundeID
+	aend := mimik.ProfilVerrechnen(merkmale, erg.Urteile, juengste)
+	if err := w.S.ProfilAnwenden(ueberID, juengste, aend); err != nil {
 		return err
 	}
 	// Nur die Schluessel ins Protokoll, nie die Werte: Das Betriebsprotokoll
@@ -396,8 +472,13 @@ func (w *Worker) review(ctx context.Context, a store.Reviewauftrag) error {
 	for _, x := range aend {
 		namen = append(namen, x.Merkmal.Merkmal+"/"+x.Urteil)
 	}
-	log.Printf("worker: review %s über %s: %v", kurz(a.RundeID), kurz(a.Ueber), namen)
-	return w.S.ReviewFertig(a.RundeID, a.Ueber)
+	log.Printf("worker: review über %s, %d runden: %v", kurz(ueberID), len(runden), namen)
+	for _, a := range genommen {
+		if err := w.S.ReviewFertig(a.RundeID, a.Ueber); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func kurz(x string) string {

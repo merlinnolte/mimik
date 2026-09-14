@@ -647,19 +647,35 @@ func (s *Store) ThemenSperren(pid, roundID string, themen []string) error {
 	return nil
 }
 
-func (s *Store) GesperrteThemen(pid string) (map[string]bool, error) {
-	rows, err := s.db.Query(`SELECT thema FROM gesperrte_themen WHERE player_id = ?`, pid)
+// GesperrteThemen liefert die verbrauchten Themen, die juengsten zuerst.
+//
+// Vorher gab das eine map[string]bool zurueck, und der Worker baute daraus per
+// "for t := range" eine Liste. Das war ein stiller Fehler: Go durchlaeuft eine
+// Map in zufaelliger Reihenfolge, also stand der Block bei jedem Aufruf anders
+// im Prompt. Das verrauscht jeden Vergleich zweier Prompts - und es verhindert,
+// dass ein Prefix-Cache je etwas davon tragen kann.
+//
+// grenze <= 0 heisst: alle. Die Liste waechst sonst unbegrenzt - ein bis drei
+// Themen je Runde, und das Dossier haengt am Spieler, nicht am Match.
+func (s *Store) GesperrteThemen(pid string, grenze int) ([]string, error) {
+	q := `SELECT thema FROM gesperrte_themen WHERE player_id = ? ORDER BY rowid DESC`
+	args := []any{pid}
+	if grenze > 0 {
+		q += ` LIMIT ?`
+		args = append(args, grenze)
+	}
+	rows, err := s.db.Query(q, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	out := map[string]bool{}
+	var out []string
 	for rows.Next() {
 		var t string
 		if err := rows.Scan(&t); err != nil {
 			return nil, err
 		}
-		out[t] = true
+		out = append(out, t)
 	}
 	return out, rows.Err()
 }

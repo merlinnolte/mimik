@@ -381,11 +381,9 @@ func (s *Server) tagsSetzen(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) dossier(w http.ResponseWriter, r *http.Request) {
 	f, _ := s.S.Fakten(spieler(r).ID, 200)
-	g, _ := s.S.GesperrteThemen(spieler(r).ID)
-	themen := make([]string, 0, len(g))
-	for t := range g {
-		themen = append(themen, t)
-	}
+	// Im eigenen Dossier stehen alle - hier wird nichts gedeckelt, es ist das
+	// eigene Material.
+	themen, _ := s.S.GesperrteThemen(spieler(r).ID, 0)
 	tags, _ := s.S.Tags(spieler(r).ID)
 	// Das Profil steht nur hier - nie in /v1/state. Es ist eine Einschaetzung
 	// ueber einen Menschen, und die geht niemanden ausser ihn selbst etwas an,

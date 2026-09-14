@@ -390,6 +390,17 @@ Damit es nicht noch einmal passiert:
 - **Meldungen zu einer Phase, die schon vorbei war.** Drei Ursachen, alle in
   `APP.md` festgehalten: keine Vordergrundprüfung, eine Meldung, die im Schacht
   stehen blieb, und ein Merker, der im Vordergrund nie gekürzt wurde.
+- **Die Denkspur kostete neunzig Prozent der Ausgabe für nichts.** Am 14.09.2026
+  gemessen: 2.019 Ausgabetoken mit Denkspur, 227 ohne, bei gleicher Qualität in
+  sechs Fällen. Niemand hatte je hingesehen, weil der Klient das `usage`-Objekt
+  nicht las. **Was nicht gemessen wird, wird geraten** — und die Schätzung lag
+  um das Zehnfache daneben.
+- **`max_tokens` ohne abgeschaltete Denkspur ist eine Falle.** Mit
+  `max_tokens=600` kamen 600 Token Nachdenken und **kein Inhalt** zurück: voll
+  bezahlt, Runde kaputt. Der Deckel gilt deshalb nur, wenn nicht gedacht wird.
+- **Der Kartenbau hatte keinen Versuchszähler.** Bis 540 Aufrufe je Stunde für
+  eine einzige hängende Runde, unbegrenzt. Reviews hatten den Zähler von Anfang
+  an, der Kartenbau nicht — und der ist der teurere.
 - **`AllesLoeschen` griff sich genau eine Party.** Mit mehreren Partien lief es
   in einen Fremdschlüsselfehler auf `DELETE FROM players` – das Konto ließ sich
   nicht mehr löschen. Dasselbe galt für `PartyVerlassen`, das stillschweigend

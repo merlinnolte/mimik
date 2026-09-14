@@ -154,9 +154,9 @@ Antworte ausschließlich als JSON mit genau diesen Feldern in dieser Reihenfolge
 //
 // Wie PromptBotAntwort steht er nicht in harness.py: Die Werkbank misst Abstand
 // und Form der Faelschungen, dazu gehoert das Review nicht.
-const PromptReview = `Eine Runde ist vorbei. Du bekommst die echte Antwort einer Person, die drei
-Fälschungen, die du selbst dazu geschrieben hast, und die Karte, die ihr
-Gegenüber für die echte gehalten hat.
+const PromptReview = `Eine oder mehrere Runden sind vorbei. Du bekommst je Runde die echte Antwort
+einer Person, die drei Fälschungen, die du selbst dazu geschrieben hast, und die
+Karte, die ihr Gegenüber für die echte gehalten hat.
 
 Daraus machst du zwei Dinge: Du hältst fest, was diese Wahl zeigt, und du
 pflegst ein Profil dieser Person.
@@ -168,20 +168,23 @@ nicht dient, gehört nicht hinein.
 Arbeite in dieser Reihenfolge und gib sie in dieser Reihenfolge aus.
 
 1. GEWAEHLT
-   Ein Satz: Welche Karte wurde gewählt, und was hat sie glaubwürdig gemacht?
-   Nur was an der Karte steht – Länge, Ton, Genauigkeit, Inhalt. Keine Deutung
-   der Person.
+   Ein Satz über alle Runden zusammen: Welche Karten wurden gewählt, und was
+   hat sie glaubwürdig gemacht? Nur was an den Karten steht – Länge, Ton,
+   Genauigkeit, Inhalt. Keine Deutung der Person.
 
 2. VERWORFEN
    Ein Satz: Was hatten die nicht gewählten Karten gemeinsam, das gegen sie
-   sprach? Wurde die echte Antwort nicht gewählt, sag, was an ihr unecht wirkte.
+   sprach? Wurde eine echte Antwort nicht gewählt, sag, was an ihr unecht
+   wirkte.
 
 3. MERKMALE
    Jetzt erst die Person. Geh die echte Antwort Zeile für Zeile durch und such,
    was sie über diesen Menschen sagt.
 
    Nenne zu jedem Merkmal ZUERST die Beobachtung – die Stelle im Material, aus
-   der es folgt, so wörtlich wie möglich – und DANACH erst das Merkmal. Gibt es
+   der es folgt, so wörtlich wie möglich – und DANACH erst das Merkmal. Liegen
+   mehrere Runden vor, darf eine Beobachtung aus jeder von ihnen stammen, aber
+   immer nur aus einer echten Antwort, nie aus deinen eigenen Fälschungen. Gibt es
    keine solche Stelle, gibt es das Merkmal nicht. Eine Annahme aus dem Profil
    ist keine Beobachtung.
 
@@ -204,12 +207,13 @@ Arbeite in dieser Reihenfolge und gib sie in dieser Reihenfolge aus.
    - bis 0.4   möglich, aus einer beiläufigen Formulierung geschlossen
    - bis 0.7   deutlich nahegelegt
    - bis 0.9   die Person sagt es selbst, ausdrücklich
-   Eine 1.0 gibt es nicht. Du siehst einen Menschen durch vier Sätze.
+   Eine 1.0 gibt es nicht. Du siehst einen Menschen durch wenige Sätze.
 
    Rate nicht. Ein leeres Profil ist besser als ein erfundenes: Eine erfundene
    Schwester steht ab jetzt in jeder Fälschung und macht alle drei erkennbar.
-   Ist eine Runde unergiebig, gib eine leere Liste zurück. Höchstens drei
-   Merkmale je Runde.
+   Ist das Material unergiebig, gib eine leere Liste zurück. Höchstens vier
+   Merkmale insgesamt, auch wenn mehrere Runden vorliegen: Was wirklich trägt,
+   zeigt sich in wenigen.
 
    Schließe nichts aus dem Namen, aus der Schreibweise oder daraus, was
    "Menschen wie diese" üblicherweise tun. Nur aus dem, was dasteht.

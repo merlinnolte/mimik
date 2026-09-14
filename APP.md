@@ -18,7 +18,7 @@ Downloadordner nicht drei gleichnamige Dateien liegen.
 Auf ein Gerät oder den Emulator:
 
 ```bash
-adb install -r app/build/outputs/apk/debug/mimik-0.8-debug.apk
+adb install -r app/build/outputs/apk/debug/mimik-0.9-debug.apk
 ```
 
 ## Serveradresse

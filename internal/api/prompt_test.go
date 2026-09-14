@@ -12,11 +12,20 @@ import (
 
 // Der Prompt darf nicht unbemerkt wachsen.
 //
-// Gemessen am 13.09.2026: ohne Dossier 5.578 Zeichen, mit zwölf Fakten 7.155,
-// mit vierzig 10.711 – also rund 3.600 Token im schlimmsten Fall. Das ist der
-// Grund, warum ein gemeldeter Kontextüberlauf NICHT vom Umfang kommen kann:
-// Jedes brauchbare Modell trägt ein Vielfaches davon. Der Test hält die Zahl
-// fest, damit das so bleibt, wenn jemand dem Prompt etwas hinzufügt.
+// Der Betriebsfall ist zwölf Fakten UND ein Profil - der Test setzte lange kein
+// Profil, während der Worker eines füllt, und maß damit an der Wirklichkeit
+// vorbei.
+//
+// Gemessen am 14.09.2026 (Zeichen System + Material): ohne Dossier 7.076, mit
+// zwölf Fakten 8.237, mit zwölf Fakten und zwölf Merkmalen 9.218, mit vierzig
+// Fakten 10.897. Am Endpunkt gemessen sind 6.600 Zeichen rund 1.950
+// Eingabetoken, also 3,4 Zeichen je Token - ein Kontextüberlauf kann von diesem
+// Umfang nicht kommen, jedes brauchbare Modell trägt ein Vielfaches.
+//
+// Wichtiger als die Gesamtzahl: 6.435 Zeichen davon sind der Systemprompt und
+// bei JEDEM Aufruf derselbe Text. Genau das trägt der Prefix-Cache des
+// Anbieters (gemessen: 87 Prozent der Eingabe) - und deshalb darf variabler
+// Text nie in den Systemprompt wandern.
 func TestPromptbleibtklein(t *testing.T) {
 	var groesse int
 	modell := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -36,24 +45,33 @@ func TestPromptbleibtklein(t *testing.T) {
 	c.BaseURL, c.APIKey, c.Model, c.JSONMode = modell.URL, "t", "stub", false
 
 	fakt := "Besitzt ein Rennrad, fährt es etwa dreimal im Jahr und empfindet den Kauf nicht als Fehler."
-	for _, n := range []int{0, 12, 40} {
-		fakten := make([]string, n)
-		themen := make([]string, n*2)
+	merkmal := "tagesablauf: steht früh auf und kocht vor der Arbeit Kaffee (wahrscheinlich)"
+	for _, f := range []struct {
+		fakten, merkmale int
+	}{{0, 0}, {12, 0}, {12, 12}, {40, 0}} {
+		fakten := make([]string, f.fakten)
+		// Gedeckelt wie im Betrieb: MaxThemenImPrompt, nicht beliebig viele.
+		themen := make([]string, MaxThemenImPrompt)
+		merkmale := make([]string, f.merkmale)
 		for i := range fakten {
 			fakten[i] = fakt
 		}
 		for i := range themen {
 			themen[i] = "irgendeinthema"
 		}
+		for i := range merkmale {
+			merkmale[i] = merkmal
+		}
 		c.Faelschungen(t.Context(), "Was ist das Unvernünftigste, das du dir gekauft hast?",
 			"Eine zweite Kaffeemühle, aber die erste mahlt zu grob",
 			mimik.Dossier{Interessen: []string{"kaffee", "berge", "filme"},
-				Fakten: fakten, Gesperrt: themen,
+				Fakten: fakten, Profil: merkmale, Gesperrt: themen,
 				AntiBeispiele: []string{"Das ist eine spannende Frage!", "Am Ende zählt doch."}})
-		t.Logf("%2d Fakten -> %5d Zeichen (~%5d Token)", n, groesse, groesse/3)
-		// Zwölf Fakten sind der Betriebsfall (siehe worker.go).
-		if n == 12 && groesse > 9000 {
-			t.Errorf("der Prompt ist auf %d Zeichen gewachsen", groesse)
+		t.Logf("%2d Fakten, %2d Merkmale -> %5d Zeichen (~%5d Token)",
+			f.fakten, f.merkmale, groesse, groesse*10/34)
+		// Zwölf Fakten und ein voller Profilblock sind der Betriebsfall.
+		if f.fakten == 12 && f.merkmale == 12 && groesse > 9600 {
+			t.Errorf("der Betriebsprompt ist auf %d Zeichen gewachsen", groesse)
 		}
 	}
 }

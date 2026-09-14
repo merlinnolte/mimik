@@ -1,6 +1,8 @@
 package store
 
 import (
+	"time"
+
 	"mimik/internal/mimik"
 )
 
@@ -184,6 +186,67 @@ func (s *Store) OffeneReviews(grenze int) ([]Reviewauftrag, error) {
 		out = append(out, a)
 	}
 	return out, rows.Err()
+}
+
+// ReviewBuendelGroesse ist, wie viele Runden ein Aufruf zusammen auswertet.
+//
+// Der Systemprompt des Reviews ist 3.385 Zeichen und ging vorher je Runde
+// einmal hinaus. Drei Runden zusammen kosten ihn einmal statt dreimal: Von
+// zwanzig Reviewaufrufen je Match bleiben etwa sieben.
+const ReviewBuendelGroesse = 3
+
+// ReviewBuendel sammelt die aeltesten offenen Reviews EINES Spielers.
+//
+// Ein Buendel laeuft, sobald drei zusammenkommen - oder wenn die aelteste
+// laenger als ReviewSchonfrist liegt. Ohne die Schonfrist blieben die letzten
+// Runden eines Matches liegen, bis irgendwann eine vierte dazukommt, und bei
+// einem Paar, das nicht mehr spielt, fuer immer.
+// Als var, nicht als const: Ein Test, der eine einzelne Runde pruefen will,
+// kann sie auf 0 setzen - sonst muesste er fuenfzehn Minuten warten oder drei
+// Runden spielen, nur um an die Abfrage zu kommen.
+var ReviewSchonfrist = 15 * time.Minute
+
+func (s *Store) ReviewBuendel() ([]Reviewauftrag, error) {
+	// Grosszuegig laden und in Go gruppieren: Die Abfrage steht schon und ist
+	// die kniffligste im Projekt - eine zweite Fassung davon mit GROUP BY waere
+	// die Sorte Doppelung, die auseinanderlaeuft.
+	offen, err := s.OffeneReviews(ReviewBuendelGroesse * 8)
+	if err != nil {
+		return nil, err
+	}
+	je := map[string][]Reviewauftrag{}
+	reihe := []string{}
+	for _, a := range offen {
+		if _, da := je[a.Ueber]; !da {
+			reihe = append(reihe, a.Ueber)
+		}
+		je[a.Ueber] = append(je[a.Ueber], a)
+	}
+	for _, ueber := range reihe {
+		xs := je[ueber]
+		if len(xs) >= ReviewBuendelGroesse {
+			return xs[:ReviewBuendelGroesse], nil
+		}
+		// Weniger als ein Buendel: nur, wenn die aelteste lange genug liegt.
+		if alt, err := s.RundeAufgeloestVor(xs[0].RundeID); err == nil && alt > ReviewSchonfrist {
+			return xs, nil
+		}
+	}
+	return nil, nil
+}
+
+// RundeAufgeloestVor sagt, wie lange eine Runde schon aufgeloest ist.
+func (s *Store) RundeAufgeloestVor(rid string) (time.Duration, error) {
+	var roh string
+	if err := s.db.QueryRow(
+		`SELECT COALESCE(aufgeloest_am,'') FROM rounds WHERE id = ?`, rid).Scan(&roh); err != nil {
+		return 0, err
+	}
+	t, err := time.Parse(time.RFC3339, roh)
+	if err != nil {
+		return 0, err
+	}
+	return time.Since(t), nil
 }
 
 // ReviewBeanspruchen zaehlt den Versuch gleich mit hoch.
