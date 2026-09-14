@@ -4,6 +4,10 @@
     <!-- Ab Android 13 muss man um Benachrichtigungen bitten. Die App fragt im
          Onboarding danach und bleibt ohne sie voll benutzbar. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Die App holt ihre Updates selbst von der Releaseseite auf GitHub; es
+         gibt keinen Store, der das täte. Installiert wird trotzdem nicht
+         still: Das System fragt jedes Mal nach. Siehe Aktualisierung.kt. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <application
         android:allowBackup="false"
         android:networkSecurityConfig="@xml/netz_sicherheit"
@@ -21,5 +25,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Reicht dem Installer des Systems die geladene APK-Datei. Ohne das
+             sieht er nur eine file:-Adresse, die seit Android 7 verboten ist. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fassungen"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/dateipfade" />
+        </provider>
     </application>
 </manifest>

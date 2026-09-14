@@ -1,578 +1,1792 @@
 [
   {
+    "kennung": "unvernuenftigste-jahren",
     "text": "Was ist das Unvernünftigste, das du dir in den letzten zwei Jahren gekauft hast – und bereust du es?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "nimmst-wenig",
     "text": "Wofür nimmst du dir zu wenig Zeit?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "weggeworfen-wegwerfen",
     "text": "Was hast du zuletzt weggeworfen und schon beim Wegwerfen bereut?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "thema-merkst",
     "text": "Bei welchem Thema merkst du, dass du dich schneller aufregst, als du möchtest?",
     "rubrik": "haltung"
   },
   {
-    "text": "Was machst du regelmäßig, obwohl du weißt, dass es nichts bringt?",
-    "rubrik": "alltag"
-  },
-  {
+    "kennung": "besuchen-geregnet",
     "text": "Welchen Ort würdest du sofort wieder besuchen, obwohl es dort beim ersten Mal geregnet hat?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "steht-herum",
     "text": "Was steht bei dir herum, das du nie benutzt, aber auch nie weggeben würdest?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "gegeben-befolgt",
     "text": "Welchen Rat hast du schon oft gegeben und selbst nie befolgt?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "voellig-freien",
     "text": "Was würdest du an einem völlig freien Samstag tun, wenn niemand etwas von dir will?",
     "rubrik": "hypothetisch"
   },
   {
+    "kennung": "laut-gelacht",
     "text": "Worüber hast du zuletzt laut gelacht, als niemand dabei war?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "kind-kopf",
     "text": "Was hast du als Kind gemacht, worüber du heute den Kopf schüttelst?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "wohnung-aendern",
     "text": "Was würdest du an deiner Wohnung sofort ändern, wenn Geld keine Rolle spielte?",
     "rubrik": "hypothetisch"
   },
   {
+    "kennung": "essen-taeglich",
     "text": "Welches Essen könntest du täglich essen, ohne dass es dir langweilig wird?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "geschenk-gefreut",
     "text": "Was war das letzte Geschenk, über das du dich wirklich gefreut hast?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "gewohnheit-nerven",
     "text": "Welche Gewohnheit von dir würde dich selbst nerven, wenn jemand anderes sie hätte?",
     "rubrik": "haltung"
   },
   {
-    "text": "Was tust du, wenn du eigentlich arbeiten solltest?",
-    "rubrik": "alltag"
-  },
-  {
+    "kennung": "film-serie",
     "text": "Welchen Film oder welche Serie hast du abgebrochen und nie beendet?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "beste-stadt",
     "text": "Was ist der beste Ort in deiner Stadt, den kaum jemand kennt?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "gelernt-vergessen",
     "text": "Was hast du schon einmal gelernt und komplett wieder vergessen?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "jahr-arbeiten",
     "text": "Was würdest du tun, wenn du ein Jahr lang nicht arbeiten müsstest?",
     "rubrik": "hypothetisch"
   },
   {
+    "kennung": "streitest-gedanken",
     "text": "Worüber streitest du dich in Gedanken, obwohl das Gespräch längst vorbei ist?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "morgens-ehrlich",
     "text": "Was ist das Erste, was du morgens machst – ehrlich?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "kleidungsstueck-traegst",
     "text": "Welches Kleidungsstück trägst du viel zu oft?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "vergangenheit",
     "text": "Was hast du zuletzt zum ersten Mal gemacht?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "geraeusch-moegen",
     "text": "Welches Geräusch magst du, obwohl die meisten es nicht mögen?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "mitnehmen-jahr",
     "text": "Was würdest du mitnehmen, wenn du für ein Jahr wegziehen müsstest und nur eine Tasche hättest?",
     "rubrik": "hypothetisch"
   },
   {
+    "kennung": "kleinigkeit-geld",
     "text": "Bei welcher Kleinigkeit gibst du gerne zu viel Geld aus?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "aufgeschoben-erledigt",
     "text": "Was hast du zuletzt aufgeschoben, bis es sich von selbst erledigt hat?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "kindheit-sehen",
     "text": "Welchen Ort aus deiner Kindheit würdest du gern noch einmal sehen?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "ueberraschend-gelernt",
     "text": "Was kannst du überraschend gut, ohne es je gelernt zu haben?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "leben-behalten",
     "text": "Was würdest du in deinem Leben behalten, auch wenn alle es für seltsam halten?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "jahreszeit-passt-wenigsten",
     "text": "Welche Jahreszeit passt am wenigsten zu dir?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "peinlich-gewesen",
     "text": "Was ist dir zuletzt peinlich gewesen, obwohl niemand es gemerkt hat?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "buch-jemandem",
     "text": "Welches Buch würdest du jemandem schenken, den du beeindrucken willst?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "frueher-gehasst",
     "text": "Was hast du früher gehasst und magst es heute?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "voellig-fehl",
     "text": "Wo warst du zuletzt völlig fehl am Platz?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "aufgabe-haushalt",
     "text": "Welche Aufgabe im Haushalt schiebst du am längsten vor dir her?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "handy-woche",
     "text": "Was würdest du machen, wenn dein Handy für eine Woche weg wäre?",
     "rubrik": "hypothetisch"
   },
   {
+    "kennung": "gegenstand-wohnung",
     "text": "Welcher Gegenstand in deiner Wohnung hat die längste Geschichte?",
     "rubrik": "alltag"
   },
   {
-    "text": "Wofür gibst du Geld aus, das andere für Verschwendung halten?",
-    "rubrik": "vorliebe"
-  },
-  {
+    "kennung": "entscheidung-frueher",
     "text": "Welche Entscheidung von früher würdest du heute genauso wieder treffen?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "bringt-zuverlaessig",
     "text": "Was bringt dich zuverlässig in gute Laune, auch wenn der Tag schlecht war?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "gelegenheit-gelogen",
     "text": "Bei welcher Gelegenheit hast du zuletzt gelogen, um höflich zu sein?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "fuenf-jahren-koennen",
     "text": "Was möchtest du in fünf Jahren können, das du heute nicht kannst?",
     "rubrik": "zukunft"
   },
   {
+    "kennung": "faehigkeit-anderen",
     "text": "Welche Fähigkeit von anderen beneidest du am meisten?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "moment-gefuehlt",
     "text": "Was war der letzte Moment, in dem du dich richtig alt gefühlt hast?",
     "rubrik": "vergangenheit"
   },
   {
-    "text": "Welchen Umweg nimmst du gern in Kauf?",
-    "rubrik": "vorliebe"
-  },
-  {
+    "kennung": "vorgenommen-angefangen",
     "text": "Was hast du dir vorgenommen und nie angefangen?",
     "rubrik": "zukunft"
   },
   {
+    "kennung": "nachricht-liest",
     "text": "Welche Nachricht liest du sofort, egal was du gerade tust?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "erster-satz",
     "text": "Was wäre dein erster Satz, wenn du eine Rede halten müsstest?",
     "rubrik": "hypothetisch"
   },
   {
+    "kennung": "geraeusch-wohnung",
     "text": "Welches Geräusch in deiner Wohnung würdest du sofort abstellen?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "repariert-statt",
     "text": "Was hast du zuletzt repariert statt ersetzt?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "schoener-vorgestellt",
     "text": "Welchen Ort hast du dir schöner vorgestellt, als er war?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "unsichtbar",
     "text": "Was würdest du an einem Tag machen, an dem du unsichtbar wärst?",
     "rubrik": "hypothetisch"
   },
   {
+    "kennung": "frage-hoeren",
     "text": "Welche Frage kannst du nicht mehr hören?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "laesst-nachts",
     "text": "Was lässt dich nachts wach liegen, das am nächsten Morgen belanglos ist?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "rolle-uebernimmst",
     "text": "Welche Rolle übernimmst du in einer Gruppe, ohne dass es jemand verabredet hat?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "anfangen-zeit",
     "text": "Was würdest du wieder anfangen, wenn du mehr Zeit hättest?",
     "rubrik": "zukunft"
   },
   {
+    "kennung": "eigenart-kennt",
     "text": "Welche Eigenart von dir kennt fast niemand?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "gesehen",
     "text": "Was möchtest du unbedingt einmal gesehen haben?",
     "rubrik": "zukunft"
   },
   {
+    "kennung": "kleinigkeit-bringt",
     "text": "Welche Kleinigkeit bringt deinen Tag zuverlässig aus dem Takt?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "hause-kommst",
     "text": "Was machst du immer zuerst, wenn du nach Hause kommst?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "stellst-wecker",
     "text": "Wofür stellst du dir einen Wecker, obwohl du nicht musst?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "gehst-absichtlich",
     "text": "Welchen Weg gehst du absichtlich länger, weil er schöner ist?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "liegt-monaten",
     "text": "Was liegt bei dir seit Monaten auf dem gleichen Stapel?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "ausrede-benutzt",
     "text": "Welche Ausrede benutzt du am häufigsten?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "kaufst-genug",
     "text": "Was kaufst du immer wieder, obwohl noch genug da ist?",
     "rubrik": "alltag"
   },
   {
-    "text": "Welche Aufgabe schiebst du gerade vor dir her?",
-    "rubrik": "alltag"
-  },
-  {
+    "kennung": "isst-zuschaut",
     "text": "Was isst du, wenn niemand zuschaut?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "loeschen",
     "text": "Welche App würdest du gern löschen und tust es nicht?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "verlierst-zeit",
     "text": "Wobei verlierst du die Zeit, ohne es zu merken?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "raeumst-nachdenken",
     "text": "Was räumst du auf, wenn du nachdenken willst?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "umweg-nimmst-jemandem",
     "text": "Welchen Umweg nimmst du, um jemandem nicht zu begegnen?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "hebst-kaputt",
     "text": "Was hebst du auf, obwohl es kaputt ist?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "kleinigkeit-unerwartet",
     "text": "Bei welcher Kleinigkeit bist du unerwartet pingelig?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "ziehst-egal",
     "text": "Was ziehst du an, wenn es egal ist, wie du aussiehst?",
     "rubrik": "alltag"
   },
   {
+    "kennung": "nachricht-beantwortest",
     "text": "Welche Nachricht beantwortest du immer zu spät?",
     "rubrik": "alltag"
   },
   {
-    "text": "Was tust du zuerst, wenn du morgens aufwachst?",
-    "rubrik": "alltag"
-  },
-  {
-    "text": "Welches Essen könntest du eine Woche lang jeden Tag essen?",
-    "rubrik": "vorliebe"
-  },
-  {
+    "kennung": "stadt-nichts",
     "text": "Welchen Ort in deiner Stadt magst du, obwohl er nichts Besonderes ist?",
     "rubrik": "vorliebe"
   },
   {
-    "text": "Welche Jahreszeit passt am besten zu dir und warum?",
-    "rubrik": "vorliebe"
-  },
-  {
+    "kennung": "lied-hoerst",
     "text": "Welches Lied hörst du, wenn niemand mitbestimmt?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "riechst-jemandem",
     "text": "Was riechst du gerne, ohne es jemandem zu erzählen?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "film-funktioniert",
     "text": "Welcher Film funktioniert bei dir immer?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "tageszeit-gehoert",
     "text": "Welche Tageszeit gehört dir ganz allein?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "werkzeug-geraet",
     "text": "Welches Werkzeug oder Gerät benutzt du mit unangemessener Freude?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "buch-gelesen",
     "text": "Welches Buch hast du mehr als einmal gelesen?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "trinkst",
     "text": "Was trinkst du, wenn der Tag gut war?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "handgriff-geht",
     "text": "Welcher Handgriff geht dir besonders leicht von der Hand?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "wetter-hassen",
     "text": "Welches Wetter magst du, obwohl die meisten es hassen?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "sammelst-sammeln",
     "text": "Was sammelst du, ohne es Sammeln zu nennen?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "raum-fremden",
     "text": "Welchen Raum in einer fremden Wohnung siehst du dir zuerst an?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "spiel-mitspielen",
     "text": "Welches Spiel würdest du sofort mitspielen?",
     "rubrik": "vorliebe"
   },
   {
+    "kennung": "lachst-weisst",
     "text": "Worüber lachst du, obwohl du weißt, dass du nicht solltest?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "meinung-jahren",
     "text": "Welche Meinung hast du in den letzten Jahren geändert?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "findest-ueberbewertet",
     "text": "Was findest du überbewertet, ohne es laut zu sagen?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "strenger-anderen",
     "text": "Wobei bist du strenger mit dir als mit anderen?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "niemals-befolgen",
     "text": "Welchen Rat würdest du niemals befolgen?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "verzeihst",
     "text": "Was verzeihst du sofort, was nie?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "thema-hoerst",
     "text": "Bei welchem Thema hörst du auf zuzuhören?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "gute-eigenschaft",
     "text": "Was hältst du für eine gute Eigenschaft, die andere an dir nervig finden?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "stolz-zeigen",
     "text": "Worauf bist du stolz, ohne es zeigen zu wollen?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "regel-brichst",
     "text": "Welche Regel brichst du regelmäßig und mit gutem Gewissen?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "sagen-beleidigt",
     "text": "Was würdest du sagen, wenn niemand beleidigt sein könnte?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "nachgegeben-recht",
     "text": "Wann hast du zuletzt nachgegeben, obwohl du recht hattest?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "gesellschaft-still",
     "text": "Was macht dich in Gesellschaft still?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "frage-beantwortest",
     "text": "Welche Frage beantwortest du ungern ehrlich?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "respekt-zugibst",
     "text": "Wovor hast du mehr Respekt, als du zugibst?",
     "rubrik": "haltung"
   },
   {
+    "kennung": "eigenes-geld",
     "text": "Was war dein erstes eigenes Geld wert?",
     "rubrik": "vergangenheit"
   },
   {
-    "text": "Welches Geschenk hast du nie vergessen?",
-    "rubrik": "vergangenheit"
-  },
-  {
+    "kennung": "kind-besser",
     "text": "Wobei warst du als Kind besser als heute?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "fach-schule",
     "text": "Welches Fach in der Schule hat dich geprägt, im Guten oder im Schlechten?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "frueher-geliebt",
     "text": "Was hast du früher geliebt und verstehst heute nicht mehr?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "peinlichkeit-faellt",
     "text": "Welche Peinlichkeit fällt dir noch nach Jahren ein?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "beigebracht-taeglich",
     "text": "Wer hat dir etwas beigebracht, das du noch täglich benutzt?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "entscheidung-haettest",
     "text": "Welche Entscheidung hättest du fast anders getroffen?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "erster-richtiger",
     "text": "Was war dein erster richtiger Streit mit einem Erwachsenen?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "sommer-erinnerst",
     "text": "Welchen Sommer erinnerst du am deutlichsten?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "kind-gehortet",
     "text": "Was hast du als Kind gehortet?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "musik-lief",
     "text": "Welche Musik lief bei euch zu Hause?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "kind-angst",
     "text": "Wovor hattest du als Kind Angst und wovor heute?",
     "rubrik": "vergangenheit"
   },
   {
+    "kennung": "umzug-vergessen",
     "text": "Welchen Umzug wirst du nicht vergessen?",
     "rubrik": "vergangenheit"
   },
   {
-    "text": "Was würdest du mit einem geschenkten freien Jahr anfangen?",
-    "rubrik": "hypothetisch"
-  },
-  {
+    "kennung": "beruf-halbes",
     "text": "Welchen Beruf würdest du für ein halbes Jahr ausprobieren?",
     "rubrik": "hypothetisch"
   },
   {
+    "kennung": "wohnen-sprache",
     "text": "Wo würdest du wohnen, wenn die Sprache kein Hindernis wäre?",
     "rubrik": "hypothetisch"
   },
   {
+    "kennung": "abschaffen",
     "text": "Was würdest du sofort abschaffen, wenn du es könntest?",
     "rubrik": "hypothetisch"
   },
   {
+    "kennung": "faehigkeit-haettest",
     "text": "Welche Fähigkeit hättest du gern über Nacht?",
     "rubrik": "hypothetisch"
   },
   {
+    "kennung": "begleiten",
     "text": "Wen würdest du gern einen Tag lang begleiten?",
     "rubrik": "hypothetisch"
   },
   {
+    "kennung": "wohnung-retten",
     "text": "Was würdest du aus deiner Wohnung retten?",
     "rubrik": "hypothetisch"
   },
   {
+    "kennung": "erfindung-zuruecknehmen",
     "text": "Welche Erfindung würdest du zurücknehmen?",
     "rubrik": "hypothetisch"
   },
   {
+    "kennung": "juengeren-verschweigen",
     "text": "Was würdest du deinem jüngeren Ich verschweigen?",
     "rubrik": "hypothetisch"
   },
   {
+    "kennung": "gespraech-fuehren",
     "text": "Welches Gespräch würdest du gern noch einmal führen?",
     "rubrik": "hypothetisch"
   },
   {
-    "text": "Was würdest du tun, wenn dir niemand zusehen könnte?",
-    "rubrik": "hypothetisch"
-  },
-  {
+    "kennung": "lebens-wiederholen",
     "text": "Welchen Tag deines Lebens würdest du wiederholen?",
     "rubrik": "hypothetisch"
   },
   {
-    "text": "Was willst du in fünf Jahren können, was du heute nicht kannst?",
-    "rubrik": "zukunft"
-  },
-  {
+    "kennung": "freust-naechsten",
     "text": "Worauf freust du dich in den nächsten Wochen?",
     "rubrik": "zukunft"
   },
   {
+    "kennung": "muessen",
     "text": "Was möchtest du nie mehr tun müssen?",
     "rubrik": "zukunft"
   },
   {
+    "kennung": "gewohnheit-loswerden",
     "text": "Welche Gewohnheit willst du wirklich loswerden?",
     "rubrik": "zukunft"
   },
   {
+    "kennung": "jahren-sein",
     "text": "Was soll in zehn Jahren noch genauso sein wie heute?",
     "rubrik": "zukunft"
   },
   {
-    "text": "Welchen Ort willst du gesehen haben?",
-    "rubrik": "zukunft"
-  },
-  {
+    "kennung": "lernen-brauchen",
     "text": "Was willst du lernen, ohne es je zu brauchen?",
     "rubrik": "zukunft"
   },
   {
-    "text": "Wovon möchtest du weniger haben?",
-    "rubrik": "zukunft"
-  },
-  {
+    "kennung": "traust-naechstes",
     "text": "Was traust du dir für nächstes Jahr zu?",
     "rubrik": "zukunft"
   },
   {
+    "kennung": "sache-endlich",
     "text": "Welche Sache willst du endlich zu Ende bringen?",
     "rubrik": "zukunft"
+  },
+  {
+    "kennung": "handgriff-kueche",
+    "text": "Welchen Handgriff machst du in der Küche, ohne nachzudenken?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "stopfst-schublade",
+    "text": "Was stopfst du in die Schublade, wenn Besuch klingelt?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "licht-laesst",
+    "text": "Welches Licht lässt du abends am längsten brennen?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "beschaeftigst-laenger",
+    "text": "Womit beschäftigst du dich auf dem Klo länger als nötig?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "socke-ziehst",
+    "text": "Welche Socke ziehst du zuerst an?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "trinkst-direkt",
+    "text": "Was trinkst du direkt aus der Flasche?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "knopf-kleidung",
+    "text": "Welchen Knopf an deiner Kleidung schließt du nie?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "stapelst-dinge",
+    "text": "Wo stapelst du Dinge, die eigentlich in den Müll gehören?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "ziehst-hinter",
+    "text": "Welche Tür ziehst du hinter dir zu, obwohl niemand da ist?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "liegt-kuechentisch",
+    "text": "Was liegt auf deinem Küchentisch, das dort nicht hingehört?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "gegenstand-drehst",
+    "text": "Welchen Gegenstand drehst du in der Hand, während du telefonierst?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "laesst-kuehlschrank",
+    "text": "Was lässt du im Kühlschrank stehen, bis es schimmelt?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "sagst-abschied",
+    "text": "Was sagst du zum Abschied, wenn du eigentlich nichts sagen willst?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "fach-schrank",
+    "text": "Welches Fach in deinem Schrank öffnest du am seltensten?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "loeffel-nimmst",
+    "text": "Welchen Löffel nimmst du, obwohl alle gleich aussehen?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "liegt-unter",
+    "text": "Was liegt unter deinem Bett, das du nicht hervorholst?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "schublade-klemmt",
+    "text": "Welche Schublade klemmt bei dir seit Wochen?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "haengt-wand",
+    "text": "Was hängt bei dir an der Wand, ohne dass du es ansiehst?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "becher-benutzt",
+    "text": "Welchen Becher benutzt du nur, wenn niemand sonst da ist?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "stellst-kuehlschrank",
+    "text": "Was stellst du in den Kühlschrank, obwohl es dort nicht hingehört?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "jackentasche-voll",
+    "text": "Welche Jackentasche ist voll mit Dingen, die du nie brauchst?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "liegt-nachttisch",
+    "text": "Was liegt auf deinem Nachttisch, das du nie anfasst?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "gegenstand-benutzt",
+    "text": "Welchen Gegenstand benutzt du täglich, obwohl er eigentlich kaputt ist?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "moebelstueck-wohnung",
+    "text": "Welches Möbelstück in deiner Wohnung hast du noch nie verrückt?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "traegst-zimmer",
+    "text": "Was trägst du von einem Zimmer ins andere, ohne es abzulegen?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "handgriff-spiegel",
+    "text": "Welchen Handgriff machst du im Bad, ohne in den Spiegel zu schauen?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "liegt-boden",
+    "text": "Was liegt bei dir auf dem Boden, das eigentlich woanders hingehört?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "geraeusch-wohnung-hoerst",
+    "text": "Welches Geräusch aus deiner Wohnung hörst du nur, wenn du allein bist?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "benutzt-anderes",
+    "text": "Was benutzt du, obwohl es eigentlich für etwas anderes gedacht ist?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "stopfst-tasche",
+    "text": "Was stopfst du in deine Tasche, wenn du das Haus verlässt?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "gegenstand-fest",
+    "text": "Welchen Gegenstand hältst du fest, während du einschläfst?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "ziehst-sobald",
+    "text": "Was ziehst du aus, sobald du zu Hause bist?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "liegt-kueche",
+    "text": "Was liegt in deiner Küche ganz hinten im Schrank?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "kabel-liegt",
+    "text": "Welches Kabel liegt bei dir seit Jahren unbenutzt herum?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "liegt-flur",
+    "text": "Was liegt bei dir im Flur, das du täglich umgehst?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "geraeusch-weckt",
+    "text": "Welches Geräusch weckt dich, obwohl du noch weiterschlafen könntest?",
+    "rubrik": "alltag"
+  },
+  {
+    "kennung": "albern-findest",
+    "text": "Was tust du, obwohl du es albern findest?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "luege-erzaehlst",
+    "text": "Welche Lüge erzählst du, um Streit zu vermeiden?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "gruesst-person",
+    "text": "Wen grüßt du, obwohl du die Person nicht magst?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "sagst-schweigen",
+    "text": "Was sagst du, wenn du eigentlich schweigen willst?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "meinung-aeusserst",
+    "text": "Welche Meinung äußerst du, obwohl du unsicher bist?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "spielst-ablehnst",
+    "text": "Wobei spielst du mit, obwohl du es ablehnst?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "verschweigst-verletzend",
+    "text": "Was verschweigst du, um nicht verletzend zu sein?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "entschuldigung-nimmst",
+    "text": "Welche Entschuldigung nimmst du an, obwohl du sie durchschaust?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "verteidigst-zweifelst",
+    "text": "Wen verteidigst du, obwohl du zweifelst?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "regel-befolgst",
+    "text": "Welche Regel befolgst du, obwohl du sie für falsch hältst?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "nickst-seinen",
+    "text": "Wem nickst du zu, obwohl du seinen Namen vergessen hast?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "heimlich-allein",
+    "text": "Was tust du heimlich, wenn du allein zu Hause bist?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "haettest-gehoert",
+    "text": "Wobei tust du so, als hättest du es nicht gehört?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "fehler-schiebst",
+    "text": "Welchen Fehler schiebst du auf jemand anderen?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "kontrollierst-weisst",
+    "text": "Was kontrollierst du, obwohl du weißt, dass es sinnlos ist?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "kompliment-meinen",
+    "text": "Welches Kompliment gibst du, ohne es zu meinen?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "laesst-ausreden",
+    "text": "Wen lässt du ausreden, obwohl du längst widersprechen willst?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "bestellst-anderes",
+    "text": "Was bestellst du, obwohl du etwas anderes willst?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "still-innerlich",
+    "text": "Wobei hältst du still, obwohl du innerlich kochst?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "gegenstand-leihst",
+    "text": "Welchen Gegenstand leihst du ungern her, gibst ihn aber doch?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "laesst-vorgehen",
+    "text": "Wen lässt du vorgehen, obwohl du zuerst da warst?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "laechelst-danach",
+    "text": "Wobei lächelst du, obwohl dir nicht danach ist?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "vorschlag-unterstuetzt",
+    "text": "Welchen Vorschlag unterstützt du, obwohl du ihn für falsch hältst?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "satz-sagst",
+    "text": "Welchen Satz sagst du, obwohl du das Gegenteil denkst?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "vorgemacht-besser",
+    "text": "Wem hast du zuletzt etwas vorgemacht, obwohl du es besser wusstest?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "anblick-drehst",
+    "text": "Bei welchem Anblick drehst du dich weg, obwohl du hinschauen müsstest?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "geschenk-weitergereicht",
+    "text": "Welches Geschenk hast du weitergereicht, ohne es zu benutzen?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "satz-sagst-bereust",
+    "text": "Welchen Satz sagst du, obwohl du ihn bereust, sobald er draußen ist?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "gegenstand-kaufst",
+    "text": "Welchen Gegenstand kaufst du heimlich, obwohl du ihn verurteilst?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "fehler",
+    "text": "Welchen Fehler gibst du zu, obwohl du ihn nicht gemacht hast?",
+    "rubrik": "haltung"
+  },
+  {
+    "kennung": "lehrer-heimlich",
+    "text": "Welchen Lehrer hast du heimlich nachgeäfft?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "stand-klingelschild",
+    "text": "Was stand auf deinem ersten Klingelschild?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "hose-getragen",
+    "text": "Welche Hose hast du getragen, bis sie nicht mehr ging?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "wohnung-benutzt",
+    "text": "Was hast du in deiner ersten Wohnung nie benutzt?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "umzug-verloren",
+    "text": "Was hast du beim ersten Umzug verloren?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "kuss-bekommen",
+    "text": "Wo hast du deinen ersten Kuss bekommen?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "schlechte-note",
+    "text": "Wo hast du deine erste schlechte Note versteckt?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "stift-schule",
+    "text": "Welchen Stift hast du in der Schule am längsten benutzt?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "portemonnaie-aufbewahrt",
+    "text": "Was hast du in deinem ersten Portemonnaie aufbewahrt?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "platz-klasse",
+    "text": "Welchen Platz hattest du in der ersten Klasse?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "schulmappe-unten",
+    "text": "Was hast du in der Schulmappe ganz unten versteckt?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "satz-erwachsenen",
+    "text": "Welchen Satz hast du von einem Erwachsenen nie vergessen?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "stimme-radio",
+    "text": "Welche Stimme aus dem Radio kennst du noch von früher?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "farbe-fahrrad",
+    "text": "Welche Farbe hatte das Fahrrad, auf dem du fahren gelernt hast?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "schwimmbad-umkleide",
+    "text": "Was hast du beim ersten Mal im Schwimmbad in der Umkleide liegen lassen?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "suessigkeit-frueher",
+    "text": "Welche Süßigkeit hast du früher heimlich gegessen?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "geruch-schulkueche",
+    "text": "Welchen Geruch aus der Schulküche erkennst du noch?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "wetter-frueher",
+    "text": "Bei welchem Wetter bist du früher mit dem Rad losgefahren, egal was kam?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "wand-hing",
+    "text": "An welcher Wand hing das erste Poster in deinem Zimmer?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "lied-teenager",
+    "text": "Welches Lied hast du als Teenager heimlich laut mitgesungen?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "sendung-frueher",
+    "text": "Welche Sendung hast du früher gesehen, obwohl du längst ins Bett solltest?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "kind-zeit",
+    "text": "Womit hast du dir als Kind die Zeit vertrieben, wenn es regnete?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "armbanduhr-verloren",
+    "text": "Wo hast du deine erste Armbanduhr verloren?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "kind-oeffnen",
+    "text": "Welche Tür hast du als Kind nie öffnen dürfen?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "klassenfoto-lange",
+    "text": "Wen hast du auf einem Klassenfoto lange gesucht?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "stuhl-elternhaus",
+    "text": "Welchen Stuhl in deinem Elternhaus hast du immer besetzt?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "tagebuch-geschrieben",
+    "text": "Was hast du in dein erstes Tagebuch geschrieben?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "geraeusch-frueher",
+    "text": "Welches Geräusch hat dich früher im Dunkeln erschreckt?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "kind-morgen",
+    "text": "Welchen Weg bist du als Kind jeden Morgen im Dunkeln gegangen?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "gegenstand-kind",
+    "text": "Welchen Gegenstand hast du als Kind in der Hosentasche getragen, bis er auseinanderfiel?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "erwachsenen-kind",
+    "text": "Bei welchem Erwachsenen hast du als Kind immer zuerst angerufen?",
+    "rubrik": "vergangenheit"
+  },
+  {
+    "kennung": "stelle-arbeit",
+    "text": "An welcher Stelle auf deinem Weg zur Arbeit bleibst du manchmal stehen?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "duft-erkennst",
+    "text": "Welchen Duft erkennst du, bevor du die Quelle siehst?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "gegenstand-schreibtisch",
+    "text": "Welchen Gegenstand auf deinem Schreibtisch räumst du nie weg?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "sitzplatz-waehlst",
+    "text": "Welchen Sitzplatz wählst du in einem leeren Zugabteil?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "wort-sagst",
+    "text": "Welches Wort sagst du gern, nur wegen des Klangs?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "getraenk-bestellst",
+    "text": "Welches Getränk bestellst du, wenn du allein bist?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "stimme-hoerst",
+    "text": "Welche Stimme hörst du gern, ohne dass sie etwas sagt?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "muster-stoff",
+    "text": "Welches Muster auf einem Stoff gefällt dir ohne Grund?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "wohnung-beruehrst",
+    "text": "Welchen Ort in deiner Wohnung berührst du täglich?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "tier-siehst",
+    "text": "Welches Tier im Zoo siehst du dir immer zuerst an?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "lied-singst",
+    "text": "Welches Lied singst du mit, obwohl du den Text nicht kennst?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "snack-kaufst",
+    "text": "Welchen Snack kaufst du an der Kasse, obwohl du ihn nicht brauchst?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "farbe-waehlst",
+    "text": "Welche Farbe wählst du bei Dingen, die niemand sieht?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "becher-benutzt-andere",
+    "text": "Welchen Becher benutzt du, obwohl andere sauber im Schrank stehen?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "geraeusch-kueche",
+    "text": "Welches Geräusch aus der Küche gefällt dir?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "platz-kino",
+    "text": "Welchen Platz im Kino suchst du dir aus?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "oeffnest-bevor",
+    "text": "Welche App öffnest du, bevor du richtig wach bist?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "kleidungsstueck-fuehlt",
+    "text": "Welches Kleidungsstück fühlt sich für dich wie eine Belohnung an?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "nimmst-kuerzere",
+    "text": "Welchen Weg nimmst du, obwohl der kürzere existiert?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "stift-benutzt",
+    "text": "Welchen Stift benutzt du, obwohl bessere daneben liegen?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "farbe-lieblingsstift",
+    "text": "Welche Farbe hat dein Lieblingsstift?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "stelle-buch",
+    "text": "Welche Stelle in einem Buch liest du immer wieder?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "musikrichtung-hoerst",
+    "text": "Welche Musikrichtung hörst du, wenn du allein zu Hause bist?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "snack-isst",
+    "text": "Welchen Snack isst du am liebsten spätabends?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "farbe-liebstes",
+    "text": "Welche Farbe hat dein liebstes Stück Geschirr?",
+    "rubrik": "vorliebe"
+  },
+  {
+    "kennung": "gegenstand-museum",
+    "text": "Welchen Gegenstand würdest du in einem Museum heimlich berühren wollen?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "verstecken-stunde",
+    "text": "Wo würdest du dich verstecken, wenn du eine Stunde unsichtbar wärst?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "brief-schreiben",
+    "text": "Wem würdest du einen Brief schreiben, den du nie abschickst?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "hosentasche-stecken",
+    "text": "Was würdest du in deine Hosentasche stecken, wenn du fliehen müsstest?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "satz-parkbank",
+    "text": "Welchen Satz würdest du auf eine Parkbank ritzen?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "buch-brennenden",
+    "text": "Welches Buch würdest du aus einem brennenden Regal ziehen?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "schlafen-hause",
+    "text": "Wo würdest du schlafen, wenn du nicht nach Hause könntest?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "geraeusch-aufnehmen",
+    "text": "Welches Geräusch würdest du aufnehmen, um es später zu hören?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "nehmen-verlaufen",
+    "text": "Welchen Weg würdest du nehmen, wenn du dich verlaufen willst?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "hotelzimmer-mitnehmen",
+    "text": "Was würdest du aus einem Hotelzimmer mitnehmen?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "frage-fremden",
+    "text": "Welche Frage würdest du einem Fremden stellen, wenn du nur eine hättest?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "gehen-stunde",
+    "text": "Wohin würdest du gehen, wenn du eine Stunde früher Feierabend hättest?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "satz-fremden",
+    "text": "Welchen Satz würdest du einem Fremden im Aufzug sagen?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "kuehlschrank-retten",
+    "text": "Was würdest du aus deinem Kühlschrank retten, wenn der Strom ausfällt?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "geraeusch-leeren",
+    "text": "Welches Geräusch würdest du in einer leeren Wohnung am meisten vermissen?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "moebelstueck-wohnung-strasse",
+    "text": "Welches Möbelstück würdest du aus deiner Wohnung auf die Straße stellen?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "serviette-schreiben",
+    "text": "Was würdest du auf eine Serviette schreiben und liegen lassen?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "stuhl-stellen",
+    "text": "Wohin würdest du deinen Stuhl stellen, wenn du im Büro tauschen dürftest?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "stelle-bank",
+    "text": "An welcher Stelle würdest du eine Bank hinstellen, wenn du dürftest?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "stunde-stehen",
+    "text": "Wo würdest du eine Stunde stehen bleiben, wenn niemand dich wegschickt?",
+    "rubrik": "hypothetisch"
+  },
+  {
+    "kennung": "nimmst-freien",
+    "text": "Was nimmst du dir für den ersten freien Tag vor?",
+    "rubrik": "zukunft"
+  },
+  {
+    "kennung": "graut-naechstes",
+    "text": "Wovor graut es dir, wenn du an nächstes Jahr denkst?",
+    "rubrik": "zukunft"
+  },
+  {
+    "kennung": "laengst-erledigt",
+    "text": "Was solltest du längst erledigt haben und tust es nicht?",
+    "rubrik": "zukunft"
+  },
+  {
+    "kennung": "anders",
+    "text": "Was möchtest du diesmal anders machen als letztes Mal?",
+    "rubrik": "zukunft"
+  },
+  {
+    "kennung": "satz-jemandem",
+    "text": "Welchen Satz willst du jemandem endlich sagen?",
+    "rubrik": "zukunft"
+  },
+  {
+    "kennung": "sommer-geschafft",
+    "text": "Was möchtest du bis zum Sommer geschafft haben?",
+    "rubrik": "zukunft"
+  },
+  {
+    "kennung": "faehigkeit-nebenbei",
+    "text": "Welche Fähigkeit willst du dir nebenbei aneignen?",
+    "rubrik": "zukunft"
+  },
+  {
+    "kennung": "sparst",
+    "text": "Worauf sparst du gerade hin?",
+    "rubrik": "zukunft"
+  },
+  {
+    "kennung": "meiden-solange",
+    "text": "Welchen Ort willst du meiden, solange du kannst?",
+    "rubrik": "zukunft"
+  },
+  {
+    "kennung": "zulegen-brauchst",
+    "text": "Was willst du dir noch zulegen, obwohl du es kaum brauchst?",
+    "rubrik": "zukunft"
+  },
+  {
+    "kennung": "sache-nimmst",
+    "text": "Welche Sache nimmst du dir jeden Montag neu vor?",
+    "rubrik": "zukunft"
+  },
+  {
+    "kennung": "nimmst-sobald",
+    "text": "Was nimmst du dir vor, sobald die Tage wieder länger werden?",
+    "rubrik": "zukunft"
+  },
+  {
+    "kennung": "handgriff-endlich",
+    "text": "Welchen Handgriff willst du endlich beherrschen, ohne nachzudenken?",
+    "rubrik": "zukunft"
+  },
+  {
+    "kennung": "befolgst-besser",
+    "text": "Wessen Rat befolgst du, obwohl du es besser weißt?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "rufst-stunde",
+    "text": "Wen rufst du an, wenn du eine Stunde totschlagen musst?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "meldest-seltener",
+    "text": "Bei wem meldest du dich seltener, als du solltest?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "satz-uebernommen",
+    "text": "Von wem hast du einen Satz übernommen, den du oft sagst?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "gelingt-satz",
+    "text": "Wem gelingt es, dich in einem Satz zu beruhigen?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "menschen-weichst",
+    "text": "Welchem Menschen weichst du auf dem Weg zur Arbeit aus?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "siehst-anderes",
+    "text": "Wen siehst du nur, wenn jemand anderes es organisiert?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "gegenueber-haettest",
+    "text": "Wem gegenüber tust du so, als hättest du es eilig?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "menschen-schulzeit",
+    "text": "Welchen Menschen aus deiner Schulzeit suchst du manchmal im Netz?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "fragst-bevor",
+    "text": "Wen fragst du, bevor du etwas Teures kaufst?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "mensch-bringt",
+    "text": "Welcher Mensch bringt dich zum Lachen, ohne es zu wollen?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "erzaehlst-neuigkeiten",
+    "text": "Wem erzählst du Neuigkeiten als Letztem?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "menschen-schuld",
+    "text": "Welchem Menschen gibst du die Schuld für eine Angewohnheit?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "anrufen-fremden",
+    "text": "Wen würdest du anrufen, wenn du in einer fremden Stadt strandest?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "gesicht-siehst",
+    "text": "Wessen Gesicht siehst du vor dir, wenn du etwas Peinliches sagst?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "erkennst-treppe",
+    "text": "Wen erkennst du an der Art, wie er eine Treppe hochgeht?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "menschen-hoerst",
+    "text": "Welchen Menschen hörst du noch, wenn er längst den Raum verlassen hat?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "namen-sagst",
+    "text": "Wessen Namen sagst du versehentlich, wenn du dich versprichst?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "siehst-hinten",
+    "text": "Wen siehst du immer nur von hinten?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "mensch-geschenkt",
+    "text": "Welcher Mensch hat dir etwas geschenkt, das du nie benutzt hast?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "menschen-warteschlange",
+    "text": "Welchen Menschen aus einer Warteschlange würdest du wiedererkennen?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "stimme-telefon",
+    "text": "Wessen Stimme am Telefon lässt dich sofort auflegen?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "mensch-platz",
+    "text": "Welcher Mensch hat dir einen Platz freigehalten, der längst besetzt war?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "einkaufswagen-fertig",
+    "text": "Wem gibst du deinen Einkaufswagen, wenn du fertig bist?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "menschen-siehst",
+    "text": "Welchen Menschen siehst du jeden Morgen, ohne je mit ihm zu sprechen?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "handschrift-erkennst",
+    "text": "Wessen Handschrift erkennst du auf einem Zettel sofort?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "winkst-sicher",
+    "text": "Wem winkst du, obwohl du nicht sicher bist, ob er es ist?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "mensch-beigebracht",
+    "text": "Welcher Mensch hat dir beigebracht, wie man einen Brief faltet?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "hoerst-kopf",
+    "text": "Wen hörst du im Kopf, wenn du eine bestimmte Redewendung benutzt?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "lachen-hoerst",
+    "text": "Wessen Lachen hörst du, wenn du an eine bestimmte Situation denkst?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "anruf-display",
+    "text": "Wessen Anruf auf dem Display lässt dich das Klingeln ignorieren?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "menschen-erkennst",
+    "text": "Welchen Menschen erkennst du an einem Husten?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "geliehen-zurueckbekamst",
+    "text": "Wem hast du zuletzt etwas geliehen, das du nie zurückbekamst?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "umzug-geholfen",
+    "text": "Wem hast du beim Umzug geholfen und nie wieder gesehen?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "anruf-absichtlich",
+    "text": "Wessen Anruf hast du einmal absichtlich verpasst?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "menschen-schlange",
+    "text": "Welchen Menschen aus einer Schlange erkennst du an den Schuhen?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "gegeben-gebraucht",
+    "text": "Wem hast du etwas gegeben, das du selbst gebraucht hättest?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "menschen-siehst-briefkasten",
+    "text": "Welchen Menschen siehst du nur, wenn du zum Briefkasten gehst?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "telefonnummer-kennst",
+    "text": "Wessen Telefonnummer kennst du auswendig, obwohl du sie nie anrufst?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "recht-anderer",
+    "text": "Wem gibst du recht, obwohl du anderer Meinung bist?",
+    "rubrik": "menschen"
+  },
+  {
+    "kennung": "haenden-nachdenkst",
+    "text": "Was machst du mit deinen Händen, wenn du nachdenkst?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "langem-sitzen",
+    "text": "Wo tut es dir nach langem Sitzen zuerst weh?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "bewegung-morgens",
+    "text": "Welche Bewegung machst du morgens noch im Halbschlaf?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "trinkst-kalt",
+    "text": "Was trinkst du, wenn dir kalt ist?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "stelle-koerper",
+    "text": "Welche Stelle am Körper wärmst du zuerst an den Händen?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "legst-einschlafen",
+    "text": "Wie legst du dich hin, wenn du nicht einschlafen kannst?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "finger-benutzt",
+    "text": "Welchen Finger benutzt du beim Tippen am seltensten?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "koerperteil-knackt",
+    "text": "Welches Körperteil knackt bei dir am lautesten?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "stelle-ruecken",
+    "text": "Welche Stelle am Rücken erreichst du mit der Hand am schlechtesten?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "beisst-versehen",
+    "text": "Wo beißt du dir aus Versehen auf die Zunge?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "nase-laeuft",
+    "text": "Was tust du, wenn dir die Nase läuft und kein Taschentuch da ist?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "hand-haelt",
+    "text": "Welche Hand hält bei dir die Gabel?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "kleidungsstueck-spuerst",
+    "text": "Welches Kleidungsstück spürst du den ganzen Tag?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "schaust-gehen",
+    "text": "Wohin schaust du, wenn du dich beim Gehen konzentrierst?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "mund-angestrengt",
+    "text": "Was machst du mit deinem Mund, wenn du angestrengt nachdenkst?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "legst-zunge",
+    "text": "Wohin legst du deine Zunge, wenn du dich konzentrierst?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "geraeusch-magen",
+    "text": "Welches Geräusch macht dein Magen, wenn du hungrig bist?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "juckt-muede",
+    "text": "Wo juckt es dich, wenn du müde wirst?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "zahnbuerste-putzt",
+    "text": "Wie hältst du deine Zahnbürste, wenn du putzt?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "beisst-lippe",
+    "text": "Wo beißt du dir auf die Lippe, wenn du nervös bist?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "setzt-boden",
+    "text": "Welchen Fuß setzt du zuerst auf den Boden, wenn du aufstehst?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "stoesst",
+    "text": "Welchen Zeh stößt du dir am häufigsten an?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "spuerst-kaelte",
+    "text": "Wo spürst du Kälte zuerst, wenn du nach draußen gehst?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "schnell-aufstehst",
+    "text": "Wo tut es dir weh, wenn du zu schnell aufstehst?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "spuerst-sitz",
+    "text": "Wo spürst du den Sitz deiner Hose am meisten?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "kopf-muede",
+    "text": "Wie hältst du deinen Kopf, wenn du müde bist?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "legst-haende",
+    "text": "Wohin legst du deine Hände beim Schlafen?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "geraeusch-knie",
+    "text": "Welches Geräusch macht dein Knie beim Treppensteigen?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "spuerst-boden",
+    "text": "Wo spürst du den Boden am deutlichsten unter deinen Füßen?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "gelenk-morgens",
+    "text": "Welches Gelenk wird bei dir morgens zuerst laut?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "koerper-spuerst",
+    "text": "Wo am Körper spürst du Anspannung, wenn du wartest?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "stelle-koerper-spannt",
+    "text": "Welche Stelle am Körper spannt sich an, bevor du niesen musst?",
+    "rubrik": "koerper"
+  },
+  {
+    "kennung": "finger-legst",
+    "text": "Welchen Finger legst du an die Lippen, wenn du leise sein willst?",
+    "rubrik": "koerper"
   }
 ]

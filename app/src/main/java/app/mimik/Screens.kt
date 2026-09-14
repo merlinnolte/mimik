@@ -36,8 +36,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -119,6 +121,57 @@ internal fun Wartezeile(text: String) {
 }
 
 /**
+ * Die freiwillige Stimme zur Frage: eine Zeile, kein Bildschirm.
+ *
+ * Sie steht dort, wo sowieso gewartet wird – nach dem Abschicken hat der
+ * Spieler mindestens fünfzehn Sekunden nichts zu tun. Nichts muss weggeklickt
+ * werden, nichts wartet auf eine Antwort, und wer sie überliest, verliert
+ * nichts: Die Runde geht von selbst weiter.
+ *
+ * Deshalb auch so klein und in der gedämpften Farbe. Ein Bedienelement, das
+ * etwas anbietet, aber nichts verlangt, darf nicht aussehen wie eines, das
+ * etwas verlangt. Erst die getroffene Wahl bekommt die Akzentfarbe – als
+ * Quittung, nicht als Aufforderung.
+ *
+ * Dieselbe Seite noch einmal getippt nimmt die Stimme zurück (urteilNach). Ein
+ * eigener Knopf dafür wäre eine dritte Sache in einer Zeile, die eine bleiben
+ * soll.
+ */
+@Composable
+internal fun Fragenurteil(modell: AppModel, r: RundeAus) {
+    if (!urteilOffen(r)) return
+    val p = LokalePalette.current
+    val stand = urteilstand(r, modell.urteile)
+
+    @Composable
+    fun Seite(text: String, wert: Int) {
+        val an = stand == wert
+        Text(
+            text,
+            color = if (an) p.accent else p.fgDim,
+            fontSize = 12.sp,
+            modifier = Modifier
+                .clickable { modell.urteilSenden(r.id, urteilNach(stand, wert)) }
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+        )
+    }
+
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            if (stand == 0) "Gute Frage?" else "Notiert.",
+            color = p.fgDim, fontSize = 11.sp,
+        )
+        Seite("ja", 1)
+        Text("·", color = p.border, fontSize = 11.sp)
+        Seite("nicht so", -1)
+    }
+}
+
+/**
  * Das Zahnrad liegt über dem Bildschirm, nicht in ihm: Es gehört auf jeden
  * Spielbildschirm, und keiner davon soll deshalb eine Kopfleiste bekommen, die
  * die mittige Anordnung wieder kaputt macht.
@@ -152,7 +205,12 @@ fun StartBildschirm(modell: AppModel) {
     var name by remember { mutableStateOf("") }
     var url by remember { mutableStateOf(modell.server) }
     var einladung by remember { mutableStateOf("") }
-    var serverZeigen by remember { mutableStateOf(false) }
+    var schluessel by remember { mutableStateOf("") }
+    var umzug by remember { mutableStateOf(false) }
+    // Bringt der Bau keine Adresse mit, ist das Feld der erste Schritt und
+    // keine Klappe für Entwickler. Im Debugbau bleibt es versteckt: Dort steht
+    // eine Vorgabe, und wer einfach spielen will, geht sie nichts an.
+    var serverZeigen by remember { mutableStateOf(BuildConfig.VORGABE_SERVER.isBlank()) }
     Huelle(modell) {
         MimikKopf(Miene.Bereit, "Wir kennen uns noch nicht.", schrift = 19)
         Text(
@@ -160,30 +218,69 @@ fun StartBildschirm(modell: AppModel) {
             letterSpacing = 6.sp, maxLines = 1,
         )
         Zeile("Vier Antworten. Eine ist echt.", p.fgDim, 12)
-        Panel(titel = "Anmelden") {
-            Zeile("Dein Spitzname", p.fgDim, 11)
-            Feld(name, { name = it }, hinweis = "Wie heißt du im Spiel?")
-            Spacer(Modifier.height(10.dp))
-            Zeile("Einladungs-Code", p.fgDim, 11)
-            Feld(einladung, { einladung = it }, hinweis = "leer lassen, wenn keiner")
-            // Die Serveradresse steht voreingestellt und geht niemanden etwas
-            // an, der einfach spielen will. Für einen Test gegen einen anderen
-            // Server bleibt sie erreichbar - aber erst auf Verlangen.
-            if (serverZeigen) {
-                Spacer(Modifier.height(10.dp))
-                Zeile("Serveradresse", p.fgDim, 11)
-                Feld(url, { url = it }, hinweis = "https://…")
+
+        if (serverZeigen) {
+            Panel(titel = "Server") {
+                Zeile("Auf welchem Server spielst du?", p.fgDim, 11)
+                Feld(url, { url = it }, hinweis = "mimik.beispiel.de")
+                Spacer(Modifier.height(8.dp))
+                Zeile(
+                    "MIMIK gehört zu keinem Dienst. Der Server ist der, den ihr " +
+                        "betreibt oder auf den ihr eingeladen wurdet.",
+                    p.fgDim, 11,
+                )
             }
+        }
+
+        if (!umzug) {
+            Panel(titel = "Anmelden") {
+                Zeile("Dein Spitzname", p.fgDim, 11)
+                Feld(name, { name = it }, hinweis = "Wie heißt du im Spiel?")
+                Spacer(Modifier.height(10.dp))
+                Zeile("Einladungs-Code", p.fgDim, 11)
+                Feld(einladung, { einladung = it }, hinweis = "leer lassen, wenn keiner")
+            }
+            Aktionen {
+                Knopf(
+                    "Gerät anmelden", betont = true,
+                    aktiv = name.isNotBlank() && url.isNotBlank() && !modell.laden,
+                ) {
+                    if (modell.serverSetzen(url)) modell.anmelden(name, einladung)
+                }
+            }
+        } else {
+            // Der Weg zurück in ein bestehendes Konto. Siehe Umzug.kt: Nach
+            // einer Neuinstallation ist der lokale Speicher leer, auf dem
+            // Server steht aber alles noch – am Schlüssel.
+            Panel(titel = "Gerät umziehen") {
+                Zeile("Dein Schlüssel", p.fgDim, 11)
+                Feld(schluessel, { schluessel = it }, hinweis = "aus den Einstellungen des alten Geräts", zeilen = 3)
+                Spacer(Modifier.height(8.dp))
+                Zeile(
+                    "Damit bist du wieder derselbe Spieler – mit Party, Punktestand " +
+                        "und Dossier. Das alte Gerät bleibt ebenfalls angemeldet.",
+                    p.fgDim, 11,
+                )
+            }
+            Aktionen {
+                Knopf(
+                    "Konto übernehmen", betont = true,
+                    aktiv = schluessel.isNotBlank() && url.isNotBlank() && !modell.laden,
+                ) {
+                    if (modell.serverSetzen(url)) modell.mitSchluessel(schluessel)
+                }
+            }
+        }
+
+        Klickbar(beiKlick = { umzug = !umzug }) {
+            Zeile(
+                if (umzug) "Ich bin neu hier" else "Ich hatte MIMIK schon",
+                p.fgDim, 11,
+            )
         }
         if (!serverZeigen) {
             Klickbar(beiKlick = { serverZeigen = true }) {
                 Zeile("Anderer Server", p.fgDim, 11)
-            }
-        }
-        Aktionen {
-            Knopf("Gerät anmelden", betont = true, aktiv = name.isNotBlank() && !modell.laden) {
-                modell.serverSetzen(url)
-                modell.anmelden(name, einladung)
             }
         }
     }
@@ -459,15 +556,20 @@ fun WartenBildschirm(modell: AppModel) {
     // Die Karten sind da, der Balken läuft aber noch voll. Der Bildschirm
     // bleibt so lange stehen; das Gesicht darf schon aufhören zu denken.
     val fertig = modell.balkenLaeuftVoll == r.id
+    // Wer wartet, wartet auf einen Menschen mit Namen. „Sie" zwingt den Leser,
+    // aus dem Zusammenhang zu erschließen, wer gemeint ist - der Spitzname sagt
+    // es sofort. Klein geschrieben der Notbehelf, weil er mitten im Satz steht.
+    val sie = modell.partnerName.ifBlank { "die andere Seite" }
     Huelle(modell) {
         MimikKopf(
             if (arbeitet && !fertig) Miene.Denkt else Miene.Bereit,
             if (fertig) "Fertig. Vier Karten, eine ist echt."
             else if (arbeitet) "Ich baue gerade drei Fälschungen. Das dauert einen Moment."
-            else "Deine Antwort steht. Jetzt ist die andere Seite dran.",
+            else "Deine Antwort steht. Jetzt ist $sie dran.",
             schrift = 19,
         )
         Frage(r.frage)
+        Fragenurteil(modell, r)
         // Solange MIMIK arbeitet, steht hier die regelbasierte Notfassung. Die
         // endgültige schreibt sie selbst, zusammen mit den Fälschungen – der
         // Titel sagt das, statt den Wechsel klammheimlich passieren zu lassen.
@@ -488,7 +590,7 @@ fun WartenBildschirm(modell: AppModel) {
                 else "Es geht von selbst weiter, du musst nicht warten.",
             )
         } else {
-            Wartezeile("Es geht von selbst weiter, sobald sie geantwortet hat.")
+            Wartezeile("Es geht von selbst weiter, sobald $sie geantwortet hat.")
         }
     }
 }
@@ -539,8 +641,9 @@ fun GetipptBildschirm(modell: AppModel) {
     val p = LokalePalette.current
     val r = modell.aktuelleRunde ?: return
     val meine = r.karten.firstOrNull { it.pos == r.meinTipp }
+    val sie = modell.partnerName.ifBlank { "die andere Seite" }
     Huelle(modell) {
-        MimikKopf(Miene.Denkt, "Tipp steht. Die Auflösung kommt, sobald auch sie getippt hat.", schrift = 19)
+        MimikKopf(Miene.Denkt, "Tipp steht. Die Auflösung kommt, sobald auch $sie getippt hat.", schrift = 19)
         Frage(r.frage)
         Panel(titel = "Deine Wahl", betont = true) {
             Row {
@@ -548,7 +651,7 @@ fun GetipptBildschirm(modell: AppModel) {
                 Text(meine?.text.orEmpty(), color = p.fg, fontSize = 14.sp, lineHeight = 22.sp)
             }
         }
-        Wartezeile("Es geht von selbst weiter, sobald sie getippt hat.")
+        Wartezeile("Es geht von selbst weiter, sobald $sie getippt hat.")
     }
 }
 
@@ -675,6 +778,8 @@ fun EinstellungenBildschirm(modell: AppModel) {
     var spielBeenden by remember { mutableStateOf(false) }
     var partyVerlassen by remember { mutableStateOf(false) }
     var bestaetigung by remember { mutableStateOf("") }
+    var schluesselZeigen by remember { mutableStateOf(false) }
+    val ablage = LocalClipboardManager.current
 
     Huelle(modell) {
         MimikKopf(Miene.Bereit, "Was möchtest du ändern?")
@@ -749,6 +854,38 @@ fun EinstellungenBildschirm(modell: AppModel) {
             Zeile("MIMIKs Ansage noch einmal von vorn.", p.fgDim, 11)
             Spacer(Modifier.height(8.dp))
             Knopf("Erneut ansehen") { modell.introZeigen() }
+        }
+
+        Fassungsfeld(modell)
+
+        // Der Schlüssel ist das Konto. Er steht hier, weil es sonst keinen Weg
+        // zurück gäbe: Wechselt die Signatur oder geht das Telefon verloren, ist
+        // der lokale Speicher weg und auf dem Server hängt alles an dieser
+        // Zeichenkette. Siehe Umzug.kt.
+        Panel(titel = "Dieses Gerät") {
+            if (!schluesselZeigen) {
+                Zeile(
+                    "Dein Schlüssel bringt dieses Konto auf ein anderes Gerät – " +
+                        "oder auf eine Neuinstallation.",
+                    p.fgDim, 11,
+                )
+                Spacer(Modifier.height(8.dp))
+                Knopf("Schlüssel zeigen") { schluesselZeigen = true }
+            } else {
+                Zeile(
+                    "Wer ihn hat, ist du. Gib ihn niemandem, den du nicht selbst bist.",
+                    p.warn, 11,
+                )
+                Spacer(Modifier.height(8.dp))
+                Zeile(schluesselAnzeige(modell.schluessel), p.fg, 12)
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Knopf("Kopieren") {
+                        ablage.setText(AnnotatedString(modell.schluessel))
+                    }
+                    Knopf("Verbergen") { schluesselZeigen = false }
+                }
+            }
         }
 
         // Was MIMIK über einen weiß, steht bisher nur im Prompt. Wer sich
@@ -870,6 +1007,56 @@ fun EinstellungenBildschirm(modell: AppModel) {
         }
 
         Aktionen { Knopf("Zurück", betont = true) { modell.einstellungen(false) } }
+    }
+}
+
+/**
+ * Welche Fassung läuft und ob es eine neuere gibt.
+ *
+ * MIMIK wird nicht über einen Store verteilt, also fragt die App selbst bei den
+ * Releases nach. Installieren tut sie nichts still: Geladen wird auf Knopfdruck,
+ * und den Installer führt das System.
+ */
+@Composable
+private fun Fassungsfeld(modell: AppModel) {
+    val p = LokalePalette.current
+    val neu = modell.angeboten
+    val laedt = modell.fassungLaedt
+    Panel(titel = "Fassung", rechts = modell.fassung, betont = neu != null) {
+        when {
+            laedt != null -> {
+                Zeile("Lade Fassung ${neu?.name.orEmpty()} … $laedt %", p.accent, 12)
+                Spacer(Modifier.height(8.dp))
+                Zeile(
+                    "Danach fragt Android, ob es installieren darf. Deine Anmeldung " +
+                        "bleibt dabei stehen.",
+                    p.fgDim, 11,
+                )
+            }
+            neu != null -> {
+                Zeile("Fassung ${neu.name} ist da.", p.accent, 13)
+                if (neu.notiz.isNotBlank()) {
+                    Spacer(Modifier.height(6.dp))
+                    Zeile(neu.notiz.lineSequence().take(6).joinToString("\n"), p.fgDim, 11)
+                }
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Knopf("Jetzt laden", betont = true) { modell.fassungHolen() }
+                    Knopf("Später") { modell.fassungUebergehen() }
+                }
+            }
+            else -> {
+                Zeile("MIMIK ${modell.fassung}. Updates kommen von GitHub.", p.fgDim, 11)
+                Spacer(Modifier.height(8.dp))
+                Knopf("Nach Updates suchen", aktiv = !modell.fassungSucht) {
+                    modell.fassungSuchen()
+                }
+            }
+        }
+        modell.fassungHinweis?.let {
+            Spacer(Modifier.height(8.dp))
+            Zeile(it, p.fgDim, 11)
+        }
     }
 }
 

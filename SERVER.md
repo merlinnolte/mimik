@@ -56,6 +56,7 @@ Alles außer `POST /v1/devices` braucht `Authorization: Bearer <token>`.
 | `POST /v1/matches/abbrechen` | Laufendes Match beenden, für beide Seiten |
 | `POST /v1/rounds/{id}/answer` | Antwort abgeben |
 | `POST /v1/rounds/{id}/guess` | Karte wählen |
+| `POST /v1/rounds/{id}/urteil` | Freiwillige Stimme zur Frage: `1`, `-1`, `0` |
 | `GET /v1/dossier` | Eigenes Dossier lesen – Fakten, verbrauchte Themen, Tags, Profil |
 | `DELETE /v1/dossier` | Dossier löschen, Tags bleiben |
 | `POST /v1/me/name` | Umbenennen, Dossier bleibt |
@@ -118,6 +119,106 @@ einem Bot ist es richtig: Er ist niemandem gegenüber sein Name.
 war das dasselbe; sobald jemand zwei spielt, bekäme er dieselbe Frage ein
 zweites Mal – und die zweite Antwort wäre die erste, nur schlechter. Die neue
 Wahrheit steht in `fragen_vergeben`, je Spieler.
+
+Dazu gehört, dass eine vergebene Frage **nicht** zurückkommt. `PartyVerlassen`
+sagt das so: „Sie in den Vorrat zurückzulegen hieße, denselben Menschen
+dieselben Fragen noch einmal zu stellen." `AllesLoeschen` tat trotzdem genau
+das – `DELETE FROM fragen_vergeben WHERE party_id = ?` traf allerdings nicht den
+Gehenden (dessen Zeilen räumt `spielerreste` über die `player_id`), sondern
+allein den **Partner, der bleibt**. Die Zeile ist weg;
+`TestKontoloeschenGibtDemPartnerNichtsZurueck` hält sie fern.
+
+### Eine Frage korrigieren, ohne sie neu zu stellen
+
+`internal/seed/fragen.json` ist die Wahrheit, `fragen_pool` ihre Projektion:
+`fragenAbgleichen` richtet die Tabelle beim Start nach der Datei.
+
+Die Identität einer Frage ist ihre `kennung`. Ohne sie war ein Tippfehler in
+einer ausgelieferten Frage unbehebbar – `INSERT OR IGNORE` kennt kein `UPDATE`,
+der korrigierte Text wäre als **zweite** Zeile mit neuer `id` gelandet, die alte
+stehen geblieben, und jeder, der die Frage beantwortet hat, hätte sie
+wiederbekommen. `fragen_kennungen` rettet die Zuordnung Kennung → `id` über
+jeden Neustart und über eine Rücknahme hinweg.
+
+| Was du willst | Was du in `fragen.json` tust |
+|---|---|
+| Frage hinzufügen | Eintrag anhängen, eigene Kennung |
+| Tippfehler beheben | `text` ändern, **Kennung stehen lassen** |
+| Frage zurückziehen | Eintrag löschen, Kennung nicht wiederverwenden |
+| Frage zurückholen | Eintrag wieder hinzufügen – sie bekommt **dieselbe** `id` |
+
+Eine Kennung umzubenennen heißt, die Frage zu ersetzen: neue `id`, und jeder
+bekommt sie noch einmal.
+
+Beim Start steht im Protokoll, was passiert ist – die einzige Stelle, an der
+sichtbar wird, dass der Server von sich aus Fragen entfernt hat:
+
+```
+fragenvorrat: 358 fragen (0 neu, 0 gebrueckt, 0 geaendert, 0 entfernt) map[alltag:66 ...]
+```
+
+`gebrueckt` steht nur beim ersten Start nach dieser Änderung hoch: Dort
+findet jede Kennung über den Text ihre bestehende `id`. Ohne diese Brücke
+bekäme der ganze Vorrat neue `id`s und jeder Mensch alle Fragen ein zweites Mal.
+
+### Ob die Frage getaugt hat
+
+`POST /v1/rounds/{id}/urteil` mit `{"urteil": 1}`, `-1` oder `0`
+(zurücknehmen). Höchstens eine Stimme je Mensch und Frage, in
+`fragen_urteile`; die eigene steht im Zustand als `mein_urteil` je Runde und
+geht **nie** in den Zustand des Mitspielers.
+
+Kein Fremdschlüssel auf `fragen_pool`, aus demselben Grund wie bei
+`fragen_vergeben`: Die Stimme überlebt, dass eine Frage den Vorrat verlässt, und
+kommt sie über ihre Kennung zurück, hat sie ihre Stimmen wieder.
+
+Gezogen wird seither **gewichtet** statt gleichverteilt – `Fragengewicht`, Mitte
+6, ein Zuspruch +3, eine Ablehnung −4, geklemmt auf 1 bis 18:
+
+```
+ohne Stimmen 6   ·   ein Zuspruch 9   ·   eine Ablehnung 2   ·   uneinig 5
+```
+
+Gemessen an drei Fragen mit 6 : 2 : 9 und 240 Ziehungen: 88 : 26 : 126.
+
+Die Ablehnung wiegt schwerer als der Zuspruch, weil eine schlechte Frage eine
+Runde für zwei Menschen verbrennt und eine gute nur wenig besser ist als der
+Durchschnitt. Der Boden von 1 ist Absicht: Bei zwei Nutzern soll ein einzelner
+Daumen eine Frage nicht für alle löschen können.
+
+Steht die Frage nicht mehr im Vorrat, antwortet der Endpunkt trotzdem mit 200
+und `{"urteil": 0}` – es gibt dann nichts zu gewichten, und das ist eine Zeile
+im Protokoll, keine Fehlermeldung an jemanden, der gerade etwas Freundliches
+getan hat.
+
+### Zwei Texte, eine Frage
+
+`fragen_vergeben` verhindert, dass ein Mensch dieselbe `id` zweimal bekommt –
+nicht, dass er zweimal dieselbe *Frage* bekommt. Zwei Zeilen mit verschiedener
+`id` gelten als verschiedene Fragen. Im Bestand standen vierzehn solcher Paare,
+eines wörtlich dieselbe Frage mit „möchtest" statt „willst".
+
+`mimik.Fragennaehe` misst das: Jaccard über die **Inhaltswörter**, nachdem der
+Fragerahmen gestrichen ist. Das übliche n-Gramm-Maß taugt hier nicht – es stellt
+Rahmengleichheit über Bedeutungsgleichheit, weil eine Frage kurz ist:
+
+| Paar | n-Gramm | Kern | |
+|---|---|---|---|
+| „Welches **Geräusch** magst du, obwohl die meisten es nicht mögen?" / „Welches **Wetter** magst du, obwohl die meisten es hassen?" | 0.48 | 0.20 | verschieden |
+| „Was würdest du **sagen**, wenn niemand **beleidigt** sein könnte?" / „Was würdest du **tun**, wenn dir niemand **zusehen** könnte?" | 0.38 | 0.00 | verschieden |
+| „Welche **Aufgabe** im Haushalt **schiebst** du **vor dir her**" / „Welche **Aufgabe schiebst** du gerade **vor dir her**" | 0.44 | 0.60 | **Doppel** |
+
+Zwei Stufen: ab **0.50** sperrt `internal/seed/fragen_test.go`, ab **0.33**
+steht das Paar nur zum Ansehen da. Gemessen an den 144 Fragen vor den
+Rücknahmen: drei Paare über 0.50, alle drei echt, kein Fehlalarm.
+
+**Was es nicht kann:** dieselbe Frage ohne ein gemeinsames Wort. „Was würdest du
+an einem Tag machen, an dem du unsichtbar wärst?" gegen „Was würdest du tun,
+wenn dir niemand zusehen könnte?" liegt bei 0.00. Dafür ist
+`python3 pruefe-fragen.py --modell` da – zweistufig, weil die Suche allein
+unbrauchbar ist: 74 Paare für 136 Fragen, davon rund sechzig Unsinn. Die zweite
+Stufe urteilt über jedes Paar einzeln und machte daraus 7. Über die fertigen 358
+Fragen: 298 Verdachtsfälle, 22 Urteile, davon 14 echt.
 
 ## Dass die Fälschung die Frage beantwortet
 
@@ -224,6 +325,34 @@ und in der Auflösung steht nur `partner_tipp_grund`: die Begründung der einen
 Fälschung, auf die die andere Seite hereingefallen ist — und die ist aus dem
 eigenen Material gebaut. Ein Test (`TestBegruendungNurUeberMichSelbst`) hält
 beide Richtungen fest.
+
+### Was in einer Begründung nicht vorkommt
+
+**Die echte Antwort dieser Runde.** Nicht, was MIMIK daraus genommen hat, und
+vor allem nicht, was sie daraus weggelassen hat.
+
+Der Prompt hat das eine Zeit lang selbst verhindert und gleichzeitig gefordert:
+Er verlangte, „die Formulierung aus `[echte_antwort_roh]`, an die du angeknüpft
+hast" beim Namen zu nennen – und verbot vier Zeilen später, auf der echten
+Antwort aufzubauen. Ein Modell, dem man beides sagt, berichtet den Widerspruch,
+und in den Begründungen stand dann, welche Gegenstände aus der Antwort es
+*nicht* erwähnt hat. Richtig gearbeitet, falsch erzählt: Die Begründung handelte
+von der eigenen Arbeit statt von der Person – und vom Material, auf das sie sich
+gerade *nicht* bezieht.
+
+Verraten war dabei nie etwas; die Begründung sieht nur der Mensch, um dessen
+eigene Antwort es geht. Es ist eine Frage davon, wie es sich liest.
+
+`mimik.Antwortbezug` prüft es nach: Inhaltswörter ab vier Zeichen, die **nur**
+in der echten Antwort stehen – nicht in der Frage, nicht im Material, nicht in
+der beschriebenen Fälschung selbst –, dürfen in der Begründung nicht
+auftauchen. Alles andere darf, denn dort kommt es legitim her. Weiche Prüfung
+wie `Stilbruch`: Sie stößt einen neuen Versuch an, der beste von drei gilt.
+
+Gemessen an zehn Runden nach der Änderung: kein Verstoß, kein Fehlalarm, kein
+Wiederholungsversuch. Die Begründungen lesen sich seither wie „Du hast
+Zugfahren unter deinen Interessen stehen – daraus habe ich das Ruckeln gemacht"
+oder, im Normalfall, „hier habe ich nichts aus dem Material genommen".
 
 ## Das Profil
 

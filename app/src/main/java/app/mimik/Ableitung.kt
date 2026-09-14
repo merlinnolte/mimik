@@ -114,6 +114,38 @@ fun naechsteAufloesung(p: Spielzustand, g: Gesehen?): String? {
         .minByOrNull { it.nummer }?.id
 }
 
+// --------------------------------------------------------- Fragenurteil ---
+
+/**
+ * Ob zu dieser Runde überhaupt nach der Frage gefragt wird.
+ *
+ * Erst nach der eigenen Antwort: Vorher hat der Spieler nichts mit der Frage
+ * gemacht, und ein Urteil ohne Berührung ist eine Stimmung, keine Auskunft.
+ * Danach steht sie auf dem Warte- und dem Klonbildschirm – dass sie an zwei
+ * Stellen steht, ist Absicht: Ist MIMIK schon fertig, wenn der Spieler
+ * abschickt, wird der Wartebildschirm übersprungen.
+ */
+fun urteilOffen(r: RundeAus): Boolean = r.meineAntwort.isNotBlank()
+
+/**
+ * Was der Daumen zeigt.
+ *
+ * Die eigene, noch nicht bestätigte Wahl schlägt den Server. Ohne das
+ * springt die Anzeige zurück: Der Abgleich läuft alle drei Sekunden, und
+ * dazwischen käme eine Antwort herein, in der die gerade abgegebene Stimme
+ * noch nicht steht.
+ */
+fun urteilstand(r: RundeAus, lokal: Map<String, Int>): Int = lokal[r.id] ?: r.meinUrteil
+
+/**
+ * Was ein Tippen auf eine Seite bewirkt: dieselbe Seite nochmal zieht die
+ * Stimme zurück.
+ *
+ * So braucht das Zurücknehmen kein eigenes Bedienelement – und ohne diesen Weg
+ * wäre eine versehentlich abgegebene Stimme für immer festgeschrieben.
+ */
+fun urteilNach(stand: Int, getippt: Int): Int = if (stand == getippt) 0 else getippt
+
 // ------------------------------------------------------------------ Lobby ---
 
 /**
@@ -172,11 +204,16 @@ fun meldeplan(l: LobbyAus, gemeldet: Map<String, String>): Meldeplan {
         val kennung = "${p.dran}:${p.runde}"
         merker[p.partyId] = kennung
         if (gemeldet[p.partyId] == kennung) continue
-        val wer = p.partner?.spitzname?.take(24).orEmpty().ifBlank { "Die andere Seite" }
+        val name = p.partner?.spitzname?.take(24).orEmpty()
+        // Zweimal derselbe Mensch, zweimal andere Stellung: vorn als Etikett,
+        // hinten mitten im Satz. Nur der Notbehelf muss sich danach richten,
+        // ein Spitzname steht in beiden Fällen so, wie er geschrieben wird.
+        val wer = name.ifBlank { "Die andere Seite" }
+        val sie = name.ifBlank { "die andere Seite" }
         val (titel, text) = if (p.dran == "schreiben") {
             "MIMIK wartet" to "$wer · Deine Antwort fehlt noch."
         } else {
-            "Vier Karten liegen bereit" to "$wer · Eine davon ist wirklich von ihr."
+            "Vier Karten liegen bereit" to "$wer · Eine davon ist wirklich von $sie."
         }
         zeigen += Meldung(p.partyId, kennung, titel, text)
     }

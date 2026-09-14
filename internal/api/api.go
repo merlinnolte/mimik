@@ -71,6 +71,7 @@ func (s *Server) Routes() http.Handler {
 		"POST /v1/matches/abbrechen":         s.matchAbbrechen,
 		"POST /v1/rounds/{id}/answer":        s.antworten,
 		"POST /v1/rounds/{id}/guess":         s.raten,
+		"POST /v1/rounds/{id}/urteil":        s.frageUrteilen,
 		"GET /v1/dossier":                    s.dossier,
 		"DELETE /v1/dossier":                 s.dossierLoeschen,
 		"POST /v1/me/name":                   s.umbenennen,

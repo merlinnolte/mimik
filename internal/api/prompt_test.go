@@ -16,9 +16,9 @@ import (
 // Profil, während der Worker eines füllt, und maß damit an der Wirklichkeit
 // vorbei.
 //
-// Gemessen am 14.09.2026 (Zeichen System + Material): ohne Dossier 10.366, mit
-// zwölf Fakten 11.527, mit zwölf Fakten und zwölf Merkmalen 12.508, mit vierzig
-// Fakten 14.187. Am Endpunkt gemessen sind 3,4 Zeichen ein Token.
+// Gemessen am 14.09.2026 (Zeichen System + Material): ohne Dossier 10.343, mit
+// zwölf Fakten 11.504, mit zwölf Fakten und zwölf Merkmalen 12.485, mit vierzig
+// Fakten 14.164. Am Endpunkt gemessen sind 3,4 Zeichen ein Token.
 //
 // Der Prompt ist an diesem einen Tag von 6.435 auf 9.500 Zeichen gewachsen -
 // und jeder Zuwachs steht für etwas Gemessenes:
@@ -29,6 +29,30 @@ import (
 //	+584  Längenfenster (Karten mit 128 Zeichen gegen 48)
 //	+900  Stilregeln aus der Lügenforschung: keine Begründung, kein Fazit,
 //	      gleicher Bau, nichts Überprüfbares erfinden
+//	+300  die Begründung spricht nicht über die echte Antwort dieser Runde
+//	-690  Aufräumen, nachdem die Grenze zum ersten Mal wirklich klemmte:
+//	      dreifach Gesagtes, drei Sätze für eine Regel, die Begründung der
+//	      eigenen Feldreihenfolge, eine Aufzählung, die wörtlich Formmangel
+//	      ist, ein durch das JSON-Format erledigter Punkt - und eine FALSCHE
+//	      Angabe ("neun bis sechzig Zeichen sind der Normalfall"), die dem
+//	      Längenfenster widersprach, seit es aus der Normalform rechnet.
+//
+// Woher die 13.000 kommen, unbeschönigt: aus dem jeweils letzten Commit. Die
+// Grenze stand bei 9.000, dann 11.200, dann 11.800, dann 13.000 - jedes Mal
+// knapp über dem, was der Prompt gerade maß, und dreimal angehoben, weil eine
+// eigene Ergänzung daran anstieß. Das ist ein Änderungsmelder, keine
+// Kapazitätsgrenze: Ein Modell mit 3.700 Token Systemprompt ist nicht am Ende
+// seines Fensters, und wo seine Aufmerksamkeit nachlässt, ist hier NICHT
+// gemessen.
+//
+// Was gemessen ist: 20 Läufe mit dem Prompt und 20 mit einer um 29 Prozent
+// gekürzten Fassung, dieselben zehn Runden. Auf allen dreizehn mechanischen
+// Kriterien 20/20 gegen 19/20 - also kein Unterschied, den diese Stichprobe
+// zeigen könnte. Genommen wurden davon nur die Kürzungen, die keine Regel
+// antasten; die Beispiele blieben. Zweimal war in der kurzen Fassung eine
+// Abweichung zu sehen, und beide Male an einer Regel, deren BEISPIEL gestrichen
+// war: ein Satzbaubruch und drei Karten mit 19 bis 30 Zeichen neben einer echten
+// mit neun. Eine Regel nennt eine Grenze, ein Beispiel zeigt eine Verteilung.
 //
 // Dass das vertretbar ist, hängt an zwei Messungen, nicht an Geschmack. Erstens:
 // 87 Prozent der Eingabe kommen aus dem Prefix-Cache, und gewachsen ist genau
@@ -52,7 +76,7 @@ func TestPromptbleibtklein(t *testing.T) {
 		groesse = len(in.Messages[0].Content) + len(in.Messages[1].Content)
 		json_(w, 200, map[string]any{"choices": []map[string]any{
 			{"message": map[string]string{"content": `{"normalform":"x","fakt":"f","sperre":[],` +
-				`"antworten":[{"anker":"a","text":"Eins."},{"anker":"b","text":"Zwei."},{"anker":"c","text":"Drei."}]}`}}}})
+				`"antworten":[{"richtung":"a","text":"Eins."},{"richtung":"b","text":"Zwei."},{"richtung":"c","text":"Drei."}]}`}}}})
 	}))
 	defer modell.Close()
 

@@ -1349,3 +1349,94 @@ func TestBegruendungNurUeberMichSelbst(t *testing.T) {
 		t.Fatalf("die begruendung ueber die gegenseite ist bei a gelandet:\n%s", roh)
 	}
 }
+
+// Die freiwillige Stimme zur Frage, durch den ganzen Weg: abgeben, im Zustand
+// wiederfinden, umentscheiden, zuruecknehmen.
+//
+// Und der Teil, der leicht schiefgeht: Die Stimme des einen darf im Zustand des
+// anderen NICHT auftauchen. Sie ist eine private Aeusserung ueber eine Frage,
+// keine Nachricht an den Mitspieler - wer sieht, dass sein Gegenueber die Frage
+// mies fand, liest daraus etwas ueber dessen Antwort.
+func TestFrageUrteilen(t *testing.T) {
+	srv, _, _ := aufbauen(t)
+	machen := func(name string) *klient {
+		k := &klient{t: t, basis: srv.URL}
+		var an struct {
+			Token string `json:"token"`
+		}
+		k.ruf("POST", "/v1/devices", map[string]string{"spitzname": name}, &an)
+		k.token = an.Token
+		k.ruf("PUT", "/v1/tags", map[string]any{"tags": zehnTags()}, nil)
+		return k
+	}
+	a, b := machen("Urteil-A"), machen("Urteil-B")
+	var pa struct {
+		Code string `json:"code"`
+	}
+	a.ruf("POST", "/v1/parties", nil, &pa)
+	b.ruf("POST", "/v1/parties/join", map[string]string{"code": pa.Code}, nil)
+	a.ruf("POST", "/v1/matches", nil, nil)
+
+	// Jeder Abgleich in eine FRISCHE Struktur. Wiederverwendet man sie, laesst
+	// encoding/json Felder stehen, die in der Antwort fehlen - und dann prueft
+	// der Test den alten Wert. Genau deshalb traegt mein_urteil kein omitempty.
+	runden := func(k *klient) []RundeAus {
+		t.Helper()
+		var st struct {
+			Runden []RundeAus `json:"runden"`
+		}
+		k.ruf("GET", "/v1/state", nil, &st)
+		return st.Runden
+	}
+	rs := runden(a)
+	if len(rs) == 0 {
+		t.Fatal("keine Runden")
+	}
+	rid := rs[0].ID
+	if rs[0].MeinUrteil != 0 {
+		t.Errorf("frische Runde traegt schon ein Urteil: %d", rs[0].MeinUrteil)
+	}
+
+	var aus struct {
+		Urteil int `json:"urteil"`
+	}
+	if code := a.ruf("POST", "/v1/rounds/"+rid+"/urteil",
+		map[string]int{"urteil": 1}, &aus); code != 200 {
+		t.Fatalf("urteil: %d", code)
+	}
+	if aus.Urteil != 1 {
+		t.Errorf("Antwort %d, erwartet 1", aus.Urteil)
+	}
+
+	if u := runden(a)[0].MeinUrteil; u != 1 {
+		t.Errorf("Urteil im Zustand = %d, erwartet 1", u)
+	}
+
+	for _, r := range runden(b) {
+		if r.MeinUrteil != 0 {
+			t.Errorf("B sieht die Stimme von A zu Runde %s: %d", r.ID, r.MeinUrteil)
+		}
+	}
+
+	// Umentscheiden und zuruecknehmen.
+	a.ruf("POST", "/v1/rounds/"+rid+"/urteil", map[string]int{"urteil": -1}, &aus)
+	if u := runden(a)[0].MeinUrteil; u != -1 {
+		t.Errorf("nach dem Umentscheiden %d, erwartet -1", u)
+	}
+	a.ruf("POST", "/v1/rounds/"+rid+"/urteil", map[string]int{"urteil": 0}, &aus)
+	if u := runden(a)[0].MeinUrteil; u != 0 {
+		t.Errorf("nach dem Zuruecknehmen %d, erwartet 0", u)
+	}
+
+	// Eine fremde Runde gehoert einem nicht.
+	fremd := &klient{t: t, basis: srv.URL}
+	var reg struct {
+		Token string `json:"token"`
+	}
+	fremd.ruf("POST", "/v1/devices", map[string]string{"spitzname": "Fremde"}, &reg)
+	fremd.token = reg.Token
+	if code := fremd.ruf("POST", "/v1/rounds/"+rid+"/urteil",
+		map[string]int{"urteil": 1}, nil); code != 404 {
+		t.Errorf("fremdes Urteil bekommt %d, erwartet 404", code)
+	}
+}

@@ -27,6 +27,7 @@ Start (direkt gegen DeepSeek):
 Keine Abhängigkeiten außer der Standardbibliothek.
 """
 
+import io
 import json
 import os
 import random
@@ -98,10 +99,10 @@ falsche Antworten, die neben der echten stehen werden.
 Ziel: Ein Mensch, der diese Person sehr gut kennt, bekommt alle vier Antworten
 gemischt vorgelegt und soll die echte nicht herausfinden.
 
-Alle vier Texte – die echte Antwort und deine drei – erscheinen nebeneinander.
-Sie müssen deshalb in derselben sauberen Rechtschreibung stehen. Steht eine
-davon anders da als die übrigen, ist sie erkannt, bevor jemand ihren Inhalt
-gelesen hat. Es geht um den Inhalt, nicht um die Schreibweise.
+Alle vier Texte erscheinen nebeneinander und müssen deshalb in derselben
+sauberen Rechtschreibung stehen. Was nur EINER von ihnen anhaftet, verrät sie,
+bevor jemand ihren Inhalt gelesen hat. Es geht um den Inhalt, nicht um die
+Schreibweise.
 
 Arbeite in dieser Reihenfolge und gib sie in dieser Reihenfolge aus.
 
@@ -114,8 +115,8 @@ Arbeite in dieser Reihenfolge und gib sie in dieser Reihenfolge aus.
      Auslassungspunkte zu drei Punkten,
    - ausgeschriebene Abkürzungen ("vllt" wird "vielleicht", "iwie" wird "irgendwie"),
    - Umschriften von Umlauten, aber nur wo eindeutig: "hoer" wird "hör", "fuer"
-     wird "für", "strasse" wird "straße". Wo es nicht eindeutig ist, bleibt alles
-     stehen: "Poesie", "Michael", "Abenteuer", "aktuell", "Duell", "Museum".
+     wird "für", "strasse" wird "straße". Wo es nicht eindeutig ist, bleibt
+     alles stehen: "Duell", "Museum", "aktuell".
    - Emoji und Kaomoji: ersatzlos entfernen.
 
    Ändere unter keinen Umständen
@@ -124,8 +125,8 @@ Arbeite in dieser Reihenfolge und gib sie in dieser Reihenfolge aus.
    - Inhalt, Meinung, Reihenfolge der Gedanken,
    - die Länge um mehr als zehn Prozent.
 
-   Füge nichts hinzu. Lasse nichts weg. Fasse nichts zusammen. Ist der Text
-   bereits in Ordnung, gib ihn unverändert zurück.
+   Füge nichts hinzu, lasse nichts weg. Ist der Text in Ordnung, gib ihn
+   unverändert zurück.
 
    Beispiele
    ein:  bereuen tu ich nix, ich trink halt viel kaffe
@@ -152,8 +153,7 @@ Arbeite in dieser Reihenfolge und gib sie in dieser Reihenfolge aus.
    Was will die Frage? In drei bis fünf Wörtern, als Gegenstand: "eine Regel der
    Eltern", "eine Kindheitsangst", "ein letzter Streit und sein Anlass", "eine
    Fähigkeit". Das steht VOR den Antworten, weil jede von ihnen genau das
-   liefern muss – und weil es sich hinterher nicht mehr prüfen lässt, wenn schon
-   etwas anderes dasteht.
+   liefern muss.
 
 5. ANTWORTEN
    Beantworte die Frage dreimal – auf drei Arten, wie ein Mensch, auf den das
@@ -190,14 +190,19 @@ Arbeite in dieser Reihenfolge und gib sie in dieser Reihenfolge aus.
 
    Die Begründung kommt NACH der Antwort, nicht davor: Sie hält fest, was du
    benutzt hast, sie plant es nicht. Nenne darin das Material beim Namen – den
-   Fakt, das Interesse, die Formulierung aus [echte_antwort_roh], an die du
-   angeknüpft hast – und sag, was du daraus gemacht hast. In der Ich-Form, an
-   die Person gerichtet:
+   Fakt, das Interesse – und sag, was du daraus gemacht hast. In der Ich-Form,
+   an die Person gerichtet:
    "Du hast einmal von der Nähmaschine erzählt, die nie benutzt wird – daraus
    habe ich einen Stapel Stoff gemacht, der auf denselben Vorsatz wartet."
    Hast du nichts aus dem Material benutzt, sondern nur zur Frage geantwortet,
    dann steht genau das da – und das ist der Normalfall, keine Ausrede.
    Erfinde nie ein Material, das oben nicht steht.
+
+   In der Begründung kommt [echte_antwort_roh] NICHT vor – nicht, was du daraus
+   genommen hast, und vor allem nicht, was du daraus weggelassen hast. "Ohne die
+   Nähmaschine zu erwähnen" ist eine Auskunft über deine Arbeit, nicht über die
+   Person; ihre eigene Antwort liest sie ohnehin daneben. Die Begründung nennt
+   nur das Material.
 
    Für alle drei gilt außerdem:
    - Sie beantworten die Frage wirklich.
@@ -225,24 +230,19 @@ Arbeite in dieser Reihenfolge und gib sie in dieser Reihenfolge aus.
    - Sie streuen in der Länge, aber eng: mindestens eine ist KÜRZER als die
      NORMALFORM, mindestens eine länger, die längste höchstens ANDERTHALBMAL so
      lang, die kürzeste mindestens halb so lang. Zähle die Zeichen, schätze
-     nicht. Neun bis sechzig Zeichen sind der Normalfall; was dreimal so lang
-     ist wie die echte Antwort, ist erkannt, bevor jemand ein Wort davon
-     gelesen hat.
+     nicht. Was dreimal so lang ist wie die echte Antwort, ist erkannt, bevor
+     jemand ein Wort davon gelesen hat.
      Ist die NORMALFORM kürzer als DREISSIG Zeichen, sind alle drei ebenfalls
      Fragmente: höchstens fünf Wörter, kein Komma, kein Nebensatz. Zähle die
      Wörter, schätze nicht.
      Auf "Fenster auf." antwortet niemand mit einem Satz über eine halbe Stunde
      an die Decke starren - da genügt "Kaffee." oder "Wasser aufsetzen."
-   - Sie stehen in derselben sauberen Rechtschreibung wie die NORMALFORM: großer
-     Satzanfang, Substantive groß, ein Satzzeichen am Ende, keine Emoji, keine
-     Mehrfachzeichen.
+   - Sie stehen in derselben sauberen Rechtschreibung wie die NORMALFORM.
 
 Übernimm den Tonfall – Register, Nähe zum Leser, die Art, einen Gedanken
 anzufangen. Übernimm nicht: das Thema, die Gegenstände, die Namen, die Zahlen –
-und nicht das Satzgerüst. Lautet die echte Antwort "Abends Nachrichten lesen,
-danach bin ich nur noch wacher", darf keine deiner drei "…, danach bin ich nur
-noch …" lauten. Vier Karten mit identischem Bau sehen gemacht aus, selbst wenn
-jede für sich stimmt. Gleicher Tonfall, andere Konstruktion.
+und nicht das Satzgerüst. Lautet die echte Antwort "…, danach bin ich nur noch
+wacher", darf keine deiner drei so enden. Gleicher Tonfall, andere Konstruktion.
 
 Übernimm auch die Schreibweise nicht. Hat die Person kleingeschrieben, getippt
 oder Zeichen verdoppelt, steht das weder in der NORMALFORM noch in deinen drei
@@ -250,8 +250,6 @@ Antworten.
 
 Weiter gilt
 - Ich-Form, Deutsch, korrekte Rechtschreibung und Zeichensetzung.
-- Nur die Antworten selbst. Keine Einleitung, keine Anführungszeichen, keine
-  Erklärung, kein Kommentar zur Aufgabe.
 - Erfinde nichts Überprüfbares: keine Namen, Orte, Daten, Zahlen, keine
   Verwandten, keinen Besitz, keinen Beruf, die nicht im Material stehen. Wer
   diese Person kennt, weiß, ob sie einen Bruder hat – eine erfundene Schwester
@@ -472,10 +470,12 @@ def ersatz_normalform(roh):
     return t
 
 
-def faelschungen(frage, roh, profil):
+def materialtext(profil):
+    """Alles ueber die Person - ohne Frage, ohne echte Antwort.
+
+    Zwei Stellen brauchen genau diesen Text: der Aufruf und antwortbezug. Wie
+    Dossier.Materialtext in erzeugen.go."""
     mat = []
-    mat.append("[frage]\n" + frage)
-    mat.append("[echte_antwort_roh]\n" + roh)
     if profil.get("tags"):
         mat.append("[interessen]\n" + ", ".join(profil["tags"]))
     if profil.get("dossier_fakten"):
@@ -488,7 +488,12 @@ def faelschungen(frage, roh, profil):
         mat.append("[dossier · verbrauchte themen]\n" + ", ".join(profil["gesperrte_themen"]))
     if profil.get("anti_beispiele"):
         mat.append("[anti-beispiele]\n" + "\n".join("- " + a for a in profil["anti_beispiele"]))
-    return chat(PROMPT_B, huelle("\n\n".join(mat)), 1.0)
+    return "\n\n".join(mat)
+
+
+def faelschungen(frage, roh, profil):
+    mat = ["[frage]\n" + frage, "[echte_antwort_roh]\n" + roh, materialtext(profil)]
+    return chat(PROMPT_B, huelle("\n\n".join(m for m in mat if m)), 1.0)
 
 
 MAX_KAUSAL = 1
@@ -530,12 +535,28 @@ def floskelbruch(fakes):
             if any(w in f.lower() for w in ABSCHLUSS)]
 
 
-GERIPPE = set("""der die das den dem des ein eine einen einem einer
-mein meine meinen meinem meiner ich mir mich man es
-mit ohne vor nach bei beim in im an am auf aus zu zum zur von vom um ums
-und aber oder dann noch schon immer nie wieder nur auch so
-erste ersten zweite zweiten dritte ist war habe hab hatte bin""".split())
+def wortliste_go(datei, name):
+    """Liest eine map[string]bool aus einer Go-Datei.
+
+    Hier stand einmal eine Handkopie von gerippewoerter - 66 Woerter, die
+    niemand gegenprueft hat, obwohl pruefe-prompts.py genau dafuer da ist. Eine
+    Liste, die an zwei Stellen gepflegt werden muss, laeuft irgendwann
+    auseinander, und dann prueft die Werkbank etwas anderes als der Betrieb.
+    Gelesen statt kopiert gibt es nichts, was driften kann."""
+    h = io.open(datei, encoding="utf-8").read()
+    i = h.index("var %s = map[string]bool{" % name)
+    return set(re.findall(r'"([^"]+)":\s*true', h[i:h.index("\n}", i)]))
+
+
+GERIPPE = wortliste_go("internal/mimik/stil.go", "gerippewoerter")
+RAHMEN = wortliste_go("internal/mimik/frage.go", "fragerahmen")
 MIN_GERIPPE, MIN_GLEICHER_ANFANG, ENTHALTEN_GERIPPE = 3, 4, 0.8
+
+
+def kern(text):
+    """Die Inhaltswoerter eines Textes - wie Fragenkern in frage.go."""
+    return {w for w in re.findall(r"[^\W\d_]+", text.lower())
+            if w not in RAHMEN and len(w) > 2}
 
 
 def gerippe(text):
@@ -576,6 +597,31 @@ def stilbruch(norm, fakes):
         if xs:
             return n, grund
     return 0, ""
+
+
+MIN_BEZUGSWORT = 4
+
+
+def antwortbezug(norm, frage, material, fakes, gruende):
+    """Begruendungen, die ein Wort aus der echten Antwort dieser Runde benutzen,
+    das nirgends sonst herkommen kann. Wie begruendung.go."""
+    echt = kern(norm)
+    if not echt:
+        return []
+    for erlaubt in (frage, material):
+        echt -= kern(erlaubt)
+    out = []
+    for i, grund in enumerate(gruende):
+        if not (grund or "").strip():
+            continue
+        eigen = kern(fakes[i]) if i < len(fakes) else set()
+        for w in kern(grund):
+            if len(w) < MIN_BEZUGSWORT:
+                continue
+            if w in echt and w not in eigen:
+                out.append(i)
+                break
+    return out
 
 
 def laengenfenster(norm):
@@ -650,6 +696,11 @@ def runde(profil, r, nr):
             continue
         mess = abstandsfenster(norm, fakes)
         stil, stilgrund = stilbruch(norm, fakes)
+        gruende = [a.get("begruendung", "") for a in out.get("antworten", [])][:3]
+        bezug = antwortbezug(norm, r["frage"], materialtext(profil), fakes, gruende)
+        if bezug:
+            stil += len(bezug)
+            stilgrund = stilgrund or "Antwortbezug"
         if mess["naehe_ok"] and mess["streuung_ok"] and not stil:
             break
         print(GRAU("  Versuch %d verworfen: %s" % (
@@ -671,8 +722,21 @@ def runde(profil, r, nr):
     print(GRAU("  Längen             ") + "%d | %s   (Fenster %d..%d)" % (
         len(norm), ", ".join(str(len(f)) for f in fakes), lo, hi))
     stil, stilgrund = stilbruch(norm, fakes)
+    gruende = [a.get("begruendung", "") for a in out.get("antworten", [])][:3]
+    bezug = antwortbezug(norm, r["frage"], materialtext(profil), fakes, gruende)
+    if bezug:
+        stil += len(bezug)
+        stilgrund = stilgrund or "Antwortbezug"
     print(GRAU("  Stil               ") + (
         "ok" if not stil else "%d Verstöße, auffällig: %s" % (stil, stilgrund)))
+    print(GRAU("  Antwortbezug       ") + (
+        "ok" if not bezug else "Begründung %s spricht über die echte Antwort" % bezug))
+    # Die Begruendungen im Klartext. Sie sind das, was der Mensch auf dem
+    # Klonblick liest - und genau daran ist am 14.09.2026 aufgefallen, dass sie
+    # ueber die echte Antwort sprachen. Was man pruefen will, muss man sehen.
+    for i, g in enumerate(gruende):
+        if g:
+            print(GRAU("  begründung [%d]     " % i) + g)
     print(GRAU("  Verlangt           ") + (out.get("verlangt") or "—"))
     print(AMBER("  Fakt fürs Dossier  ") + out.get("fakt", "—"))
     print(CYAN("  Themensperre       ") + ", ".join(out.get("sperre", [])))

@@ -16,6 +16,11 @@ keystore.properties
 lauf-*.json
 lauf-*.log
 
+# Rohausgabe von schreibe-fragen.py: Vorschlaege und Ausschuss. Was davon
+# taugt, steht in internal/seed/fragen.json - der Rest veraltet mit dem
+# naechsten Lauf.
+vorschlaege-fragen.json
+
 # Bauartefakte.
 build/
 .gradle/

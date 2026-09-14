@@ -18,16 +18,119 @@ Downloadordner nicht drei gleichnamige Dateien liegen.
 Auf ein Gerät oder den Emulator:
 
 ```bash
-adb install -r app/build/outputs/apk/debug/mimik-0.9-debug.apk
+adb install -r app/build/outputs/apk/debug/mimik-0.10-debug.apk
 ```
+
+## Freigabe, Signatur und Updates
+
+Was in ein Release hochgeladen wird, ist die Freigabefassung, nicht der
+Debugbau:
+
+```bash
+./gradlew :app:assembleRelease
+```
+
+Dafür braucht es einen eigenen Signaturschlüssel. Einmalig anlegen:
+
+```bash
+keytool -genkeypair -v -keystore mimik.jks -alias mimik \
+        -keyalg RSA -keysize 4096 -validity 10000
+```
+
+Daneben eine `keystore.properties` im Wurzelverzeichnis – beide Dateien stehen
+in `.gitignore` und gehören nie ins Repo:
+
+```properties
+datei=mimik.jks
+speicherwort=…
+alias=mimik
+schluesselwort=…
+```
+
+Fehlt die Datei, entsteht ein **unsigniertes** APK, das sich nicht installieren
+lässt. Das ist Absicht: Ein Release, das stillschweigend mit dem
+Debug-Schlüssel signiert wird, kann jeder fälschen – dieser Schlüssel liegt auf
+jedem Entwicklerrechner und hat überall dasselbe Passwort.
+
+**Den Schlüssel verlieren heißt: keine Updates mehr.** Android nimmt ein Update
+nur bei gleicher Signatur an. Geht er verloren, bleibt nur Deinstallieren und
+neu Installieren – für alle. Keystore und Passwort gehören deshalb zusammen in
+den Passwortmanager, nicht nur auf die Festplatte, auf der gebaut wird.
+
+Seit 0.10 signiert dieser Schlüssel, RSA 4096, `CN=merlinnolte, OU=mimik`:
+
+```
+SHA-256  cc6d9c79be852c8ab28ed403f27cd49d2fbf3bdb68c424b7c1ef2f9f204f607b
+```
+
+Der Abdruck ist kein Geheimnis, er steht in jedem APK. Er steht hier, damit sich
+ein heruntergeladenes APK dagegen prüfen lässt – und damit auffällt, wenn eines
+mit einem anderen Schlüssel unterwegs ist:
+
+```bash
+apksigner verify --print-certs mimik-<version>-release.apk
+```
+
+### Der Bruch bei 0.10
+
+Bis 0.9 wurden Debugbauten verteilt, signiert mit dem Standardschlüssel. Die
+Freigabefassung trägt einen anderen, also ist dieser eine Sprung kein Update,
+sondern eine Neuinstallation. Damit dabei niemand sein Konto verliert, gibt es
+den **Umzug** (`Umzug.kt`): Auf dem Server hängt alles am Token, und das steht in
+den Einstellungen unter „Dieses Gerät". Vor dem Deinstallieren kopieren, nach
+dem Installieren auf dem Startbildschirm unter „Ich hatte MIMIK schon"
+eintragen – derselbe Spieler, mit Party, Punktestand und Dossier.
+
+**Eine Brücke braucht es trotzdem.** In 0.9 gibt es den Schlüssel noch nicht zu
+sehen; wer nur 0.9 hat, kommt gar nicht erst an ihn heran. Deshalb gehört in das
+Release 0.10 **beides**:
+
+```bash
+./gradlew :app:assembleDebug :app:assembleRelease
+```
+
+`mimik-0.10-debug.apk` trägt weiter den Debug-Schlüssel, installiert sich also
+über eine vorhandene 0.9 – und zeigt den Umzugsschlüssel. Reihenfolge für die
+wenigen, die schon spielen: 0.10-debug darüber installieren, Schlüssel kopieren,
+deinstallieren, `mimik-0.10-release.apk` installieren, Server und Schlüssel
+eintragen. Danach ist Schluss mit Debugbauten im Release; die App sucht sich
+ihre Updates von da an selbst und nimmt dabei ohnehin nur das Freigabe-APK
+(`apkAsset` bevorzugt den Namen mit „release").
+
+### Wie die App Updates findet
+
+`Aktualisierung.kt` fragt beim Start – höchstens alle sechs Stunden – das
+neueste Release bei `api.github.com` ab. Ein Entwurf, eine Vorabfassung oder ein
+Release ohne APK ist keines; verglichen wird **zahlenweise**, denn als Text wäre
+`0.10` kleiner als `0.9`. Liegt etwas vor, steht ein Hinweis in der Lobby und in
+den Einstellungen. Geladen wird auf Knopfdruck ins Cacheverzeichnis, dann
+übernimmt der Installer des Systems: MIMIK tauscht sich nicht still selbst aus.
+Dafür `REQUEST_INSTALL_PACKAGES` und ein `FileProvider` – eine `file:`-Adresse
+nimmt seit Android 7 niemand mehr an.
+
+Alles Prüfbare daran steht als reine Funktion oben in der Datei;
+`AktualisierungTest` hält die Fälle fest, darunter den Sprung von 0.9 auf 0.10.
 
 ## Serveradresse
 
-Fest voreingestellt auf `https://mimik.merlinnolte.de` – den eigenen Server
-hinter dem Reverse Proxy. Wer spielt, bekommt das Feld nicht zu sehen; es steht
-hinter der Zeile „Anderer Server" unter dem Anmeldefeld. Zum Testen:
-`http://10.0.2.2:8080` ist der Host aus Sicht des Emulators, im eigenen WLAN die
-LAN-Adresse mit dem Port aus `MIMIK_PORT`.
+**In der Freigabefassung ist keine voreingestellt.** Ein öffentliches APK darf
+niemanden ungefragt auf einen fremden Server schicken – wer es installiert,
+trägt seinen eigenen ein, und das Feld ist der erste Schritt beim Anmelden. Im
+Debugbau steht `https://mimik.merlinnolte.de` als Vorgabe und das Feld bleibt
+hinter der Zeile „Anderer Server" versteckt; beides kommt aus
+`BuildConfig.VORGABE_SERVER`. Zum Testen: `http://10.0.2.2:8080` ist der Host aus
+Sicht des Emulators, im eigenen WLAN die LAN-Adresse mit dem Port aus
+`MIMIK_PORT`.
+
+Eingetippt wird ohne Schema – `serverNormalform` setzt `https://` davor und
+nimmt den Schrägstrich am Ende weg. Klartext geht nur, wenn jemand `http://`
+ausdrücklich tippt: Ein Vertippen soll die Verschlüsselung nicht abschalten.
+
+`Speicher.wandern()` ist die Klappe dazu. Die Vorgabe stand bisher nur im Code
+und wurde nur beim Ändern geschrieben; wer angemeldet ist, ohne je eine Adresse
+eingetragen zu haben, stünde nach dem Update vor einem leeren Feld – das Token
+noch da, aber niemand mehr, dem man es zeigt. Die Wanderung trägt die alte
+Adresse nach, bevor `Netz` überhaupt gebaut wird.
 
 **Klartext-HTTP ist nur im Debug-Build erlaubt**
 (`src/debug/res/xml/netz_sicherheit.xml`). Der Release-Build besteht auf HTTPS,
@@ -48,6 +151,8 @@ Server im Internet auch richtig ist.
 | `Screens.kt` | Alle Bildschirme, plus die Hülle, die jeden mittig stellt |
 | `Melder.kt` | Benachrichtigungen: WorkManager fragt selbst beim Server nach |
 | `Speicher.kt` | Token, Serveradresse, Palette, zwei Merker – mehr liegt nicht lokal |
+| `Aktualisierung.kt` | Updates von der Releaseseite: suchen, laden, dem Installer hinhalten |
+| `Umzug.kt` | Serveradresse normalisieren, Schlüssel lesen und zeigen – reiner Text, deshalb prüfbar |
 
 ### Warum die Schrift mitgeliefert wird
 
@@ -164,7 +269,8 @@ Einstellungen selbst. Es liegt als Überlagerung über dem Bildschirm, nicht in
 ihm – sonst bräuchte jeder Bildschirm eine Kopfleiste, und die mittige Anordnung
 wäre hin.
 
-Darin: umbenennen, Farbschema, Intro erneut ansehen, das eigene Profil und
+Darin: umbenennen, Farbschema, Intro erneut ansehen, die laufende Fassung mit
+der Suche nach einer neueren, der eigene Schlüssel für den Umzug, das eigene Profil und
 Dossier ansehen – was MIMIK aus den eigenen Antworten mitgeschrieben hat, welche Themen
 verbraucht sind, welche Tags gesetzt – und zwei getrennte
 Löschknöpfe. „Mein Dossier löschen“ nimmt nur, was MIMIK gelernt hat; die Tags

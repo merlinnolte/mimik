@@ -165,8 +165,10 @@ func (c *Client) Faelschungen(ctx context.Context, frage, roh string, d Dossier)
 		}
 		erg.Versuche = versuch
 		texte := make([]string, len(erg.Faelschungen))
+		gruende := make([]string, len(erg.Faelschungen))
 		for i, f := range erg.Faelschungen {
 			texte[i] = f.Text
+			gruende[i] = f.Begruendung
 		}
 		// Gemessen wird gegen die Normalform, nicht gegen den rohen Text: Die
 		// Normalform ist es, die als Karte danebensteht.
@@ -180,6 +182,17 @@ func (c *Client) Faelschungen(ctx context.Context, frage, roh string, d Dossier)
 		bruch := Sperrbruch(texte, erg.Sperre)
 		form := FormPruefen(erg.Normalform, texte)
 		stil, stilgrund := Stilbruch(erg.Normalform, texte)
+		// Der Antwortbezug zaehlt mit, benennt sich aber erst, wenn an den
+		// Karten selbst nichts auszusetzen ist: Eine Karte, die aus der Reihe
+		// faellt, sieht jeder; eine geschwaetzige Begruendung liest nur der,
+		// dessen Antwort es war.
+		if bezug := Antwortbezug(
+			erg.Normalform, frage, d.Materialtext(), texte, gruende); len(bezug) > 0 {
+			stil += len(bezug)
+			if stilgrund == "" {
+				stilgrund = "Antwortbezug"
+			}
+		}
 		if erg.Befund.OK() && len(bruch) == 0 && form.OK() && stil == 0 {
 			erg.Verbrauch = gesamt
 			return erg, nil
@@ -214,9 +227,15 @@ func (c *Client) Faelschungen(ctx context.Context, frage, roh string, d Dossier)
 		fmt.Errorf("keine brauchbaren fälschungen: %w", letzterFehler)
 }
 
-func (c *Client) einDurchgang(ctx context.Context, frage, roh string, d Dossier) (Ergebnis, error) {
+// Materialtext ist alles, was MIMIK ueber die Person weiss - ohne die Frage und
+// ohne die echte Antwort dieser Runde.
+//
+// Eigene Funktion, weil zwei Stellen genau denselben Text brauchen: der Aufruf
+// und Antwortbezug. Gebaut wuerde er sonst zweimal, und die zweite Fassung
+// liefe irgendwann hinter der ersten her - dann pruefte die Pruefung gegen ein
+// Material, das das Modell nie gesehen hat.
+func (d Dossier) Materialtext() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "[frage]\n%s\n\n[echte_antwort_roh]\n%s", frage, roh)
 	if len(d.Interessen) > 0 {
 		b.WriteString("\n\n[interessen]\n" + strings.Join(d.Interessen, ", "))
 	}
@@ -232,6 +251,13 @@ func (c *Client) einDurchgang(ctx context.Context, frage, roh string, d Dossier)
 	if len(d.AntiBeispiele) > 0 {
 		b.WriteString("\n\n[anti-beispiele]\n- " + strings.Join(d.AntiBeispiele, "\n- "))
 	}
+	return b.String()
+}
+
+func (c *Client) einDurchgang(ctx context.Context, frage, roh string, d Dossier) (Ergebnis, error) {
+	var b strings.Builder
+	fmt.Fprintf(&b, "[frage]\n%s\n\n[echte_antwort_roh]\n%s", frage, roh)
+	b.WriteString(d.Materialtext())
 
 	inhalt, verbrauch, err := c.Chat(mimikKennung(ctx, "faelschungen"), PromptFaelschungen, Huelle(b.String()), 1.0)
 	// Der Verbrauch reist auch bei Fehlern mit: Ein Aufruf, der nichts

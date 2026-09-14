@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"log"
 	"net/http"
 
 	"mimik/internal/game"
@@ -41,6 +42,18 @@ type RundeAus struct {
 	// Seite, und dieser Satz steht in Karten. Umgekehrt ist es der einzige Weg,
 	// MIMIK bei der Arbeit zuzusehen - und das ist der Reiz.
 	MeineKarten []KarteAus `json:"meine_karten,omitempty"`
+	// MeinUrteil ist die freiwillige Stimme dieses Spielers zu DIESER Frage:
+	// +1 gute Frage, -1 nicht so, 0 nichts gesagt. Sie steht hier und nicht in
+	// einer eigenen Abfrage, damit die App den gewaehlten Daumen nach einem
+	// Neustart wiederfindet, ohne extra nachzufragen.
+	//
+	// OHNE omitempty, anders als jedes andere Feld hier: Bei diesem ist die Null
+	// ein Wert und keine Leere. Mit omitempty faellt "zurueckgenommen" aus der
+	// Antwort heraus, und jeder Klient, der seine Struktur zwischen zwei
+	// Abgleichen wiederverwendet, behaelt die alte Stimme stehen - genau daran
+	// ist der erste Durchlauf von TestFrageUrteilen gescheitert. Die zwei Byte
+	// je Runde sind das nicht wert.
+	MeinUrteil int `json:"mein_urteil"`
 	// Sekunden, seit BEIDE geantwortet haben - der Beginn von MIMIKs Arbeit.
 	// Nur gesetzt, solange sie arbeitet; die App zeichnet daraus den
 	// Fortschrittsbalken und findet ihn nach einem Neustart wieder.
@@ -164,6 +177,13 @@ func (s *Server) zustand(w http.ResponseWriter, r *http.Request) {
 		fehler(w, 500, err.Error())
 		return
 	}
+	// Eine Abfrage fuer das ganze Match. Ein Fehler hier kostet nur die
+	// Daumenanzeige und darf den Zustand nicht mitnehmen.
+	urteile, err := s.S.UrteileVonMatch(p.ID, m.ID)
+	if err != nil {
+		log.Printf("urteile: %v", err)
+		urteile = map[string]int{}
+	}
 	ich := game.PlayerID(p.ID)
 	liste := []RundeAus{}
 	aufgeloeste := false
@@ -171,7 +191,7 @@ func (s *Server) zustand(w http.ResponseWriter, r *http.Request) {
 	for _, rd := range runden {
 		z := rd.Ableiten(pa)
 		ra := RundeAus{ID: rd.ID, Nummer: rd.Nummer, Frage: rd.Frage, Zustand: z,
-			Fehler: s.S.RundenFehler(rd.ID)}
+			Fehler: s.S.RundenFehler(rd.ID), MeinUrteil: urteile[rd.ID]}
 		if a, ok := rd.Antworten[ich]; ok {
 			ra.MeineAntwort = a.Normalform
 			if z == game.MimikArbeitet {
@@ -279,6 +299,44 @@ func (s *Server) antworten(w http.ResponseWriter, r *http.Request) {
 		s.Worker.Anstossen() // MIMIK darf loslegen
 	}
 	json_(w, 200, map[string]any{"zustand": neu})
+}
+
+// frageUrteilen nimmt die freiwillige Stimme zu der Frage einer Runde.
+//
+// Freiwillig heisst hier auch: Nichts daran darf dem Spieler im Weg stehen. Der
+// Aufruf gibt deshalb 200 zurueck, auch wenn die Frage inzwischen aus dem
+// Vorrat gefallen ist - dann gibt es nichts zu gewichten, und das ist eine
+// Zeile im Protokoll, keine Fehlermeldung an jemanden, der gerade etwas
+// Freundliches getan hat.
+func (s *Server) frageUrteilen(w http.ResponseWriter, r *http.Request) {
+	p := spieler(r)
+	rid := r.PathValue("id")
+	var in struct {
+		Urteil int `json:"urteil"`
+	}
+	lies(r, &in)
+	pa, _, err := s.S.PartyVonRunde(rid)
+	if err != nil || !pa.Mitglied(game.PlayerID(p.ID)) {
+		fehler(w, 404, "runde nicht gefunden")
+		return
+	}
+	u := 0
+	switch {
+	case in.Urteil > 0:
+		u = 1
+	case in.Urteil < 0:
+		u = -1
+	}
+	if err := s.S.FrageUrteilen(p.ID, rid, u); err != nil {
+		if errors.Is(err, store.ErrFrageNichtImVorrat) {
+			log.Printf("urteil verworfen, runde %s: %v", rid, err)
+			json_(w, 200, map[string]any{"urteil": 0})
+			return
+		}
+		fehler(w, 500, err.Error())
+		return
+	}
+	json_(w, 200, map[string]any{"urteil": u})
 }
 
 func (s *Server) raten(w http.ResponseWriter, r *http.Request) {

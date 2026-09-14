@@ -47,6 +47,17 @@ fun LobbyBildschirm(modell: AppModel) {
             },
         )
 
+        // Die einzige Stelle ausserhalb der Einstellungen, an der ein Update
+        // auftaucht. Ein Hinweis, kein Aufhalten: Wer spielen will, tippt
+        // daran vorbei, und "Später" in den Einstellungen macht ihn still.
+        modell.angeboten?.let { f ->
+            Klickbar(beiKlick = { modell.einstellungen(true) }) {
+                Panel(betont = true) {
+                    Zeile("Fassung ${f.name} ist da. Tippen zum Ansehen.", p.accent, 12)
+                }
+            }
+        }
+
         Panel(titel = "Partien", rechts = if (zeilen.isEmpty()) null else "${zeilen.size}") {
             if (zeilen.isEmpty()) {
                 Zeile("Such jemanden, oder tritt mit einem Code bei.", p.fgDim, 12)
@@ -219,7 +230,7 @@ fun WarteraumBildschirm(modell: AppModel) {
             party.code.ifBlank { "—" }, color = p.accent2, fontSize = 38.sp,
             letterSpacing = 8.sp, maxLines = 1,
         )
-        Wartezeile("Sobald sie beitritt, geht es hier von selbst weiter.")
+        Wartezeile("Sobald jemand beitritt, geht es hier von selbst weiter.")
         Aktionen {
             Knopf("Abbrechen", aktiv = !modell.laden) { modell.partyVerlassen() }
         }
@@ -325,6 +336,7 @@ fun KloneBildschirm(modell: AppModel) {
             schrift = 19,
         )
         Frage(r.frage)
+        Fragenurteil(modell, r)
 
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Klonkarte(echt?.text.orEmpty(), "DU", "", betont = true)

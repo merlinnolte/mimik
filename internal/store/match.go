@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	mrand "math/rand/v2"
 	"time"
 
 	"mimik/internal/game"
@@ -13,6 +14,14 @@ import (
 // RundenProMatch ist die erste Ladung. Reicht sie nicht bis zum Ziel, werden
 // weitere nachgelegt (siehe RundeNachlegen).
 const RundenProMatch = 6
+
+// FragenWarnschwelle: Ab hier steht im Protokoll, dass der Vorrat zu Ende geht.
+//
+// Hier stand einmal eine glatte 15 ohne Begruendung. Dieselbe Zahl, jetzt als
+// Verhaeltnis: Ein Match zieht eine Ladung im Voraus und legt bis zum Ziel
+// nach - im schlimmsten Fall zweimal RundenProMatch. Gewarnt wird also, bevor
+// das naechste Match den Rueckweg braucht, plus drei Fragen Luft.
+const FragenWarnschwelle = 2*RundenProMatch + 3
 
 type Match struct {
 	ID       string        `json:"id"`
@@ -63,10 +72,22 @@ func rundeAnlegenTx(tx *sql.Tx, matchID, partyID string, mitglieder []string, nu
 	if len(mitglieder) > 1 {
 		b = mitglieder[1]
 	}
-	err := tx.QueryRow(
-		`SELECT id, text, rubrik FROM fragen_pool
-		  WHERE id NOT IN (SELECT frage_id FROM fragen_vergeben WHERE player_id IN (?,?))
-		  ORDER BY RANDOM() LIMIT 1`, a, b).Scan(&fid, &text, &rubrik)
+	// Gewichtet gezogen, nicht mehr gleichverteilt: Wer eine Frage bewertet hat,
+	// verschiebt damit, wie oft sie anderen gestellt wird (siehe
+	// Fragengewicht). Das Wuerfeln passiert in Go und nicht in SQL - eine
+	// gewichtete Ziehung mit ORDER BY braeuchte eine Logarithmusfunktion, und
+	// ohne sie waere sie nur ungefaehr richtig. Hier ist sie exakt und
+	// ausserdem ohne Datenbank pruefbar.
+	kandidaten, gewichte, err := kandidatenTx(tx, a, b)
+	if err != nil {
+		return err
+	}
+	if len(kandidaten) > 0 {
+		k := kandidaten[waehleGewichtet(gewichte, mrand.IntN(gewichtssumme(gewichte)))]
+		fid, text, rubrik = k.id, k.text, k.rubrik
+	} else {
+		err = sql.ErrNoRows
+	}
 
 	// Zweite Stufe: eine, die WENIGSTENS EINER der beiden noch nicht hatte.
 	//
@@ -84,20 +105,22 @@ func rundeAnlegenTx(tx *sql.Tx, matchID, partyID string, mitglieder []string, nu
 	if err != nil {
 		return fmt.Errorf("fragenvorrat leer: %w", err)
 	}
-	// Und laut sagen, wenn es knapp wird. Der Vorrat ist endlich: 144 Fragen
-	// reichen fuer rund zwanzig Matches, danach sieht jemand eine zweite Mal -
-	// und das faellt zuerst dem Spieler auf, nicht dem Betreiber.
+	// Und laut sagen, wenn es knapp wird. Der Vorrat ist endlich, und wenn er
+	// aufgebraucht ist, sieht jemand eine Frage zum zweiten Mal - das faellt
+	// zuerst dem Spieler auf, nicht dem Betreiber.
 	for _, x := range mitglieder {
 		if x == "" {
 			continue
 		}
-		var offen int
+		var offen, gesamt int
 		tx.QueryRow(
 			`SELECT COUNT(*) FROM fragen_pool
 			  WHERE id NOT IN (SELECT frage_id FROM fragen_vergeben WHERE player_id = ?)`,
 			x).Scan(&offen)
-		if offen <= 15 {
-			log.Printf("fragenvorrat: fuer %s sind nur noch %d fragen offen", x[:8], offen)
+		tx.QueryRow(`SELECT COUNT(*) FROM fragen_pool`).Scan(&gesamt)
+		if offen <= FragenWarnschwelle {
+			log.Printf("fragenvorrat: fuer %s sind nur noch %d von %d fragen offen",
+				kurz(x), offen, gesamt)
 		}
 	}
 	if _, err := tx.Exec(`UPDATE fragen_pool SET benutzt = ? WHERE id = ?`, partyID, fid); err != nil {
@@ -117,6 +140,56 @@ func rundeAnlegenTx(tx *sql.Tx, matchID, partyID string, mitglieder []string, nu
 		`INSERT INTO rounds (id, match_id, nummer, frage, rubrik, geoeffnet_am) VALUES (?,?,?,?,?,?)`,
 		id(), matchID, nummer, text, rubrik, jetzt())
 	return err
+}
+
+// kurz kuerzt eine Spielerkennung fuers Protokoll. Mit x[:8] statt dieser
+// Funktion stuerzt die Zeile bei jeder Kennung ab, die kuerzer als acht Zeichen
+// ist - echte sind 32 Zeichen lang, Testspieler nicht unbedingt.
+func kurz(pid string) string {
+	if len(pid) <= 8 {
+		return pid
+	}
+	return pid[:8]
+}
+
+// kandidat ist eine Frage, die keiner der beiden Spieler schon hatte, samt
+// ihren Stimmen.
+type kandidat struct {
+	id           int
+	text, rubrik string
+}
+
+// kandidatenTx liest den ganzen offenen Vorrat mit seinen Gewichten.
+//
+// Alles auf einmal statt LIMIT 1: Der Vorrat ist ein paar hundert Zeilen, und
+// ein gewichtetes Los braucht die Summe - die kennt man erst, wenn man alle
+// gesehen hat. Sechsmal je Match, in einer Transaktion, ist das Mikrosekunden.
+func kandidatenTx(tx *sql.Tx, a, b string) ([]kandidat, []int, error) {
+	rows, err := tx.Query(
+		`SELECT p.id, p.text, p.rubrik,
+		        COALESCE(SUM(u.urteil > 0), 0), COALESCE(SUM(u.urteil < 0), 0)
+		   FROM fragen_pool p
+		   LEFT JOIN fragen_urteile u ON u.frage_id = p.id
+		  WHERE p.id NOT IN
+		        (SELECT frage_id FROM fragen_vergeben WHERE player_id IN (?,?))
+		  GROUP BY p.id
+		  ORDER BY p.id`, a, b)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+	var ks []kandidat
+	var gs []int
+	for rows.Next() {
+		var k kandidat
+		var mag, magNicht int
+		if err := rows.Scan(&k.id, &k.text, &k.rubrik, &mag, &magNicht); err != nil {
+			return nil, nil, err
+		}
+		ks = append(ks, k)
+		gs = append(gs, Fragengewicht(mag, magNicht))
+	}
+	return ks, gs, rows.Err()
 }
 
 // mitgliederTx liest die beiden Spieler einer Partie in der laufenden

@@ -1,6 +1,7 @@
 package app.mimik
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -291,5 +292,63 @@ class AbleitungTest {
     @Test fun `vollstaendige party ohne match meldet nichts`() {
         val plan = meldeplan(lobby(partie("p1", dran = "kein_match")), emptyMap())
         assertTrue(plan.zeigen.isEmpty())
+    }
+}
+
+// ------------------------------------------------------- Fragenurteil ---
+
+class FragenurteilTest {
+    @Test
+    fun `vor der eigenen Antwort wird nicht gefragt`() {
+        assertFalse(urteilOffen(RundeAus(id = "r1")))
+        assertTrue(urteilOffen(RundeAus(id = "r1", meineAntwort = "Ein Nudelsieb.")))
+    }
+
+    @Test
+    fun `ohne Stimme steht nichts`() {
+        val r = RundeAus(id = "r1", meineAntwort = "x")
+        assertEquals(0, urteilstand(r, emptyMap()))
+    }
+
+    @Test
+    fun `die Stimme vom Server wird gezeigt`() {
+        val r = RundeAus(id = "r1", meineAntwort = "x", meinUrteil = -1)
+        assertEquals(-1, urteilstand(r, emptyMap()))
+    }
+
+    // Der eigentliche Grund für die lokale Karte: Der Abgleich läuft alle drei
+    // Sekunden, und dazwischen kommt eine Antwort herein, in der die gerade
+    // abgegebene Stimme noch nicht steht. Ohne den Vorrang sprang der Daumen
+    // zurück.
+    @Test
+    fun `die eigene frische Wahl schlaegt den Server`() {
+        val r = RundeAus(id = "r1", meineAntwort = "x", meinUrteil = 0)
+        assertEquals(1, urteilstand(r, mapOf("r1" to 1)))
+    }
+
+    @Test
+    fun `zuruecknehmen schlaegt den Server auch auf null`() {
+        val r = RundeAus(id = "r1", meineAntwort = "x", meinUrteil = 1)
+        assertEquals(0, urteilstand(r, mapOf("r1" to 0)))
+    }
+
+    @Test
+    fun `die Karte gilt je Runde`() {
+        val r = RundeAus(id = "r2", meineAntwort = "x", meinUrteil = -1)
+        assertEquals(-1, urteilstand(r, mapOf("r1" to 1)))
+    }
+
+    @Test
+    fun `dieselbe Seite nochmal nimmt zurueck`() {
+        assertEquals(0, urteilNach(1, 1))
+        assertEquals(0, urteilNach(-1, -1))
+    }
+
+    @Test
+    fun `die andere Seite wechselt`() {
+        assertEquals(-1, urteilNach(1, -1))
+        assertEquals(1, urteilNach(-1, 1))
+        assertEquals(1, urteilNach(0, 1))
+        assertEquals(-1, urteilNach(0, -1))
     }
 }

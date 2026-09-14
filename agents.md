@@ -68,6 +68,7 @@ internal/seed/       Fragen- und Tagvorrat als JSON, eingebettet
 app/                 Android, Jetpack Compose
 harness.py           Prompt-Werkbank, Python, ohne Server
 pruefe-prompts.py    Hält harness.py und internal/mimik deckungsgleich
+pruefe-fragen.py     Sieht den Fragenvorrat auf Doppel durch (§13)
 ```
 
 `internal/game` kennt weder Datenbank noch HTTP noch Modell. Das ist die
@@ -101,6 +102,36 @@ laufen lassen:**
 ```bash
 python3 pruefe-prompts.py
 ```
+
+### Was in den Prompt gehört und was nicht
+
+**Die Anweisung gehört in den Prompt, die Begründung in den Code.** Zehn
+Prompt-Regeln haben inzwischen eine mechanische Prüfung hinter sich
+(`Formmangel`, `Laengenbruch`, `Kausalbruch`, `Floskelbruch`, `Satzbaubruch`,
+`Gerippebruch`, `Sperrbruch`, `Abstandsfenster`, `Unzumutbar`, `Antwortbezug`).
+Eine geprüfte Regel braucht im Prompt keine Überzeugungsarbeit mehr — die steht
+in `stil.go` und `pruefung.go`, wo sie auch bei der nächsten Änderung gelesen
+wird.
+
+**Das Beispiel bleibt trotzdem.** Nachgemessen am 14.09.2026: 20 Läufe mit dem
+Prompt gegen 20 mit einer um 29 Prozent gekürzten Fassung, dieselben zehn
+Runden, dreizehn mechanische Kriterien — 20/20 gegen 19/20, also kein
+Unterschied, den diese Stichprobe zeigen könnte. Zweimal war eine Abweichung
+dennoch **zu sehen**, und beide Male an einer Regel, deren Beispiel gestrichen
+war: ein Satzbaubruch, und drei Karten mit 19 bis 30 Zeichen neben einer echten
+mit neun. Eine Regel nennt eine Grenze, ein Beispiel zeigt eine Verteilung.
+
+Genommen wurden deshalb nur die Kürzungen, die keine Regel antasten: dreifach
+Gesagtes, drei Sätze für eine Regel, die Begründung der eigenen
+Feldreihenfolge, eine Aufzählung, die wörtlich `Formmangel` ist, ein durch das
+JSON-Format erledigter Punkt — und eine **falsche** Angabe („neun bis sechzig
+Zeichen sind der Normalfall"), die dem Längenfenster widersprach, seit es aus
+der Normalform rechnet. Zusammen 485 Zeichen.
+
+Und die Wortlisten der Prüfungen liest `harness.py` aus den Go-Dateien
+(`wortliste_go`), statt sie zu kopieren. Eine Handkopie von `gerippewoerter` hat
+dort eine Woche gelegen, ohne dass `pruefe-prompts.py` sie geprüft hätte; sie war
+noch identisch — Glück, nicht Sicherheit.
 
 ### Prompt B
 
@@ -284,6 +315,16 @@ Eine Version für alles: Server, App, Werkbank. Sie steht an **zwei** Stellen:
 
 Beim Anheben beide ändern.
 
+**Die Fassung ist jetzt öffentlich sichtbar** – sie steht in den Einstellungen,
+und die App vergleicht sie beim Start mit dem neuesten Release auf GitHub
+(`Aktualisierung.kt`). Ein Release, dessen Tag nicht die Fassung des APK trägt,
+bietet sich selbst als Update an oder verschweigt eines. Verglichen wird
+**zahlenweise**: Als Text wäre `0.10` kleiner als `0.9`.
+
+Hochgeladen werden ab 0.10 **Freigabefassungen**, keine Debugbauten. Wie sie
+signiert werden und warum die Signatur nie wieder wechseln darf, steht in
+[APP.md](APP.md#freigabe-signatur-und-updates).
+
 Der Paketname ist **`app.mimik`**. Nicht `mimik`: Android verlangt für die
 `applicationId` mindestens zwei durch Punkte getrennte Teile.
 
@@ -328,6 +369,7 @@ Bewusste Verzichte, bitte nicht „nachrüsten“:
 ```bash
 go build ./... && go vet ./... && go test ./...
 python3 pruefe-prompts.py
+python3 pruefe-fragen.py          # nur nach einer Änderung an fragen.json
 ./gradlew :app:assembleDebug
 python3 -c "import yaml; yaml.safe_load(open('docker-compose.yml'))"
 ```
@@ -390,10 +432,10 @@ Damit es nicht noch einmal passiert:
 - **Meldungen zu einer Phase, die schon vorbei war.** Drei Ursachen, alle in
   `APP.md` festgehalten: keine Vordergrundprüfung, eine Meldung, die im Schacht
   stehen blieb, und ein Merker, der im Vordergrund nie gekürzt wurde.
-- **Vier Regeln an einem Tag, die nur im Prompt standen und nicht hielten:**
-  dass die Antwort die Frage beantwortet, dass sie nicht dreimal so lang ist wie
-  die echte, dass sie nicht aus dem Dossier kommt, dass sie die echte Antwort
-  nicht abwandelt. **Eine Regel im Prompt ist
+- **Fünf Regeln, die nur im Prompt standen und nicht hielten:** dass die Antwort
+  die Frage beantwortet, dass sie nicht dreimal so lang ist wie die echte, dass
+  sie nicht aus dem Dossier kommt, dass sie die echte Antwort nicht abwandelt,
+  dass die Begründung nicht über die echte Antwort spricht. **Eine Regel im Prompt ist
   eine Bitte, eine Prüfung ist eine Bedingung.** Was sich mechanisch prüfen
   lässt, gehört nach `internal/mimik` – und die Schwelle gehört gemessen: Das
   Längenfenster stand zuerst zu eng und kostete einen ganzen Modellaufruf für
@@ -408,6 +450,18 @@ Damit es nicht noch einmal passiert:
   Dasselbe Verfahren wie bei der Sperre – die Feldreihenfolge erzwingt die
   Denkreihenfolge. Nachgemessen an fünf harten Fragen: vorher mehrere Antworten
   daneben, danach fünfzehn von fünfzehn auf die Frage.
+- **Der Prompt widersprach sich, und das Modell berichtete den Widerspruch.**
+  Zur Begründung verlangte er, „die Formulierung aus `[echte_antwort_roh]`, an
+  die du angeknüpft hast" beim Namen zu nennen – und verbot vier Zeilen später,
+  auf der echten Antwort aufzubauen. Also stand in den Begründungen, was das
+  Modell *nicht* benutzt hatte – „die beiden Gegenstände aus deiner Antwort habe
+  ich nicht erwähnt, stattdessen habe ich X genommen". Inhaltlich
+  richtig gearbeitet, aber die Begründung handelte von der eigenen Arbeit statt
+  von der Person – und ausgerechnet von dem Material, auf das sie sich *nicht*
+  bezieht. Die Zeile ist raus, ein Satz verbietet den Rückblick ausdrücklich,
+  und `Antwortbezug` in `begruendung.go` prüft es nach.
+  Verraten war dabei nie etwas: Die Begründung sieht nur der Mensch, um dessen
+  eigene Antwort es geht. Es war eine Frage davon, wie es sich liest.
 - **Ein Ausgabefeld kann das Verhalten kippen.** Das Feld, mit dem MIMIK
   begründet, woraus sie eine Fälschung gebaut hat, belohnte genau das Bauen aus
   Material – jede Begründung sagte „daraus habe ich…". Wer ein Feld hinzufügt,
@@ -459,9 +513,181 @@ auf Rechnung des Betreibers.
 aufgelöste. Ein Match legt seine Runden im Voraus an; ohne das beantwortete der
 Testspieler auf dem Gerät alle sechs auf einmal.
 
-## 13. Was noch aussteht
+## 13. Der Fragenvorrat
 
-- Release-Signierung der App – braucht einen Keystore mit Passwort.
+**`internal/seed/fragen.json` ist die Wahrheit, `fragen_pool` ihre Projektion.**
+Beim Start richtet `fragenAbgleichen` die Tabelle nach der Datei – einsäen,
+korrigieren, zurücknehmen, alles in einer Transaktion. Vorher gab es nur
+`INSERT OR IGNORE`, und das konnte keins der drei.
+
+**Die Identität einer Frage ist ihre `kennung`, nicht ihr Text.** An der `id`
+hängt `fragen_vergeben`, also das Gedächtnis, wer welche Frage schon hatte.
+Hing die `id` am Text, dann bekam eine Frage nach der Korrektur eines
+Tippfehlers eine neue `id` – und jeder, der sie beantwortet hat, war wieder für
+sie berechtigt. Ein Tippfehler war damit unbehebbar. `fragen_kennungen` rettet
+die Zuordnung über jeden Neustart, auch über eine Rücknahme hinweg: Kommt eine
+Frage zurück, bekommt sie **dieselbe** `id`.
+
+Daraus folgen drei Regeln:
+
+| Was du willst | Was du tust |
+|---|---|
+| Frage hinzufügen | Eintrag anhängen, eigene Kennung |
+| Tippfehler beheben | `text` ändern, **Kennung stehen lassen** |
+| Frage zurückziehen | Eintrag löschen, Kennung nicht wiederverwenden |
+
+**Eine Kennung umbenennen heißt, die Frage zu ersetzen.** Sie bekommt eine neue
+`id` und wird jedem noch einmal gestellt. Wer das nicht will, ändert nur den
+Text.
+
+### Drei Arten von Doppel, und welche wehtut
+
+| | Was schützt | Stand |
+|---|---|---|
+| Gleicher Text | `text UNIQUE`, `falten` im Test | gemessen: keins |
+| Gleiche Frage beim Menschen | `fragen_vergeben`, zwei Stufen | trägt |
+| **Zwei Texte, eine Frage** | `Fragennaehe` + Modelldurchgang | **war verletzt** |
+
+Die dritte hebelt die zweite aus: Zwei Zeilen mit verschiedener `id` gelten als
+verschiedene Fragen, und ein Mensch bekommt beide. Im Bestand vom 14.09.2026
+standen dreizehn solcher Paare, eines davon wörtlich dieselbe Frage mit
+„möchtest" statt „willst". Beim Auffüllen kam ein vierzehntes dazu. Alle
+vierzehn sind zurückgezogen; der Vorrat steht bei **358** – 130 vom Altbestand
+und 228 neue, über acht Rubriken.
+
+### `Fragenkern` ist nicht das Komplement von `Gerippe`
+
+Beide teilen das Deutsche in Rahmen und Gegenstand, und sie lesen die Teilung
+von entgegengesetzten Seiten: `Gerippe` behält die Funktionswörter und findet
+damit zwei Sätze mit demselben Bau bei ausgetauschtem Inhalt. Bei Fragen ist der
+Bau das **Rauschen** – eine Frage ist kurz und besteht überwiegend aus Rahmen –,
+also wird der Rahmen gestrichen.
+
+Trotzdem **zwei Listen**, gegengemessen an allen 10.296 Paaren:
+
+| Kern = | Paare ≥ 0.30 | ≥ 0.50 | davon Fehlalarme |
+|---|---|---|---|
+| Komplement von `gerippewoerter` | 119 | 6 | 3 |
+| eigene Liste `fragerahmen` | 12 | 3 | 0 |
+
+`gerippewoerter` ist absichtlich klein und enthält **kein** Interrogativum, kein
+`du/dir/dich/dein` und keines der Frage-Modalverben. Genau diese fünfzehn Wörter
+*sind* der Rahmen einer Frage. Wer die Listen zusammenlegt, blendet das Maß,
+ohne dass ein Test rot wird.
+
+Liste und Schwellen sind **ein** Ding. Belegt: „lang" aufzunehmen ließ „Was
+würdest du tun, wenn du ein Jahr lang nicht arbeiten müsstest?" gegen „Was tust
+du, wenn du eigentlich arbeiten solltest?" von 0.33 auf 0.50 steigen – aus dem
+Warnband in die Sperre, für ein Wort.
+
+### Ein Urteil hat eine Schranke, eine Suche nicht
+
+`Fragennaehe` findet nur, was gleiche Wörter benutzt. „Was würdest du an einem
+Tag machen, an dem du unsichtbar wärst?" gegen „Was würdest du tun, wenn dir
+niemand zusehen könnte?" liegt bei 0.00. Dafür gibt es `pruefe-fragen.py
+--modell`, und zwar in **zwei Stufen**.
+
+Mit nur der ersten – „finde die Paare, die dasselbe fragen" – lieferte das
+Modell für 136 Fragen **74 Paare, davon rund sechzig Unsinn** („Welche Erfindung
+würdest du zurücknehmen?" gegen „Was würdest du deinem jüngeren Ich
+verschweigen?"). Der Grund ist der Auftrag: Eine Suche hat keine Schranke, und
+ein Modell, das Paare finden soll, findet Paare.
+
+Die zweite Stufe legt jedes Paar **einzeln** vor und fragt nach einer Bedingung:
+*Gäbe dieselbe Person auf beide Fragen dieselbe Antwort?* Aus 86 Verdachtsfällen
+wurden **7 Urteile**, von denen fünf trugen. Über die fertigen 358 Fragen
+gerechnet: 298 Verdachtsfälle, **22 Urteile**, davon 14 echt. Dasselbe
+Verhältnis wie zwischen einer Regel im Prompt und einer Prüfung im Code (§11).
+
+Und die Grenze davon ist dieselbe wie überall: Die Rubrik `haltung` steht bei 57
+statt der geplanten 59, weil das Modell dort **eine Idee in dreißig Kostümen**
+hatte – „was tust du, obwohl du X denkst". Jedes Paar für sich war verschieden,
+der Stapel als Ganzes eine Frage. Das fängt keine Prüfung; das liest ein
+Mensch.
+
+### Die freiwillige Stimme
+
+Nach der eigenen Antwort steht auf dem Warte- und dem Klonbildschirm eine Zeile:
+**„Gute Frage?  ja · nicht so"**. Kein Bildschirm, kein Knopf, nichts
+weggeklickt – wer sie überliest, verliert nichts.
+
+Drei Entscheidungen daran sind keine Geschmacksfrage:
+
+- **`urteilSenden` ist der einzige Aufruf der App, der nicht durch
+  `imHintergrund` läuft.** Das setzt `laden` (Bildschirm blass, Knöpfe aus) und
+  zeigt bei einem Fehlschlag ein rotes Band. Beides wäre falsch für eine Geste,
+  die jemand aus Freundlichkeit macht. Die Wahl steht sofort lokal, der Server
+  erfährt sie danach, und schlägt das fehl, sagt niemand etwas. Der Preis
+  ausdrücklich: Eine Stimme kann verloren gehen, ohne dass es auffällt. Bei
+  freiwilligem Feedback zu einer Frage, die derselbe Mensch nie wieder sieht,
+  ist das der richtige Tausch.
+- **`mein_urteil` trägt kein `omitempty`**, als einziges Feld in `RundeAus`. Hier
+  ist die Null ein Wert und keine Leere; mit `omitempty` fällt
+  „zurückgenommen" aus der Antwort, und ein Klient, der seine Struktur zwischen
+  zwei Abgleichen wiederverwendet, behält die alte Stimme stehen. Daran ist der
+  erste Durchlauf von `TestFrageUrteilen` gescheitert – nicht am Server.
+- **Die Stimme ist privat.** Sie erscheint nie im Zustand des Mitspielers. Wer
+  sieht, dass sein Gegenüber die Frage mies fand, liest daraus etwas über dessen
+  Antwort. `TestFrageUrteilen` prüft das eigens.
+
+**Wie sie wirkt:** `store.Fragengewicht(mag, magNicht)` gibt Lose in die
+Ziehung, Mitte 6.
+
+| Stimmen | Gewicht | |
+|---|---|---|
+| keine | 6 | die Mitte |
+| ein Zuspruch | 9 | anderthalbmal so oft |
+| eine Ablehnung | 2 | dreimal seltener |
+| uneinig (1 : 1) | 5 | fast wieder Mitte |
+| zwei Ablehnungen | 1 | Boden |
+| drei Zusprüche | 15 | bis Deckel 18 |
+
+Ablehnung wiegt schwerer als Zuspruch (4 gegen 3), weil der Schaden ungleich
+verteilt ist: Eine schlechte Frage verbrennt eine Runde für **zwei** Menschen,
+eine gute ist nur etwas besser als der Durchschnitt.
+
+Der Boden ist 1 und nicht 0. Bei zwei Nutzern wäre eine Null das Recht eines
+einzelnen Daumens, eine Frage für alle zu löschen – zu viel Macht für eine
+Geste, die man auch aus Laune macht. Sechsmal seltener reicht, und der Vorrat
+schrumpft nicht heimlich unter das, was `fragen_test.go` garantiert. Der Deckel
+schützt die andere Seite: Ohne ihn verdrängte eine Frage, die drei Leuten
+gefiel, alles andere.
+
+**Die eigene Stimme wirkt nie auf den eigenen Vorrat.** Wer bewerten konnte, hat
+die Frage gehabt, also steht sie in `fragen_vergeben` und wird ihm nicht mehr
+gezogen. Was zählt, ist immer das Urteil der anderen – ohne eine Zeile Code
+dafür.
+
+**Gewürfelt wird in Go, nicht in SQL.** Eine gewichtete Ziehung mit `ORDER BY`
+bräuchte einen Logarithmus, den SQLite hier nicht mitbringt; ohne ihn wäre sie
+nur monoton, nicht proportional. `waehleGewichtet` bekommt das Los als Zahl
+herein und ist damit ohne Datenbank nachrechenbar. Gemessen an drei Fragen mit
+den Gewichten 6 : 2 : 9 und 240 Ziehungen: **88 : 26 : 126** gegen 84 : 28 : 129
+erwartet.
+
+### Was eine gute Frage für MIMIK ausmacht
+
+Nicht Geschmack, sondern Mechanik:
+
+- **Die Antwort muss ein Gegenstand sein, kein Bekenntnis.** „Was ist dir wichtig
+  im Leben?" erzeugt vier gleich klingende Karten; „Was hebst du auf, obwohl es
+  kaputt ist?" erzeugt ein Ding. Konkret = fälschbar = ratbar.
+- **Kein „warum".** Das verlangt eine Begründung, die die Fälschungen
+  nachmachen müssen – und `MaxKausal = 1` bestraft dann genau das. Ein `weil` in
+  der Frage selbst ist in Ordnung, es verlangt nichts.
+- **Keine Ja/Nein-Frage.** Vier Karten mit „ja" sind kein Spiel.
+- **Keine Zahl, kein Datum, kein Eigenname.** Eine gefälschte Zahl ist trivial,
+  und der Abstand daran nicht messbar.
+- **Nichts über den Spielpartner.** Die Antwort wäre Wissen, das der Ratende
+  schon hat.
+- **Kern von mindestens zwei Inhaltswörtern.** „Wovon möchtest du weniger
+  haben?" hat einen Kern aus einem Wort und kollidiert mit allem, was dieses
+  Wort benutzt. `pruefe-fragen.py` listet diese Fragen eigens.
+
+---
+
+## 14. Was noch aussteht
+
 - Docker-Abbild in eine Registry – braucht `write:packages` am GitHub-Token.
 - Der gehärtete Behälter ist geschrieben, aber noch nie gefahren.
 - Embeddings statt Zeichen-n-Grammen für die Abstandsprüfung.

@@ -14,14 +14,26 @@ class Speicher(kontext: Context) {
         set(v) = p.edit().putString("token", v).apply()
 
     /**
-     * Der eigene Server, voreingestellt. Mit https, weil er hinter einem Reverse
-     * Proxy mit TLS steht – und weil die Release-Fassung Klartext ohnehin
-     * verweigert. Zum Testen gegen einen lokalen Server überschreibt man das
-     * Feld beim Anmelden, etwa mit http://10.0.2.2:8080 im Emulator.
+     * Der Server, auf dem gespielt wird.
+     *
+     * Die Vorgabe kommt aus dem Bau: im Debugbau der eigene Server, in der
+     * Freigabefassung nichts. Ein öffentliches APK darf niemanden ungefragt auf
+     * einen fremden Server schicken – wer es installiert, trägt seinen eigenen
+     * ein. Zum Testen gegen einen lokalen Server tippt man http://10.0.2.2:8080.
      */
     var server: String
-        get() = p.getString("server", "https://mimik.merlinnolte.de").orEmpty()
+        get() = p.getString("server", BuildConfig.VORGABE_SERVER).orEmpty()
         set(v) = p.edit().putString("server", v.trim().trimEnd('/')).apply()
+
+    /** Wann zuletzt nach einer neueren Fassung gefragt wurde. */
+    var fassungGesucht: Long
+        get() = p.getLong("fassung_gesucht", 0L)
+        set(v) = p.edit().putLong("fassung_gesucht", v).apply()
+
+    /** Welche angebotene Fassung weggeklickt wurde. Sie fragt nicht zweimal. */
+    var fassungUebergangen: String
+        get() = p.getString("fassung_uebergangen", "").orEmpty()
+        set(v) = p.edit().putString("fassung_uebergangen", v).apply()
 
     /** Welche Partie zuletzt offen war. Leer heißt: die Lobby. */
     var offenePartie: String
@@ -103,4 +115,26 @@ class Speicher(kontext: Context) {
 
     /** Nach dem Löschen des Kontos darf hier nichts stehen bleiben. */
     fun leeren() = p.edit().clear().apply()
+
+    /**
+     * Zieht alte Speicherstände auf den heutigen Stand nach. Läuft bei jedem
+     * Start, tut aber nur dann etwas, wenn wirklich etwas fehlt.
+     *
+     * Bisher stand die Serveradresse als Vorgabe im Code und wurde nur dann
+     * geschrieben, wenn jemand sie von Hand änderte. Mit der Freigabefassung
+     * ist die Vorgabe leer – und wer angemeldet ist, ohne je eine Adresse
+     * eingetragen zu haben, stünde ohne diese Zeilen nach dem Update vor einem
+     * leeren Feld. Das Token wäre noch da, aber es gäbe niemanden mehr, dem man
+     * es zeigt: ausgeloggt, ohne dass es jemand so genannt hätte.
+     */
+    fun wandern() {
+        if (p.getString("server", null) == null && token.isNotBlank()) {
+            p.edit().putString("server", ALTE_VORGABE).apply()
+        }
+    }
+
+    private companion object {
+        /** Die Adresse, die bis 0.9 im Code stand. Nur für wandern(). */
+        const val ALTE_VORGABE = "https://mimik.merlinnolte.de"
+    }
 }

@@ -47,6 +47,9 @@ private fun App() {
             // Auch für Geräte, die sich vor dieser Fassung angemeldet haben:
             // enqueueUniquePeriodicWork mit KEEP legt nichts doppelt an.
             Melder.planen(kontext)
+            // Beim Start nach einer neueren Fassung sehen. Haelt selbst den
+            // Abstand ein und schweigt, wenn nichts da ist.
+            modell.fassungSuchen(vonSelbst = true)
         }
         modell.beobachten()
     }

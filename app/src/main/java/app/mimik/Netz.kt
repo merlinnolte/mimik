@@ -71,6 +71,12 @@ data class RundeAus(
     @SerialName("wartet_seit") val wartetSeit: Int = 0,
     /** Der Satz über MICH: eigene Antwort plus die drei Klone. */
     @SerialName("meine_karten") val meineKarten: List<KarteAus> = emptyList(),
+    /**
+     * Die eigene freiwillige Stimme zu dieser Frage: +1 gute Frage, -1 nicht
+     * so, 0 nichts gesagt. Kommt vom Server mit, damit der gewählte Daumen
+     * nach einem Neustart noch da ist.
+     */
+    @SerialName("mein_urteil") val meinUrteil: Int = 0,
 )
 
 @Serializable
@@ -300,6 +306,13 @@ class Netz(private var basis: String, private var token: String) {
 
     fun raten(runde: String, pos: Int): TippAus =
         sende("POST", "/v1/rounds/$runde/guess", buildJsonObject { put("pos", pos) }.toString())
+
+    /** Freiwillige Stimme zur Frage einer Runde. 0 zieht sie zurück. */
+    fun urteilen(runde: String, urteil: Int): String =
+        ruf(
+            "POST", "/v1/rounds/$runde/urteil",
+            buildJsonObject { put("urteil", urteil) }.toString(),
+        )
 
     fun dossier(): DossierAus = hole("/v1/dossier")
 

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Der einzige Ort, den MIMIK nach außen reicht: der Ordner mit der geladenen
+  APK-Datei. Der Installer des Systems ist eine fremde App und kommt sonst
+  nicht an sie heran.
+-->
+<paths>
+    <cache-path name="fassungen" path="fassungen/" />
+</paths>

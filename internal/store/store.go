@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"log"
 	mrand "math/rand/v2"
 	"strings"
 	"time"
@@ -50,7 +51,13 @@ func Open(pfad string) (*Store, error) {
 		return nil, fmt.Errorf("schema: %w", err)
 	}
 	s := &Store{db: db}
-	return s, s.fragenSaeen()
+	ber, err := s.fragenAbgleichen()
+	if err != nil {
+		return nil, fmt.Errorf("fragenvorrat: %w", err)
+	}
+	log.Printf("fragenvorrat: %d fragen (%d neu, %d gebrueckt, %d geaendert, %d entfernt) %v",
+		ber.Gesamt, ber.Neu, ber.Gebrueckt, ber.Geaendert, ber.Entfernt, ber.Rubriken)
+	return s, nil
 }
 
 func (s *Store) Close() error { return s.db.Close() }
@@ -67,14 +74,163 @@ func id() string {
 	return hex.EncodeToString(b)
 }
 
-func (s *Store) fragenSaeen() error {
-	for _, f := range seed.Fragen() {
-		if _, err := s.db.Exec(
-			`INSERT OR IGNORE INTO fragen_pool (text, rubrik) VALUES (?, ?)`, f.Text, f.Rubrik); err != nil {
-			return err
+// Fragenbericht sagt, was ein Abgleich getan hat. Eine Zeile im Protokoll beim
+// Start ist die einzige Stelle, an der man sieht, dass der Server von sich aus
+// Fragen entfernt hat - und das ist das, was ohne sie unsichtbar bliebe.
+type Fragenbericht struct {
+	Gesamt    int
+	Neu       int // Kennung war unbekannt
+	Gebrueckt int // Kennung neu, Text war aber schon im Vorrat: alte id gerettet
+	Geaendert int // gleiche Kennung, anderer Text oder andere Rubrik
+	Entfernt  int // war im Vorrat, steht nicht mehr in fragen.json
+	Rubriken  map[string]int
+}
+
+// fragenAbgleichen baut den Fragenvorrat aus internal/seed/fragen.json neu auf.
+//
+// Der Vorrat ist eine Projektion der Datei, nicht ihr Aufbewahrungsort: Die
+// Datei ist die Wahrheit, und beim Start wird die Tabelle nach ihr gerichtet.
+// Das ersetzt das alte INSERT OR IGNORE, das nur einfuegen konnte und damit drei
+// Dinge nicht konnte - eine Frage zuruecknehmen, einen Tippfehler beheben, eine
+// Frage aus einer aelteren Fassung wieder loswerden.
+//
+// Gerettet wird ueber einen Neustart hinweg genau eine Sache: die Zuordnung
+// Kennung -> id in fragen_kennungen. An der id haengt fragen_vergeben, also das
+// Gedaechtnis, wer welche Frage schon hatte.
+//
+// Alles in EINER Transaktion, weil ein Abbruch in der Mitte sonst einen Vorrat
+// hinterliesse, dem Fragen fehlen, bis jemand neu startet.
+func (s *Store) fragenAbgleichen() (Fragenbericht, error) {
+	return s.fragenAbgleichenAus(seed.Fragen())
+}
+
+// fragenAbgleichenAus nimmt den Vorrat als Argument, damit ein Test eine
+// korrigierte oder gekuerzte Fassung von fragen.json durchspielen kann, ohne
+// die eingebettete Datei anzufassen.
+func (s *Store) fragenAbgleichenAus(fragen []seed.Frage) (Fragenbericht, error) {
+	ber := Fragenbericht{Rubriken: map[string]int{}}
+	ber.Gesamt = len(fragen)
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return ber, err
+	}
+	defer tx.Rollback()
+
+	// Was schon da ist: die Zuordnung und der alte Vorrat.
+	kennung := map[string]int64{} // kennung -> id
+	belegt := map[int64]string{}  // id -> kennung
+	rows, err := tx.Query(`SELECT kennung, frage_id FROM fragen_kennungen`)
+	if err != nil {
+		return ber, err
+	}
+	for rows.Next() {
+		var k string
+		var fid int64
+		if err := rows.Scan(&k, &fid); err != nil {
+			rows.Close()
+			return ber, err
+		}
+		kennung[k], belegt[fid] = fid, k
+	}
+	rows.Close()
+
+	type alteZeile struct{ text, rubrik string }
+	alt := map[int64]alteZeile{}
+	nachText := map[string]int64{}
+	rows, err = tx.Query(`SELECT id, text, rubrik FROM fragen_pool`)
+	if err != nil {
+		return ber, err
+	}
+	for rows.Next() {
+		var fid int64
+		var t, r string
+		if err := rows.Scan(&fid, &t, &r); err != nil {
+			rows.Close()
+			return ber, err
+		}
+		alt[fid] = alteZeile{t, r}
+		nachText[t] = fid
+	}
+	rows.Close()
+
+	// Bruecke: Die erste Fassung mit Kennungen trifft eine Datenbank, in der die
+	// Fragen schon stehen und schon vergeben sind. Ueber den Text findet jede
+	// Kennung ihre bestehende id - sonst bekaeme der ganze Vorrat neue ids und
+	// jeder Mensch alle Fragen ein zweites Mal.
+	naechste := int64(0)
+	for fid := range belegt {
+		if fid > naechste {
+			naechste = fid
 		}
 	}
-	return nil
+	for fid := range alt {
+		if fid > naechste {
+			naechste = fid
+		}
+	}
+	for _, f := range fragen {
+		if _, ok := kennung[f.Kennung]; ok {
+			continue
+		}
+		fid, gefunden := nachText[f.Text]
+		if !gefunden || belegt[fid] != "" {
+			continue // neuer Text, oder die id gehoert schon einer anderen Kennung
+		}
+		if _, err := tx.Exec(
+			`INSERT INTO fragen_kennungen (kennung, frage_id) VALUES (?, ?)`,
+			f.Kennung, fid); err != nil {
+			return ber, err
+		}
+		kennung[f.Kennung], belegt[fid] = fid, f.Kennung
+		ber.Gebrueckt++
+	}
+
+	// Neuen Kennungen eine id geben. Von Hand hochgezaehlt und nicht per
+	// Autoinkrement: Nach dem DELETE unten faengt SQLites rowid wieder bei 1 an
+	// und wuerde ids ausgeben, die in fragen_kennungen schon einer anderen Frage
+	// gehoeren.
+	for _, f := range fragen {
+		if _, ok := kennung[f.Kennung]; ok {
+			continue
+		}
+		naechste++
+		if _, err := tx.Exec(
+			`INSERT INTO fragen_kennungen (kennung, frage_id) VALUES (?, ?)`,
+			f.Kennung, naechste); err != nil {
+			return ber, fmt.Errorf("kennung %q: %w", f.Kennung, err)
+		}
+		kennung[f.Kennung] = naechste
+		ber.Neu++
+	}
+
+	// Neu aufbauen statt Zeile fuer Zeile nachziehen. Ein UPDATE je Frage
+	// scheitert, sobald zwei Fragen ihre Texte tauschen - dann steht der Ziel-
+	// text noch bei der anderen Zeile und text UNIQUE schlaegt zu. Verloren geht
+	// dabei nur benutzt, und das liest niemand.
+	if _, err := tx.Exec(`DELETE FROM fragen_pool`); err != nil {
+		return ber, err
+	}
+	imVorrat := map[int64]bool{}
+	for _, f := range fragen {
+		fid := kennung[f.Kennung]
+		if a, war := alt[fid]; war && (a.text != f.Text || a.rubrik != f.Rubrik) {
+			ber.Geaendert++
+		}
+		if _, err := tx.Exec(
+			`INSERT INTO fragen_pool (id, text, rubrik) VALUES (?, ?, ?)`,
+			fid, f.Text, f.Rubrik); err != nil {
+			return ber, fmt.Errorf("frage %q: %w", f.Kennung, err)
+		}
+		imVorrat[fid] = true
+		ber.Rubriken[f.Rubrik]++
+	}
+	for fid := range alt {
+		if !imVorrat[fid] {
+			ber.Entfernt++
+		}
+	}
+	return ber, tx.Commit()
 }
 
 // ---------------------------------------------------------------- Spieler ---
@@ -720,8 +876,16 @@ func (s *Store) SpitznameSetzen(pid, name string) error {
 // Konto, seine Tags, sein Dossier. Fremde Daten löscht man nicht für jemanden
 // mit.
 //
-// Die vergebenen Fragen fallen in den Pool zurück, sonst wären sie für immer
-// verbraucht.
+// Die vergebenen Fragen des Gehenden fallen weg – aber nur seine, über
+// spielerreste und seine player_id.
+//
+// Hier stand einmal `DELETE FROM fragen_vergeben WHERE party_id = ?`, begründet
+// damit, die Fragen seien sonst für immer verbraucht. Das traf auf die falsche
+// Person: Die Zeilen des Gehenden räumt spielerreste ohnehin, also getroffen
+// hat es allein den Partner, der BLEIBT – er behielt Konto, Tags und Dossier
+// und bekam die Fragen dieser Partie zurück in den Vorrat gelegt. Genau das,
+// was PartyVerlassen ausdrücklich nicht tut: „Sie in den Vorrat zurückzulegen
+// hieße, denselben Menschen dieselben Fragen noch einmal zu stellen."
 func (s *Store) AllesLoeschen(pid string) error {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -788,7 +952,6 @@ func (s *Store) AllesLoeschen(pid string) error {
 			`DELETE FROM matches WHERE party_id = ?`,
 			`UPDATE fragen_pool SET benutzt = NULL WHERE benutzt = ?`,
 			`DELETE FROM gesehen WHERE party_id = ?`,
-			`DELETE FROM fragen_vergeben WHERE party_id = ?`,
 			`DELETE FROM party_members WHERE party_id = ?`,
 			`DELETE FROM parties WHERE id = ?`,
 		} {

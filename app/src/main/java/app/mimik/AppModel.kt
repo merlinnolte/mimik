@@ -13,7 +13,9 @@ import kotlinx.coroutines.withContext
 
 class AppModel(app: Application) : AndroidViewModel(app) {
 
-    private val speicher = Speicher(app)
+    // wandern() vor allem anderen: Netz wird gleich mit speicher.server
+    // gebaut, und genau diese Adresse zieht die Wanderung gerade nach.
+    private val speicher = Speicher(app).also { it.wandern() }
     private val netz = Netz(speicher.server, speicher.token)
 
     var palette by mutableStateOf(paletteMit(speicher.palette)); private set
@@ -70,6 +72,15 @@ class AppModel(app: Application) : AndroidViewModel(app) {
      */
     private var gesehen by mutableStateOf(speicher.gesehen)
     private var klone by mutableStateOf(speicher.klone)
+
+    /**
+     * Die eben abgegebenen Stimmen zu Fragen, je Runden-ID – nur für die Zeit
+     * zwischen dem Tippen und dem nächsten Abgleich.
+     *
+     * Absichtlich NICHT im Speicher: Die Wahrheit steht auf dem Server und
+     * kommt mit RundeAus.meinUrteil zurück. Hier liegt nur die Ungeduld.
+     */
+    var urteile by mutableStateOf(emptyMap<String, Int>()); private set
 
     /**
      * Die Runde, deren Fortschrittsbalken noch volläuft. Die Karten sind schon
@@ -251,10 +262,22 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         palette = paletteMit(id)
     }
 
-    fun serverSetzen(url: String) {
-        server = url
-        speicher.server = url
-        netz.setze(speicher.server, speicher.token)
+    /**
+     * Nimmt eine eingetippte Adresse an, wenn sie eine ist. Der Rückgabewert
+     * sagt es: Anmelden gegen eine kaputte Adresse läuft sonst in einen
+     * Verbindungsfehler, und der erklärt niemandem, dass der Tippfehler drei
+     * Felder weiter oben steht.
+     */
+    fun serverSetzen(eingabe: String): Boolean {
+        val adresse = serverNormalform(eingabe)
+        if (adresse == null) {
+            fehler = "Das ist keine Serveradresse."
+            return false
+        }
+        server = adresse
+        speicher.server = adresse
+        netz.setze(adresse, speicher.token)
+        return true
     }
 
     fun anmelden(spitzname: String, einladung: String = "") = imHintergrund {
@@ -267,6 +290,128 @@ class AppModel(app: Application) : AndroidViewModel(app) {
             introOffen = !speicher.introGesehen
             lobbyUebernehmen(l)
             Melder.planen(getApplication())
+        }
+    }
+
+    /**
+     * Anmelden mit einem Schlüssel statt mit einem Namen – derselbe Spieler auf
+     * einem neuen Gerät oder nach einer Neuinstallation. Siehe Umzug.kt.
+     *
+     * Die Lobby ist die Probe: Sie kommt nur, wenn der Schlüssel gilt. Erst
+     * danach wird er gespeichert – ein falscher darf den vorhandenen nicht
+     * überschreiben.
+     */
+    fun mitSchluessel(eingabe: String) = imHintergrund {
+        val s = schluesselLesen(eingabe)
+            ?: throw NetzFehler(0, "Das sieht nicht nach einem Schlüssel aus.")
+        val vorher = speicher.token
+        netz.setze(speicher.server, s)
+        val l = try {
+            netz.lobby()
+        } catch (e: NetzFehler) {
+            netz.setze(speicher.server, vorher)
+            throw if (e.code == 401) {
+                NetzFehler(401, "Dieser Schlüssel gehört zu keinem Konto auf diesem Server.")
+            } else {
+                e
+            }
+        } catch (e: Exception) {
+            netz.setze(speicher.server, vorher)
+            throw e
+        }
+        speicher.token = s
+        // Wer umzieht, hat das Intro gesehen. Es noch einmal vorzuspielen
+        // wäre die falsche Begrüßung für jemanden, der schon mitspielt.
+        speicher.introGesehen = true
+        withContext(Dispatchers.Main) {
+            tokenState = s
+            lobbyUebernehmen(l)
+            Melder.planen(getApplication())
+        }
+    }
+
+    // ------------------------------------------------------- Aktualisierung ---
+
+    /** Was in diesem APK steckt. Steht in den Einstellungen. */
+    val fassung: String get() = BuildConfig.VERSION_NAME
+
+    /** Der eigene Schlüssel, für den Umzug auf ein anderes Gerät. */
+    val schluessel: String get() = speicher.token
+
+    /** Die neuere Fassung, falls es eine gibt. */
+    var angeboten by mutableStateOf<Fassung?>(null); private set
+    var fassungSucht by mutableStateOf(false); private set
+
+    /** Prozent, solange geladen wird. Null heißt: es lädt nichts. */
+    var fassungLaedt by mutableStateOf<Int?>(null); private set
+
+    /** Was zur Suche zu sagen ist – absichtlich nicht `fehler`: Ein Update, das
+     *  nicht erreichbar ist, ist kein Spielfehler und gehört nicht überall hin. */
+    var fassungHinweis by mutableStateOf<String?>(null)
+
+    /**
+     * Sucht nach einer neueren Fassung. `vonSelbst` ist der Griff beim Start:
+     * Er hält den Abstand ein und schweigt, wenn nichts da ist oder die
+     * angebotene Fassung schon weggeklickt wurde. Auf Knopfdruck gilt beides
+     * nicht – wer fragt, will eine Antwort.
+     */
+    fun fassungSuchen(vonSelbst: Boolean = false) {
+        if (fassungSucht || fassungLaedt != null) return
+        val jetzt = System.currentTimeMillis()
+        if (vonSelbst && jetzt - speicher.fassungGesucht < Aktualisierung.ABSTAND) return
+        viewModelScope.launch {
+            fassungSucht = true
+            if (!vonSelbst) fassungHinweis = null
+            val f = withContext(Dispatchers.IO) { Aktualisierung.suchen(fassung) }
+            speicher.fassungGesucht = jetzt
+            fassungSucht = false
+            when {
+                f == null -> if (!vonSelbst) fassungHinweis = "Keine neuere Fassung."
+                vonSelbst && f.name == speicher.fassungUebergangen -> Unit
+                else -> angeboten = f
+            }
+        }
+    }
+
+    /** „Später" – dieselbe Fassung fragt nicht noch einmal von selbst. */
+    fun fassungUebergehen() {
+        speicher.fassungUebergangen = angeboten?.name.orEmpty()
+        angeboten = null
+    }
+
+    /**
+     * Lädt das APK und hält es dem System hin. Den letzten Schritt tut der
+     * Mensch: MIMIK tauscht sich nicht still selbst aus.
+     */
+    fun fassungHolen() {
+        val f = angeboten ?: return
+        if (fassungLaedt != null) return
+        val kontext = getApplication<Application>()
+        if (!Aktualisierung.darfInstallieren(kontext)) {
+            fassungHinweis = "Android fragt jetzt, ob MIMIK Apps installieren darf."
+            Aktualisierung.erlaubnisHolen(kontext)
+            return
+        }
+        viewModelScope.launch {
+            fassungLaedt = 0
+            fassungHinweis = null
+            try {
+                val datei = withContext(Dispatchers.IO) {
+                    Aktualisierung.herunterladen(kontext, f) { prozent ->
+                        // Nur bei echter Aenderung zurueck auf den Hauptfaden:
+                        // Compose-Zustand gehoert dorthin, und 100 Spruenge sind
+                        // genug fuer einen Balken.
+                        if (prozent != fassungLaedt) {
+                            viewModelScope.launch { fassungLaedt = prozent }
+                        }
+                    }
+                }
+                Aktualisierung.installieren(kontext, datei)
+            } catch (e: Exception) {
+                fassungHinweis = "Das Update ließ sich nicht laden."
+            } finally {
+                fassungLaedt = null
+            }
         }
     }
 
@@ -500,6 +645,32 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     fun antwortSenden(runde: String, original: String) = imHintergrund {
         netz.antworten(runde, original)
         nachladen()
+    }
+
+    /**
+     * Die freiwillige Stimme zur Frage – und der einzige Aufruf der App, der
+     * bewusst NICHT durch imHintergrund läuft.
+     *
+     * Grund: imHintergrund setzt `laden` (der ganze Bildschirm wird blass und
+     * Knöpfe gehen aus) und zeigt bei einem Fehlschlag ein rotes Band. Beides
+     * wäre hier falsch. Wer aus Freundlichkeit einen Daumen setzt, soll dafür
+     * nicht den Bildschirm blockieren und schon gar keine Fehlermeldung
+     * bekommen. Die Wahl steht sofort lokal, der Server erfährt sie danach, und
+     * wenn das schiefgeht, bleibt der Daumen stehen und niemand erwähnt es.
+     *
+     * Der Preis ist ausdrücklich: Eine Stimme kann verloren gehen, ohne dass es
+     * jemand merkt. Bei freiwilligem Feedback auf eine Frage, die derselbe
+     * Mensch nie wieder sieht, ist das der richtige Tausch.
+     */
+    fun urteilSenden(runde: String, urteil: Int) {
+        urteile = urteile + (runde to urteil)
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) { netz.urteilen(runde, urteil) }
+            } catch (e: Exception) {
+                // Absichtlich still. Siehe oben.
+            }
+        }
     }
 
     fun tippSenden(runde: String, pos: Int) = imHintergrund {

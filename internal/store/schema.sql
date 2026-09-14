@@ -115,12 +115,59 @@ CREATE TABLE IF NOT EXISTS guesses (
   PRIMARY KEY (round_id, rater_id)
 );
 
+-- Der Fragenvorrat ist die PROJEKTION von internal/seed/fragen.json, nicht
+-- sein Aufbewahrungsort: Beim Start wird er aus der Datei neu aufgebaut. Das
+-- Einzige, was ueber einen Neustart hinweg gerettet werden muss, ist die
+-- Zuordnung Kennung -> id, denn an der id haengt fragen_vergeben.
+--
+-- benutzt ist toter Ballast: Es wird noch geschrieben (match.go), aber seit
+-- fragen_vergeben nirgends mehr gelesen. Die Spalte bleibt stehen, weil dieses
+-- Projekt keine Wanderungen macht.
 CREATE TABLE IF NOT EXISTS fragen_pool (
   id      INTEGER PRIMARY KEY,
   text    TEXT NOT NULL UNIQUE,
   rubrik  TEXT NOT NULL,
-  benutzt TEXT                          -- party_id, sobald vergeben
+  benutzt TEXT                          -- party_id, sobald vergeben; ungelesen
 );
+
+-- Die fachliche Identitaet einer Frage ist ihre Kennung, nicht ihr Text.
+--
+-- Ohne diese Tabelle war ein Tippfehler in einer ausgelieferten Frage
+-- unbehebbar: INSERT OR IGNORE kennt kein UPDATE, der korrigierte Text waere
+-- als ZWEITE Zeile mit neuer id gelandet, die alte stehen geblieben - und jeder,
+-- der die Frage schon beantwortet hat, haette sie wiederbekommen.
+--
+-- Die Zeile bleibt auch dann stehen, wenn die Frage aus fragen.json
+-- verschwindet: Wird sie wieder aufgenommen, bekommt sie DIESELBE id zurueck,
+-- und niemand sieht sie ein zweites Mal.
+CREATE TABLE IF NOT EXISTS fragen_kennungen (
+  kennung  TEXT PRIMARY KEY,
+  frage_id INTEGER NOT NULL UNIQUE
+);
+
+-- Was ein Mensch von einer Frage haelt. Freiwillig, hoechstens eine Stimme je
+-- Mensch und Frage - mehr braucht es nicht, weil dieselbe Frage denselben
+-- Menschen ohnehin nur einmal trifft.
+--
+-- Kein Fremdschluessel auf fragen_pool, aus demselben Grund wie bei
+-- fragen_vergeben: Die Stimme soll ueberleben, dass eine Frage den Vorrat
+-- verlaesst. Kommt sie zurueck, bekommt sie ueber fragen_kennungen DIESELBE id
+-- und damit ihre Stimmen wieder.
+--
+-- Die eigene Stimme wirkt nie auf den eigenen Vorrat: Wer eine Frage bewerten
+-- konnte, hat sie gehabt, und dann steht sie in fragen_vergeben und wird ihm
+-- nicht mehr gezogen. Was zaehlt, ist also immer das Urteil der anderen.
+CREATE TABLE IF NOT EXISTS fragen_urteile (
+  player_id   TEXT NOT NULL REFERENCES players(id),
+  frage_id    INTEGER NOT NULL,
+  urteil      INTEGER NOT NULL,          -- +1 gute Frage, -1 nicht so
+  erstellt_am TEXT NOT NULL,
+  PRIMARY KEY (player_id, frage_id)
+);
+
+-- Gelesen wird nach Frage (beim Ziehen, ueber alle Spieler), geschrieben nach
+-- Spieler. Der Primaerschluessel deckt nur die zweite Richtung.
+CREATE INDEX IF NOT EXISTS idx_urteile_frage ON fragen_urteile(frage_id);
 
 CREATE INDEX IF NOT EXISTS idx_rounds_match ON rounds(match_id);
 CREATE INDEX IF NOT EXISTS idx_fakten_player ON dossier_fakten(player_id);
