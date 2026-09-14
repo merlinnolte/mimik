@@ -390,6 +390,22 @@ Damit es nicht noch einmal passiert:
 - **Meldungen zu einer Phase, die schon vorbei war.** Drei Ursachen, alle in
   `APP.md` festgehalten: keine Vordergrundprüfung, eine Meldung, die im Schacht
   stehen blieb, und ein Merker, der im Vordergrund nie gekürzt wurde.
+- **Das Modell baute aus dem Dossier und bog es dann zur Frage.** Auf „Welche
+  Regel deiner Eltern findest du heute richtig?" kam „Beim Kochen ständig
+  abschmecken" – begründet mit „du kochst regelmäßig". Das ist keine Regel der
+  Eltern. Der Prompt sagte „Sie beantworten die Frage wirklich" als eine von
+  sieben Regeln in einer Liste; das genügte nicht. Jetzt steht **VERLANGT** als
+  eigener Abschnitt VOR den Antworten: Das Modell legt erst fest, was die Frage
+  als Gegenstand will („eine Kindheitsangst"), und liefert das dann dreimal.
+  Dasselbe Verfahren wie bei der Sperre – die Feldreihenfolge erzwingt die
+  Denkreihenfolge. Nachgemessen an fünf harten Fragen: vorher mehrere Antworten
+  daneben, danach fünfzehn von fünfzehn auf die Frage.
+- **Ein Ausgabefeld kann das Verhalten kippen.** Das Feld, mit dem MIMIK
+  begründet, woraus sie eine Fälschung gebaut hat, belohnte genau das Bauen aus
+  Material – jede Begründung sagte „daraus habe ich…". Wer ein Feld hinzufügt,
+  fügt einen Anreiz hinzu. Gegenmittel im selben Prompt: „nichts benutzt" ist
+  ausdrücklich der Normalfall, und höchstens zwei der drei Antworten dürfen
+  überhaupt auf Material stehen.
 - **Die Denkspur kostete neunzig Prozent der Ausgabe für nichts.** Am 14.09.2026
   gemessen: 2.019 Ausgabetoken mit Denkspur, 227 ohne, bei gleicher Qualität in
   sechs Fällen. Niemand hatte je hingesehen, weil der Klient das `usage`-Objekt

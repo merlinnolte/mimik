@@ -363,3 +363,71 @@ func TestGesperrteThemenSindGeordnetUndGedeckelt(t *testing.T) {
 		t.Fatalf("ohne grenze %d statt 20", len(alle))
 	}
 }
+
+// Eine Frage soll niemand zweimal sehen. Der Vorrat ist endlich, also ist die
+// interessante Frage, was passiert, wenn er leer ist: Dann trifft die
+// Wiederholung wenigstens nur einen von zwei Menschen, nicht beide.
+func TestFragenKommenNichtZweimal(t *testing.T) {
+	s := offen(t)
+	a := spieler(t, s, "Fragen A")
+	b := spieler(t, s, "Fragen B")
+	e, _ := s.EinladungAnlegen(a.ID, b.ID)
+	pa, err := s.EinladungAnnehmen(e.ID, b.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Den Vorrat bis auf zwei Fragen abtragen - beide auf A geschrieben.
+	var ids []int
+	rows, err := s.DB().Query(`SELECT id FROM fragen_pool ORDER BY id`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for rows.Next() {
+		var id int
+		rows.Scan(&id)
+		ids = append(ids, id)
+	}
+	rows.Close()
+	if len(ids) < 10 {
+		t.Fatalf("nur %d fragen im vorrat", len(ids))
+	}
+	for _, id := range ids[:len(ids)-2] {
+		if _, err := s.DB().Exec(
+			`INSERT INTO fragen_vergeben (player_id, frage_id, party_id, vergeben_am)
+			 VALUES (?,?,?,'2026-01-01T00:00:00Z')`, a.ID, id, "alt"); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Ein Match zieht sechs Runden. Zwei sind frei, danach greift der Rückweg.
+	m, err := s.MatchAnlegen(pa.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runden, err := s.RundenVonMatch(m.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gesehen := map[string]int{}
+	for _, r := range runden {
+		gesehen[r.Frage]++
+	}
+	// Innerhalb EINES Matches darf keine Frage doppelt vorkommen - dort ist der
+	// Vorrat garantiert gross genug.
+	for f, n := range gesehen {
+		if n > 1 {
+			t.Fatalf("die frage %q kommt %d mal in einem match", f, n)
+		}
+	}
+	// Und die Wiederholungen gingen an die Frage mit der geringsten Zahl
+	// bisheriger Vergaben: B hat noch keine gesehen, also darf keine der
+	// gezogenen Fragen zweimal bei B landen.
+	var doppelt int
+	s.DB().QueryRow(
+		`SELECT COUNT(*) FROM (SELECT frage_id FROM fragen_vergeben
+		   WHERE player_id = ? GROUP BY frage_id HAVING COUNT(*) > 1)`, b.ID).Scan(&doppelt)
+	if doppelt != 0 {
+		t.Fatalf("%d fragen zweimal an dieselbe person vergeben", doppelt)
+	}
+}

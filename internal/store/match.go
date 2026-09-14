@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"mimik/internal/game"
@@ -66,14 +67,38 @@ func rundeAnlegenTx(tx *sql.Tx, matchID, partyID string, mitglieder []string, nu
 		`SELECT id, text, rubrik FROM fragen_pool
 		  WHERE id NOT IN (SELECT frage_id FROM fragen_vergeben WHERE player_id IN (?,?))
 		  ORDER BY RANDOM() LIMIT 1`, a, b).Scan(&fid, &text, &rubrik)
+
+	// Zweite Stufe: eine, die WENIGSTENS EINER der beiden noch nicht hatte.
+	//
+	// Ohne diese Stufe fiel der Rueckweg sofort auf "irgendeine" - und eine
+	// zufaellig gezogene Frage hatten unter Umstaenden BEIDE schon. Wenn eine
+	// Wiederholung unvermeidlich ist, soll sie wenigstens nur einen von zwei
+	// Menschen treffen.
 	if errors.Is(err, sql.ErrNoRows) {
-		// Vorrat leergespielt: irgendeine nehmen. Eine wiederholte Frage ist
-		// besser als eine Runde, die gar nicht erst entsteht.
-		err = tx.QueryRow(`SELECT id, text, rubrik FROM fragen_pool ORDER BY RANDOM() LIMIT 1`).
-			Scan(&fid, &text, &rubrik)
+		err = tx.QueryRow(
+			`SELECT p.id, p.text, p.rubrik FROM fragen_pool p
+			  ORDER BY (SELECT COUNT(*) FROM fragen_vergeben v
+			             WHERE v.frage_id = p.id AND v.player_id IN (?,?)), RANDOM()
+			  LIMIT 1`, a, b).Scan(&fid, &text, &rubrik)
 	}
 	if err != nil {
 		return fmt.Errorf("fragenvorrat leer: %w", err)
+	}
+	// Und laut sagen, wenn es knapp wird. Der Vorrat ist endlich: 144 Fragen
+	// reichen fuer rund zwanzig Matches, danach sieht jemand eine zweite Mal -
+	// und das faellt zuerst dem Spieler auf, nicht dem Betreiber.
+	for _, x := range mitglieder {
+		if x == "" {
+			continue
+		}
+		var offen int
+		tx.QueryRow(
+			`SELECT COUNT(*) FROM fragen_pool
+			  WHERE id NOT IN (SELECT frage_id FROM fragen_vergeben WHERE player_id = ?)`,
+			x).Scan(&offen)
+		if offen <= 15 {
+			log.Printf("fragenvorrat: fuer %s sind nur noch %d fragen offen", x[:8], offen)
+		}
 	}
 	if _, err := tx.Exec(`UPDATE fragen_pool SET benutzt = ? WHERE id = ?`, partyID, fid); err != nil {
 		return err

@@ -50,6 +50,12 @@ type Ergebnis struct {
 	Faelschungen []game.Faelschung
 	Versuche     int
 	Befund       Befund
+	// Verlangt ist, was das Modell fuer den Gegenstand der Frage haelt - "eine
+	// Regel der Eltern", "eine Kindheitsangst". Es steht im JSON VOR den
+	// Antworten und zwingt das Modell, sich festzulegen, bevor es schreibt.
+	// Fuer das Spiel wird es nicht gebraucht; im Protokoll ist es die einzige
+	// Stelle, an der man sieht, ob eine Frage falsch verstanden wurde.
+	Verlangt string
 	// Verbrauch aller Durchgaenge, einzeln. Wiederholungen stehen jede fuer
 	// sich darin - genau dort steckt das Geld, und eine Summe verwischte es.
 	Verbrauch []Verbrauch
@@ -59,6 +65,7 @@ type antwortB struct {
 	Normalform string   `json:"normalform"`
 	Fakt       string   `json:"fakt"`
 	Sperre     []string `json:"sperre"`
+	Verlangt   string   `json:"verlangt"`
 	Antworten  []struct {
 		Richtung    string `json:"richtung"`
 		Text        string `json:"text"`
@@ -248,6 +255,7 @@ func (c *Client) einDurchgang(ctx context.Context, frage, roh string, d Dossier)
 	erg := Ergebnis{
 		Normalform: ErsatzNormalform(norm),
 		Fakt:       sicher.Text(a.Fakt, MaxFakt),
+		Verlangt:   sicher.Text(a.Verlangt, MaxThema),
 		Verbrauch:  []Verbrauch{verbrauch},
 	}
 	for _, t := range a.Sperre {

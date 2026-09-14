@@ -119,6 +119,30 @@ war das dasselbe; sobald jemand zwei spielt, bekäme er dieselbe Frage ein
 zweites Mal – und die zweite Antwort wäre die erste, nur schlechter. Die neue
 Wahrheit steht in `fragen_vergeben`, je Spieler.
 
+## Dass die Fälschung die Frage beantwortet
+
+Geprüft wird mechanisch der **Abstand** (`Abstandsfenster`), die
+**Themensperre** (`Sperrbruch`) und die **Form** (`FormPruefen`) – nicht die
+Relevanz. Ob eine Fälschung die Frage überhaupt beantwortet, lässt sich ohne
+zweiten Modellaufruf nicht messen; dafür gibt es kein n-Gramm.
+
+Also macht es der Prompt, mit dem Verfahren, das im Projekt ohnehin gilt: Der
+Abschnitt **VERLANGT** steht VOR den Antworten. Das Modell legt zuerst fest, was
+die Frage als Gegenstand will – „eine Regel der Eltern", „eine Kindheitsangst",
+„ein letzter Streit und sein Anlass" –, und jede der drei Antworten muss genau
+das liefern. Hinterher ließe sich das nicht mehr durchsetzen: Was dasteht,
+steht da.
+
+Das Feld `verlangt` geht nicht ins Spiel, sondern nur in die Protokollzeile des
+Workers. Dort ist es die einzige Stelle, an der man sieht, dass eine Frage
+falsch verstanden wurde.
+
+Dazu die Reihenfolge im Prompt, ausdrücklich: **erst die Frage beantworten, dann
+sehen, ob Material dazu passt** – nicht umgekehrt. Und höchstens zwei der drei
+Antworten dürfen überhaupt auf Dossiermaterial stehen. Drei Antworten aus
+derselben kleinen Quelle sind als Satz erkennbar, ohne dass man die Person
+kennen muss: Die echte kommt aus dem Leben, nicht aus einer Liste.
+
 ## Der eigene Kartensatz
 
 `/v1/parties/{id}/state` liefert unter `meine_karten` den Satz **über einen

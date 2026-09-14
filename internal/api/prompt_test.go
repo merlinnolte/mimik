@@ -16,12 +16,21 @@ import (
 // Profil, während der Worker eines füllt, und maß damit an der Wirklichkeit
 // vorbei.
 //
-// Gemessen am 14.09.2026 (Zeichen System + Material): ohne Dossier 7.803, mit
-// zwölf Fakten 8.964, mit zwölf Fakten und zwölf Merkmalen 9.945, mit vierzig
-// Fakten 11.624. Gegenüber der Messung vom Vormittag 727 Zeichen mehr - das ist
-// der Abschnitt, mit dem MIMIK begründet, woraus sie eine Fälschung gebaut hat.
-// Er steht im SYSTEMPROMPT, also in dem Teil, den der Prefix-Cache zu einem
-// Zehntel abrechnet; auf der Ausgabeseite kostet er rund 130 Token. Am Endpunkt gemessen sind 6.600 Zeichen rund 1.950
+// Gemessen am 14.09.2026 (Zeichen System + Material): ohne Dossier 8.672, mit
+// zwölf Fakten 9.833, mit zwölf Fakten und zwölf Merkmalen 10.814, mit vierzig
+// Fakten 12.493.
+//
+// Der Prompt ist an einem Tag zweimal gewachsen, beide Male für etwas
+// Messbares: +727 Zeichen für die Begründung, woraus eine Fälschung gebaut ist
+// (Ausgabeseite rund 130 Token), und +869 für den Abschnitt VERLANGT, nach dem
+// jede Fälschung die Frage wirklich beantwortet - vorher lieferten bei fünf
+// harten Fragen mehrere Antworten etwas anderes als das Gefragte.
+//
+// Dass das vertretbar ist, hängt an einer Messung: 87 Prozent der Eingabe
+// kommen aus dem Prefix-Cache, und gewachsen ist genau der cachefähige Teil.
+// Es ist aber keine Einladung: Der erste Aufruf jeder Sitzung zahlt alles, und
+// irgendwann leidet nicht die Rechnung, sondern die Aufmerksamkeit des Modells.
+// Wer hier etwas hinzufügt, nimmt besser etwas mit. Am Endpunkt gemessen sind 6.600 Zeichen rund 1.950
 // Eingabetoken, also 3,4 Zeichen je Token - ein Kontextüberlauf kann von diesem
 // Umfang nicht kommen, jedes brauchbare Modell trägt ein Vielfaches.
 //
@@ -73,7 +82,7 @@ func TestPromptbleibtklein(t *testing.T) {
 		t.Logf("%2d Fakten, %2d Merkmale -> %5d Zeichen (~%5d Token)",
 			f.fakten, f.merkmale, groesse, groesse*10/34)
 		// Zwölf Fakten und ein voller Profilblock sind der Betriebsfall.
-		if f.fakten == 12 && f.merkmale == 12 && groesse > 10400 {
+		if f.fakten == 12 && f.merkmale == 12 && groesse > 11200 {
 			t.Errorf("der Betriebsprompt ist auf %d Zeichen gewachsen", groesse)
 		}
 	}

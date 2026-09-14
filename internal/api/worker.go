@@ -311,9 +311,9 @@ func (w *Worker) kartenBauen(ctx context.Context, rid string, pa game.Party, ueb
 	// Streuung und Grund gehoeren mit ins Protokoll: Steigt die Zahl der
 	// Versuche oder sinkt die Streuung, war eine Aenderung am Prompt schlecht -
 	// und ohne diese Zahlen merkt es niemand.
-	log.Printf("worker: %s über %s fertig (versuche=%d, abstand=%.2f, streuung=%.2f, richtungen=%v)",
+	log.Printf("worker: %s über %s fertig (versuche=%d, abstand=%.2f, streuung=%.2f, verlangt=%q, richtungen=%v)",
 		rd.ID[:8], ueber, erg.Versuche, erg.Befund.MaxZuEcht,
-		erg.Befund.MittelPeers-erg.Befund.MaxZuEcht, richtungen)
+		erg.Befund.MittelPeers-erg.Befund.MaxZuEcht, erg.Verlangt, richtungen)
 	return w.S.KartenbauFertig(rid, string(ueber))
 }
 
