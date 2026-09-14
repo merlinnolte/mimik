@@ -234,14 +234,18 @@ func (s *Store) Runde(rid string) (game.Runde, error) {
 	rows.Close()
 
 	rows, err = s.db.Query(
-		`SELECT ueber, pos, text, ist_echt, anker_tag FROM karten WHERE round_id = ? ORDER BY ueber, pos`, rid)
+		`SELECT k.ueber, k.pos, k.text, k.ist_echt, k.anker_tag, COALESCE(g.grund,'')
+		   FROM karten k
+		   LEFT JOIN karten_gruende g
+		          ON g.round_id = k.round_id AND g.ueber = k.ueber AND g.pos = k.pos
+		  WHERE k.round_id = ? ORDER BY k.ueber, k.pos`, rid)
 	if err != nil {
 		return r, err
 	}
 	for rows.Next() {
 		var ueber string
 		var k game.Karte
-		if err := rows.Scan(&ueber, &k.Pos, &k.Text, &k.IstEcht, &k.Richtung); err != nil {
+		if err := rows.Scan(&ueber, &k.Pos, &k.Text, &k.IstEcht, &k.Richtung, &k.Begruendung); err != nil {
 			rows.Close()
 			return r, err
 		}
@@ -349,6 +353,10 @@ func (s *Store) KartenSpeichern(rid, ueber string, karten []game.Karte) error {
 	if _, err := tx.Exec(`DELETE FROM karten WHERE round_id = ? AND ueber = ?`, rid, ueber); err != nil {
 		return err
 	}
+	if _, err := tx.Exec(
+		`DELETE FROM karten_gruende WHERE round_id = ? AND ueber = ?`, rid, ueber); err != nil {
+		return err
+	}
 	for _, k := range karten {
 		echt := 0
 		if k.IstEcht {
@@ -360,6 +368,14 @@ func (s *Store) KartenSpeichern(rid, ueber string, karten []game.Karte) error {
 			// steht nur in der Datenbank, nirgends im Code.
 			`INSERT INTO karten (round_id, ueber, pos, text, ist_echt, anker_tag) VALUES (?,?,?,?,?,?)`,
 			rid, ueber, k.Pos, k.Text, echt, k.Richtung); err != nil {
+			return err
+		}
+		if k.Begruendung == "" {
+			continue
+		}
+		if _, err := tx.Exec(
+			`INSERT INTO karten_gruende (round_id, ueber, pos, grund) VALUES (?,?,?,?)`,
+			rid, ueber, k.Pos, k.Begruendung); err != nil {
 			return err
 		}
 	}

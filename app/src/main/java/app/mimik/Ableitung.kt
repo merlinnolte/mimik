@@ -14,7 +14,7 @@ package app.mimik
 
 enum class Bildschirm {
     Start, Laden, NameWaehlen, Intro, Tags, Lobby, Warteraum, Basis,
-    Schreiben, Warten, Raten, Getippt, Aufloesung, Einstellungen,
+    Schreiben, Warten, Klone, Raten, Getippt, Aufloesung, Einstellungen,
 }
 
 /** Bis wohin ein Spieler die Auflösungen EINER Partie gesehen hat. */
@@ -32,6 +32,8 @@ data class Sicht(
     val introOffen: Boolean = false,
     val einstellungenOffen: Boolean = false,
     val gesehen: Map<String, Gesehen> = emptyMap(),
+    /** Bis zu welcher Runde je Partie der Klonblick weggeklickt ist. */
+    val klone: Map<String, Gesehen> = emptyMap(),
     val balkenLaeuftVoll: String? = null,
 )
 
@@ -68,10 +70,29 @@ fun bildschirmFuer(s: Sicht): Bildschirm {
     val r = aktuelleRunde(p) ?: return Bildschirm.Basis
     return when {
         r.meineAntwort.isBlank() -> Bildschirm.Schreiben
+        // Der Klonblick kommt VOR dem Raten und vor dem zweiten Warten: Die
+        // eigenen vier Karten stehen, sobald MIMIK sie gebaut hat - also lange
+        // bevor die andere Seite geantwortet hat. Genau dort ist die Wartezeit,
+        // und genau dort gibt es etwas zu sehen.
+        klonOffen(p, r, s.klone[p.partyId]) -> Bildschirm.Klone
         r.karten.isEmpty() || s.balkenLaeuftVoll == r.id -> Bildschirm.Warten
         r.meinTipp == null -> Bildschirm.Raten
         else -> Bildschirm.Getippt
     }
+}
+
+/**
+ * Steht der Klonblick dieser Runde noch offen?
+ *
+ * Vier eigene Karten müssen da sein, und die Runde darf noch nicht
+ * weggeklickt sein. Der Merker hängt am Match, nicht nur an der Nummer –
+ * dieselbe Falle wie bei der Auflösung: Rundennummern fangen in jedem Match
+ * wieder bei 1 an.
+ */
+fun klonOffen(p: Spielzustand, r: RundeAus, g: Gesehen?): Boolean {
+    if (r.meineKarten.size != 4) return false
+    val bis = if (g != null && g.match == p.match?.id.orEmpty()) g.bis else 0
+    return r.nummer > bis
 }
 
 fun aktuelleRunde(p: Spielzustand): RundeAus? =

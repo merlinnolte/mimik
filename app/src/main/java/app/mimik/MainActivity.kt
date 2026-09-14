@@ -89,6 +89,7 @@ private fun App() {
                 Bildschirm.Basis -> BasisBildschirm(modell)
                 Bildschirm.Schreiben -> SchreibenBildschirm(modell)
                 Bildschirm.Warten -> WartenBildschirm(modell)
+                Bildschirm.Klone -> KloneBildschirm(modell)
                 Bildschirm.Raten -> RatenBildschirm(modell)
                 Bildschirm.Getippt -> GetipptBildschirm(modell)
                 Bildschirm.Aufloesung -> AufloesungBildschirm(modell)

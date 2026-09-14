@@ -69,6 +69,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
      * neben dem Spielzustand.
      */
     private var gesehen by mutableStateOf(speicher.gesehen)
+    private var klone by mutableStateOf(speicher.klone)
 
     /**
      * Die Runde, deren Fortschrittsbalken noch volläuft. Die Karten sind schon
@@ -103,6 +104,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
             introOffen = introOffen,
             einstellungenOffen = einstellungenOffen,
             gesehen = gesehen,
+            klone = klone,
             balkenLaeuftVoll = balkenLaeuftVoll,
         )
 
@@ -147,6 +149,8 @@ class AppModel(app: Application) : AndroidViewModel(app) {
             bildschirm == Bildschirm.Getippt -> 5_000L
             bildschirm == Bildschirm.Warteraum -> 5_000L
             bildschirm == Bildschirm.Lobby -> 12_000L
+            // Auf dem Klonblick wird gelesen, nicht gewartet.
+            bildschirm == Bildschirm.Klone -> 0L
             bildschirm == Bildschirm.Laden -> 3_000L
             else -> 0L
         }
@@ -505,6 +509,19 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
+     * Den Klonblick wegklicken und ins Raten gehen.
+     *
+     * Wie bei der Auflösung wird nichts "zugemacht", sondern der Merker
+     * weitergeschoben - was zu sehen ist, ergibt sich danach von selbst.
+     */
+    fun klonWeiter() {
+        val z = zustand ?: return
+        val r = aktuelleRunde ?: return
+        klone = klone + (z.partyId to Gesehen(z.match?.id.orEmpty(), r.nummer))
+        speicher.klone = klone
+    }
+
+    /**
      * Auflösung wegklicken. Es wird nichts "zugemacht", sondern der Merker
      * dieser Partie weitergeschoben - was zu sehen ist, ergibt sich danach von
      * selbst.
@@ -563,6 +580,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
             gewaehlteTags = emptySet()
             tagsGeladen = false
             gesehen = emptyMap()
+            klone = emptyMap()
             einstellungenOffen = false
         }
     }

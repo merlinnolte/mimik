@@ -86,9 +86,12 @@ func stubModell(t *testing.T) *httptest.Server {
 			"fakt":       fmt.Sprintf("Hat in Runde %d etwas über sich verraten.", lauf),
 			"sperre":     []string{"stubthema"},
 			"antworten": []map[string]string{
-				{"anker": "a", "text": fmt.Sprintf("Zitronenfalter beobachten, %d Stück.", lauf)},
-				{"anker": "b", "text": fmt.Sprintf("Rathausturm besteigen, ganz oben %d.", lauf)},
-				{"anker": "c", "text": fmt.Sprintf("Werkzeugkisten sortieren bei Nummer %d.", lauf)},
+				{"richtung": "a", "text": fmt.Sprintf("Zitronenfalter beobachten, %d Stück.", lauf),
+					"begruendung": "grund-" + antwort},
+				{"richtung": "b", "text": fmt.Sprintf("Rathausturm besteigen, ganz oben %d.", lauf),
+					"begruendung": "grund-" + antwort},
+				{"richtung": "c", "text": fmt.Sprintf("Werkzeugkisten sortieren bei Nummer %d.", lauf),
+					"begruendung": "grund-" + antwort},
 			},
 		})
 		json_(w, 200, map[string]any{
@@ -1236,4 +1239,113 @@ func reviewaufrufe(t *testing.T, s *store.Store) int {
 		t.Fatal(err)
 	}
 	return n
+}
+
+// TestBegruendungNurUeberMichSelbst: MIMIK sagt, woraus sie eine Faelschung
+// gebaut hat - aber nur dem Menschen, ueber den die Karte ist.
+//
+// Die Begruendungen der Karten UEBER DAS GEGENUEBER zitieren dessen Dossier:
+// Fakten, die es dem Spiel erzaehlt hat, unter Umstaenden in einer ganz anderen
+// Partie. Sie duerfen den Ratebildschirm nie erreichen.
+func TestBegruendungNurUeberMichSelbst(t *testing.T) {
+	srv, _, w := aufbauen(t)
+	ctx := context.Background()
+
+	a := &klient{t: t, basis: srv.URL}
+	b := &klient{t: t, basis: srv.URL}
+	for i, k := range []*klient{a, b} {
+		var out struct {
+			Token string `json:"token"`
+		}
+		k.ruf("POST", "/v1/devices", map[string]string{
+			"spitzname": fmt.Sprintf("Grund%d", i)}, &out)
+		k.token = out.Token
+		k.ruf("PUT", "/v1/tags", map[string]any{"tags": zehnTags()}, nil)
+	}
+	var neu struct {
+		Code string `json:"code"`
+	}
+	a.ruf("POST", "/v1/parties", nil, &neu)
+	b.ruf("POST", "/v1/parties/join", map[string]string{"code": neu.Code}, nil)
+	a.ruf("POST", "/v1/matches", nil, nil)
+
+	var st struct {
+		Runden []RundeAus `json:"runden"`
+	}
+	a.ruf("GET", "/v1/state", nil, &st)
+	rid := st.Runden[0].ID
+	a.ruf("POST", "/v1/rounds/"+rid+"/answer",
+		map[string]string{"original": geheimEineSeite}, nil)
+	b.ruf("POST", "/v1/rounds/"+rid+"/answer",
+		map[string]string{"original": geheimDerAndereSeite}, nil)
+	w.durchgang(ctx)
+
+	// Die Trennlinie: A sieht die Begruendungen zu SEINEM eigenen Satz - das
+	// ist der Klonblick, und es ist sein Material. Die Begruendungen zum Satz
+	// ueber B sieht A nie: Die zitieren BS Dossier.
+	roh := a.rohtext("GET", "/v1/state")
+	if !strings.Contains(roh, "grund-"+geheimEineSeite) {
+		t.Fatalf("der eigene klonsatz kommt ohne begruendung:\n%s", roh)
+	}
+	if strings.Contains(roh, "grund-"+geheimDerAndereSeite) {
+		t.Fatalf("die begruendung ueber die gegenseite ist bei a gelandet:\n%s", roh)
+	}
+	// Und der Ratesatz selbst traegt keine: Dort stehen die Karten ueber B.
+	var vorm struct {
+		Runden []struct {
+			Karten []struct {
+				Begruendung string `json:"begruendung"`
+			} `json:"karten"`
+		} `json:"runden"`
+	}
+	a.ruf("GET", "/v1/state", nil, &vorm)
+	for _, k := range vorm.Runden[0].Karten {
+		if k.Begruendung != "" {
+			t.Fatalf("eine karte ueber die gegenseite traegt eine begruendung: %q", k.Begruendung)
+		}
+	}
+
+	// Der Partner faellt auf eine Faelschung herein, a liegt richtig.
+	var meine struct {
+		Runden []RundeAus `json:"runden"`
+	}
+	a.ruf("GET", "/v1/state", nil, &meine)
+	var echt int
+	for _, k := range meine.Runden[0].Karten {
+		_ = k
+	}
+	a.ruf("POST", "/v1/rounds/"+rid+"/guess", map[string]int{"pos": 1}, nil)
+	b.ruf("POST", "/v1/rounds/"+rid+"/guess", map[string]int{"pos": 1}, nil)
+	_ = echt
+
+	// Nach der Auflösung: a erfaehrt die Begruendung der Karte, auf die b
+	// hereingefallen ist - und die ist aus AS eigenem Material gebaut.
+	var auf struct {
+		Runden []struct {
+			Aufloesung *struct {
+				PartnerRichtig   bool   `json:"partner_richtig"`
+				PartnerTippText  string `json:"partner_tipp_text"`
+				PartnerTippGrund string `json:"partner_tipp_grund"`
+			} `json:"aufloesung"`
+		} `json:"runden"`
+	}
+	a.ruf("GET", "/v1/state", nil, &auf)
+	al := auf.Runden[0].Aufloesung
+	if al == nil {
+		t.Fatal("keine auflösung")
+	}
+	if !al.PartnerRichtig {
+		if al.PartnerTippGrund == "" {
+			t.Fatal("die begruendung der karte, auf die der partner hereinfiel, fehlt")
+		}
+		if !strings.Contains(al.PartnerTippGrund, geheimEineSeite) {
+			t.Fatalf("die begruendung stammt nicht aus dem eigenen material: %q",
+				al.PartnerTippGrund)
+		}
+	}
+	// Und die Begruendungen ueber B tauchen bei A weiterhin nicht auf.
+	roh = a.rohtext("GET", "/v1/state")
+	if strings.Contains(roh, "grund-"+geheimDerAndereSeite) {
+		t.Fatalf("die begruendung ueber die gegenseite ist bei a gelandet:\n%s", roh)
+	}
 }

@@ -119,6 +119,24 @@ war das dasselbe; sobald jemand zwei spielt, bekäme er dieselbe Frage ein
 zweites Mal – und die zweite Antwort wäre die erste, nur schlechter. Die neue
 Wahrheit steht in `fragen_vergeben`, je Spieler.
 
+## Der eigene Kartensatz
+
+`/v1/parties/{id}/state` liefert unter `meine_karten` den Satz **über einen
+selbst**: die eigene Antwort und die drei Fälschungen, jede mit `begruendung` —
+dem Satz, woraus MIMIK sie gebaut hat. Die App zeigt das als Klonblick
+(`APP.md`).
+
+Das verrät nichts: Geraten wird über die andere Seite, und wer seine Antwort
+selbst getippt hat, weiß, welche der vier Karten sie ist.
+
+**Die Begründungen der Karten über das Gegenüber gehen dagegen nie hinaus.** Sie
+zitieren dessen Dossier — Fakten, die es dem Spiel erzählt hat, unter Umständen
+in einer ganz anderen Partie. `KarteAus.Begruendung` bleibt im Ratesatz leer,
+und in der Auflösung steht nur `partner_tipp_grund`: die Begründung der einen
+Fälschung, auf die die andere Seite hereingefallen ist — und die ist aus dem
+eigenen Material gebaut. Ein Test (`TestBegruendungNurUeberMichSelbst`) hält
+beide Richtungen fest.
+
 ## Das Profil
 
 Nach jeder aufgelösten Runde wertet ein **zweiter Modellaufruf** aus, welche

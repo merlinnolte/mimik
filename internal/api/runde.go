@@ -17,6 +17,9 @@ type KarteAus struct {
 	Pos     int    `json:"pos"`
 	Text    string `json:"text"`
 	IstEcht *bool  `json:"ist_echt,omitempty"`
+	// Begruendung steht nur im EIGENEN Satz: Sie zitiert das Material des
+	// Menschen, ueber den die Karte ist.
+	Begruendung string `json:"begruendung,omitempty"`
 }
 
 type RundeAus struct {
@@ -30,6 +33,14 @@ type RundeAus struct {
 	MeinTreffer  *bool        `json:"mein_treffer,omitempty"`
 	Aufloesung   *Aufloesung  `json:"aufloesung,omitempty"`
 	Fehler       string       `json:"fehler,omitempty"`
+	// MeineKarten ist der Satz UEBER MICH - die eigene Antwort und die drei
+	// Faelschungen, die MIMIK daraus gebaut hat, mit ihren Begruendungen.
+	//
+	// Das verraet nichts: Wer seine eigene Antwort geschrieben hat, weiss
+	// ohnehin, welche der vier Karten sie ist. Geraten wird ueber die ANDERE
+	// Seite, und dieser Satz steht in Karten. Umgekehrt ist es der einzige Weg,
+	// MIMIK bei der Arbeit zuzusehen - und das ist der Reiz.
+	MeineKarten []KarteAus `json:"meine_karten,omitempty"`
 	// Sekunden, seit BEIDE geantwortet haben - der Beginn von MIMIKs Arbeit.
 	// Nur gesetzt, solange sie arbeitet; die App zeichnet daraus den
 	// Fortschrittsbalken und findet ihn nach einem Neustart wieder.
@@ -45,9 +56,17 @@ type Aufloesung struct {
 	// aus dem Satz ueber MICH. Der spannendste Teil der Auflösung: Wofuer hat
 	// sie mich gehalten? Erst nach dem zweiten Tipp, also ist nichts verraten.
 	PartnerTippText string `json:"partner_tipp_text,omitempty"`
-	MeineEchte      string `json:"meine_echte,omitempty"`
-	PartnerRichtig  bool   `json:"partner_richtig"`
-	Doppeltreffer   bool   `json:"doppeltreffer"`
+	// Woraus MIMIK die Faelschung gebaut hat, auf die die andere Seite
+	// hereingefallen ist.
+	//
+	// NUR fuer den Satz ueber MICH. Die Begruendungen der Karten ueber das
+	// Gegenueber zitieren DESSEN Dossier - Faktzen, die es dem Spiel erzaehlt
+	// hat, unter Umstaenden in einer ganz anderen Partie. Die gehen hier
+	// niemals hinaus.
+	PartnerTippGrund string `json:"partner_tipp_grund,omitempty"`
+	MeineEchte       string `json:"meine_echte,omitempty"`
+	PartnerRichtig   bool   `json:"partner_richtig"`
+	Doppeltreffer    bool   `json:"doppeltreffer"`
 }
 
 // nichtNil sorgt dafür, dass leere Listen als [] und nicht als null hinausgehen.
@@ -66,6 +85,16 @@ func kartentext(ks []game.Karte, pos int) string {
 	for _, k := range ks {
 		if k.Pos == pos {
 			return k.Text
+		}
+	}
+	return ""
+}
+
+// kartengrund liefert die Begruendung einer Karte nach Position.
+func kartengrund(ks []game.Karte, pos int) string {
+	for _, k := range ks {
+		if k.Pos == pos && !k.IstEcht {
+			return k.Begruendung
 		}
 	}
 	return ""
@@ -164,6 +193,17 @@ func (s *Server) zustand(w http.ResponseWriter, r *http.Request) {
 			}
 			ra.Karten = append(ra.Karten, ka)
 		}
+		// Der eigene Satz, sobald er steht. Vor der Auflösung traegt er die
+		// Begruendungen; danach braucht sie niemand mehr, und die Auflösung
+		// zeigt ohnehin die eine, auf die das Gegenueber hereingefallen ist.
+		if len(rd.Karten[ich]) == 4 {
+			for _, k := range rd.Karten[ich] {
+				echt := k.IstEcht
+				ra.MeineKarten = append(ra.MeineKarten, KarteAus{
+					Pos: k.Pos, Text: k.Text, IstEcht: &echt, Begruendung: k.Begruendung,
+				})
+			}
+		}
 		if t, ok := rd.Tipps[ich]; ok {
 			g, tr := t.Gewaehlt, t.Richtig
 			ra.MeinTipp, ra.MeinTreffer = &g, &tr
@@ -173,14 +213,15 @@ func (s *Server) zustand(w http.ResponseWriter, r *http.Request) {
 		if aufgedeckt {
 			meiner, partner := rd.Tipps[ich], rd.Tipps[gegner]
 			ra.Aufloesung = &Aufloesung{
-				EchteKarte:      rd.EchteKarte(gegner),
-				AntwortPartner:  rd.Antworten[gegner].Normalform,
-				MeinTippRichtig: meiner.Richtig,
-				PartnerTipp:     partner.Gewaehlt,
-				PartnerTippText: kartentext(rd.Karten[ich], partner.Gewaehlt),
-				MeineEchte:      rd.Antworten[ich].Normalform,
-				PartnerRichtig:  partner.Richtig,
-				Doppeltreffer:   game.Doppeltreffer(rd, pa),
+				EchteKarte:       rd.EchteKarte(gegner),
+				AntwortPartner:   rd.Antworten[gegner].Normalform,
+				MeinTippRichtig:  meiner.Richtig,
+				PartnerTipp:      partner.Gewaehlt,
+				PartnerTippText:  kartentext(rd.Karten[ich], partner.Gewaehlt),
+				PartnerTippGrund: kartengrund(rd.Karten[ich], partner.Gewaehlt),
+				MeineEchte:       rd.Antworten[ich].Normalform,
+				PartnerRichtig:   partner.Richtig,
+				Doppeltreffer:    game.Doppeltreffer(rd, pa),
 			}
 		}
 		liste = append(liste, ra)

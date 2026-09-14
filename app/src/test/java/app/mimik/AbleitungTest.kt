@@ -109,6 +109,44 @@ class AbleitungTest {
         assertEquals(Bildschirm.Warteraum, bildschirmFuer(s))
     }
 
+    // Der Klonblick kommt vor dem Raten - und nur einmal je Runde.
+    @Test fun `klonblick kommt vor dem raten und nur einmal`() {
+        val meine = List(4) { KarteAus(it + 1, "karte", istEcht = it == 0, begruendung = "weil") }
+        val karten = List(4) { KarteAus(it + 1, "ueber die andere seite") }
+        val r = RundeAus(
+            id = "r1", nummer = 1, zustand = "RATEN", meineAntwort = "steht",
+            karten = karten, meineKarten = meine,
+        )
+        val s = Sicht(
+            angemeldet = true, lobby = lobby(partie()),
+            partie = zustand(runden = listOf(r)), offenePartie = "p1",
+        )
+        assertEquals(Bildschirm.Klone, bildschirmFuer(s))
+        // Weggeklickt: ab jetzt wird geraten.
+        val weg = s.copy(klone = mapOf("p1" to Gesehen("m1", 1)))
+        assertEquals(Bildschirm.Raten, bildschirmFuer(weg))
+        // Ein neues Match faengt bei Runde 1 an - der Merker darf nicht
+        // vorgreifen. Dieselbe Falle wie bei der Aufloesung.
+        val neuesMatch = s.copy(
+            partie = zustand(match = MatchAus("m2", Stand(0, 0), 10, "OFFEN"), runden = listOf(r)),
+            klone = mapOf("p1" to Gesehen("m1", 6)),
+        )
+        assertEquals(Bildschirm.Klone, bildschirmFuer(neuesMatch))
+    }
+
+    // Solange der eigene Satz nicht vollstaendig ist, gibt es nichts zu sehen.
+    @Test fun `ohne vier eigene karten kein klonblick`() {
+        val r = RundeAus(
+            id = "r1", nummer = 1, zustand = "MIMIK_ARBEITET", meineAntwort = "steht",
+            meineKarten = List(2) { KarteAus(it + 1, "halb") },
+        )
+        val s = Sicht(
+            angemeldet = true, lobby = lobby(partie()),
+            partie = zustand(runden = listOf(r)), offenePartie = "p1",
+        )
+        assertEquals(Bildschirm.Warten, bildschirmFuer(s))
+    }
+
     @Test fun `die vier ausgaenge einer runde`() {
         fun mit(r: RundeAus) = bildschirmFuer(
             Sicht(

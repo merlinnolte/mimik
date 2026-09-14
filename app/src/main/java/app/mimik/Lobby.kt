@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 
 /**
  * Die Übersicht. Sie ist der neue Mittelpunkt der App: Ein Spieler kann in
@@ -278,6 +280,98 @@ fun ZurueckEcke(modell: AppModel) {
                     "‹ ÜBERSICHT", color = p.fgDim, fontSize = 10.sp, letterSpacing = 1.1.sp,
                     maxLines = 1, modifier = Modifier.padding(horizontal = 9.dp, vertical = 8.dp),
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Der Klonblick: die eigene Antwort, und dahinter die drei Fälschungen, die
+ * MIMIK daraus gebaut hat – mit dem Satz, woraus sie sie gebaut hat.
+ *
+ * Warum das niemandem etwas verrät: Geraten wird über die ANDERE Seite. Wer
+ * seine eigene Antwort getippt hat, weiß ohnehin, welche der vier Karten sie
+ * ist. Umgekehrt ist es der einzige Moment, in dem man MIMIK bei der Arbeit
+ * zusieht – und er liegt genau dort, wo bisher nur gewartet wurde: Der eigene
+ * Kartensatz steht, sobald MIMIK ihn gebaut hat, lange bevor die andere Seite
+ * geantwortet hat.
+ *
+ * Die Klone erscheinen einer nach dem anderen. Nicht als Zierde: Sie treten
+ * hinter der echten Antwort an, und das Nacheinander ist das, was aus vier
+ * Textblöcken ein Klonen macht.
+ */
+@Composable
+fun KloneBildschirm(modell: AppModel) {
+    val p = LokalePalette.current
+    val r = modell.aktuelleRunde ?: return
+    val echt = r.meineKarten.firstOrNull { it.istEcht == true }
+    val klone = r.meineKarten.filter { it.istEcht != true }
+
+    var bis by remember(r.id) { mutableStateOf(0) }
+    val fertig = bis >= klone.size
+    LaunchedEffect(r.id, bis) {
+        if (bis >= klone.size) return@LaunchedEffect
+        // Der erste Klon braucht länger als die folgenden: Erst soll die eigene
+        // Antwort einen Moment allein dastehen.
+        delay(if (bis == 0) 900 else 650)
+        bis += 1
+    }
+
+    Huelle(modell) {
+        MimikKopf(
+            if (fertig) Miene.Triumph else Miene.Denkt,
+            if (fertig) "Drei davon bin ich. Findest du dich wieder?"
+            else "Ich schreibe dich nach.",
+            schrift = 19,
+        )
+        Frage(r.frage)
+
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Klonkarte(echt?.text.orEmpty(), "DU", "", betont = true)
+            klone.take(bis).forEach { k ->
+                Klonkarte(k.text, "MIMIK", k.begruendung, betont = false)
+            }
+            if (!fertig) {
+                // Ein Platzhalter, der nicht springt: Ohne ihn wächst die Spalte
+                // mit jedem Klon, und weil die Hülle mittig anordnet, rutscht
+                // der ganze Bildschirm bei jedem Schritt nach oben.
+                Box(Modifier.fillMaxWidth().height(52.dp)) {
+                    Text(
+                        "▍", color = p.accent, fontSize = 14.sp,
+                        fontFamily = MonoSchrift,
+                        modifier = Modifier.padding(start = 12.dp, top = 12.dp),
+                    )
+                }
+            }
+        }
+
+        if (fertig) {
+            Aktionen {
+                Knopf("Weiter", betont = true, aktiv = !modell.laden) { modell.klonWeiter() }
+            }
+        } else {
+            Zeile("Ich bin noch nicht fertig.", p.fgDim, 11)
+        }
+    }
+}
+
+@Composable
+private fun Klonkarte(text: String, etikett: String, grund: String, betont: Boolean) {
+    val p = LokalePalette.current
+    val farbe = if (betont) p.accent2 else p.accent
+    Box(
+        Modifier.fillMaxWidth()
+            .border(1.dp, if (betont) p.accent2 else p.border)
+            .background(if (betont) p.bgAlt else p.bg)
+            .padding(12.dp),
+    ) {
+        Column {
+            Text(etikett, color = farbe, fontSize = 10.sp, letterSpacing = 1.1.sp, maxLines = 1)
+            Spacer(Modifier.height(6.dp))
+            Text(text, color = p.fg, fontSize = 14.sp, lineHeight = 22.sp)
+            if (grund.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                Text(grund, color = p.fgDim, fontSize = 11.sp, lineHeight = 17.sp)
             }
         }
     }

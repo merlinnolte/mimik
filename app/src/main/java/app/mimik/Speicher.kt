@@ -44,6 +44,14 @@ class Speicher(kontext: Context) {
         }
         set(v) = karteSetzen("gesehen", v.mapValues { (_, g) -> "${g.match}:${g.bis}" })
 
+    /** Bis zu welcher Runde je Partie der Klonblick weggeklickt ist. */
+    var klone: Map<String, Gesehen>
+        get() = karte("klone").mapValues { (_, v) ->
+            val t = v.split(":", limit = 2)
+            Gesehen(t.getOrElse(0) { "" }, t.getOrElse(1) { "0" }.toIntOrNull() ?: 0)
+        }
+        set(v) = karteSetzen("klone", v.mapValues { (_, g) -> "${g.match}:${g.bis}" })
+
     /** Wofür je Partie zuletzt gemeldet wurde. */
     var gemeldet: Map<String, String>
         get() = karte("gemeldet")

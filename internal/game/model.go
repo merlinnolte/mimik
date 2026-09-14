@@ -42,6 +42,10 @@ type Karte struct {
 	// Richtung ist das, was MIMIK sich für diese Fälschung ausgesucht hat –
 	// ein bis drei Wörter, nur zur Diagnose. Bei der echten Karte leer.
 	Richtung string
+	// Begruendung sagt, woraus MIMIK diese Fälschung gebaut hat. Sie geht
+	// AUSSCHLIESSLICH an den Menschen, über den die Karte ist: Sie zitiert sein
+	// Material, und das gehört niemand anderem. Bei der echten Karte leer.
+	Begruendung string
 }
 
 // Tipp ist die Wahl eines Spielers über den jeweils anderen.

@@ -34,6 +34,11 @@ var (
 type Faelschung struct {
 	Text     string
 	Richtung string
+	// Begruendung ist der Satz, mit dem MIMIK sagt, WORAUS sie diese Fälschung
+	// gebaut hat - welchen Fakt, welches Interesse, welche Formulierung. Sie
+	// entsteht im selben Aufruf, nach dem Text: Sie hält fest, was benutzt
+	// wurde, sie plant es nicht.
+	Begruendung string
 }
 
 // PruefeAntwort prüft eine Spielerantwort gegen die Längengrenzen.
@@ -85,7 +90,7 @@ func (r *Runde) KartenSetzen(spieler PlayerID, faelschungen []Faelschung, rng *r
 	}
 	karten := []Karte{{Text: a.Normalform, IstEcht: true}}
 	for _, f := range faelschungen {
-		karten = append(karten, Karte{Text: f.Text, Richtung: f.Richtung})
+		karten = append(karten, Karte{Text: f.Text, Richtung: f.Richtung, Begruendung: f.Begruendung})
 	}
 	rng.Shuffle(len(karten), func(i, j int) { karten[i], karten[j] = karten[j], karten[i] })
 	for i := range karten {

@@ -40,6 +40,8 @@ data class KarteAus(
     val pos: Int = 0,
     val text: String = "",
     @SerialName("ist_echt") val istEcht: Boolean? = null,
+    /** Woraus MIMIK die Fälschung gebaut hat – nur im eigenen Satz besetzt. */
+    val begruendung: String = "",
 )
 
 @Serializable
@@ -67,6 +69,8 @@ data class RundeAus(
     val aufloesung: Aufloesung? = null,
     val fehler: String = "",
     @SerialName("wartet_seit") val wartetSeit: Int = 0,
+    /** Der Satz über MICH: eigene Antwort plus die drei Klone. */
+    @SerialName("meine_karten") val meineKarten: List<KarteAus> = emptyList(),
 )
 
 @Serializable

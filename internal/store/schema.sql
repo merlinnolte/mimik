@@ -267,3 +267,16 @@ CREATE TABLE IF NOT EXISTS kartenbau (
   erstellt_am          TEXT NOT NULL,
   PRIMARY KEY (round_id, ueber)
 );
+
+-- Die Begruendung je Faelschung: woraus MIMIK sie gebaut hat.
+--
+-- Eigene Tabelle, weil karten keine Spalte dafuer hat und ein ALTER TABLE eine
+-- Wanderung waere. Sie haengt an derselben Stelle wie die Karte (Runde, ueber,
+-- Position) und geht mit ihr.
+CREATE TABLE IF NOT EXISTS karten_gruende (
+  round_id TEXT NOT NULL,
+  ueber    TEXT NOT NULL,
+  pos      INTEGER NOT NULL,
+  grund    TEXT NOT NULL,
+  PRIMARY KEY (round_id, ueber, pos)
+);

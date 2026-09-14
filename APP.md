@@ -39,7 +39,7 @@ Server im Internet auch richtig ist.
 | Datei | Inhalt |
 |---|---|
 | `Ableitung.kt` | Bildschirm, Auflösung, Lobbyzeilen, Meldeplan – ohne Android-Import, deshalb prüfbar |
-| `Lobby.kt` | Übersicht, Warteraum, Namenswahl, der Rückweg oben links |
+| `Lobby.kt` | Übersicht, Warteraum, Namenswahl, Klonblick, der Rückweg oben links |
 | `Theme.kt` | Die vier Paletten aus `themes.css`, unverändert. JetBrains Mono gebündelt. |
 | `Mimik.kt` | Das animierte Gesicht als Zeichenmatrix – Leerlauf, Denkt, Triumph, Getroffen |
 | `Bausteine.kt` | `Panel`, `Knopf`, `Feld`, `Punktebalken` nach `Panel.svelte` und `app.css` |
@@ -170,6 +170,37 @@ verbraucht sind, welche Tags gesetzt – und zwei getrennte
 Löschknöpfe. „Mein Dossier löschen“ nimmt nur, was MIMIK gelernt hat; die Tags
 bleiben, sie sind eine Einstellung. „Alles löschen“ verlangt den eigenen
 Spitznamen als Bestätigung – bei etwas Unwiderruflichem ist ein Klick zu wenig.
+
+## Der Klonblick
+
+Zwischen Absenden und Raten steht ein Bildschirm, den es vorher nicht gab: die
+eigene Antwort, und dahinter die drei Fälschungen, die MIMIK daraus gebaut hat —
+jede mit einem Satz, **woraus** sie sie gebaut hat („Du liest abends
+Nachrichten, obwohl das den Schlaf verschlechtert – das habe ich zu einer
+kleinen Selbstanklage umgebaut").
+
+Drei Dinge machen ihn möglich, und alle drei waren schon da:
+
+- **Der eigene Kartensatz steht früh.** Seit 0.5 läuft die Erzeugung vor: MIMIK
+  baut die Karten über einen, sobald man geantwortet hat — lange bevor die
+  andere Seite dran war. Genau dort lag bisher nur Wartezeit.
+- **Er verrät nichts.** Geraten wird über die *andere* Seite. Wer seine eigene
+  Antwort getippt hat, weiß ohnehin, welche der vier Karten sie ist.
+- **Die Begründung ist das eigene Material.** Sie zitiert Fakten aus den eigenen
+  Antworten. Die Begründungen der Karten über das Gegenüber gehen **nie** an
+  diese Seite — sie zitieren dessen Dossier, unter Umständen aus einer anderen
+  Partie. Der Server liefert sie deshalb nur im Block `meine_karten`; ein Test
+  hält das fest.
+
+Die Klone erscheinen einer nach dem anderen (900 ms, dann 650). Nicht als
+Zierde: Sie treten hinter der echten Antwort an, und das Nacheinander ist das,
+was aus vier Textblöcken ein Klonen macht. Ein Platzhalter fester Höhe hält die
+Spalte ruhig, solange noch welche fehlen — sonst rutscht der mittig gesetzte
+Bildschirm bei jedem Schritt nach oben, derselbe Fehler wie einst bei der
+Wartezeile.
+
+Der Merker (`Speicher.klone`) hängt an Partie **und** Match: Rundennummern
+fangen in jedem Match wieder bei 1 an.
 
 ## Der Zeilenumbruch
 

@@ -778,6 +778,8 @@ func (s *Store) AllesLoeschen(pid string) error {
 			   (SELECT r.id FROM rounds r JOIN matches m ON m.id = r.match_id WHERE m.party_id = ?)`,
 			`DELETE FROM guesses WHERE round_id IN
 			   (SELECT r.id FROM rounds r JOIN matches m ON m.id = r.match_id WHERE m.party_id = ?)`,
+			`DELETE FROM karten_gruende WHERE round_id IN
+			   (SELECT r.id FROM rounds r JOIN matches m ON m.id = r.match_id WHERE m.party_id = ?)`,
 			`DELETE FROM karten WHERE round_id IN
 			   (SELECT r.id FROM rounds r JOIN matches m ON m.id = r.match_id WHERE m.party_id = ?)`,
 			`DELETE FROM answers WHERE round_id IN

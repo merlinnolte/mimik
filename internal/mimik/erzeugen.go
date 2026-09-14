@@ -60,8 +60,9 @@ type antwortB struct {
 	Fakt       string   `json:"fakt"`
 	Sperre     []string `json:"sperre"`
 	Antworten  []struct {
-		Richtung string `json:"richtung"`
-		Text     string `json:"text"`
+		Richtung    string `json:"richtung"`
+		Text        string `json:"text"`
+		Begruendung string `json:"begruendung"`
 	} `json:"antworten"`
 }
 
@@ -262,8 +263,9 @@ func (c *Client) einDurchgang(ctx context.Context, frage, roh string, d Dossier)
 		}
 		t = ErsatzNormalform(t)
 		erg.Faelschungen = append(erg.Faelschungen, game.Faelschung{
-			Text:     t,
-			Richtung: sicher.Text(a.Antworten[i].Richtung, MaxThema),
+			Text:        t,
+			Richtung:    sicher.Text(a.Antworten[i].Richtung, MaxThema),
+			Begruendung: sicher.Text(a.Antworten[i].Begruendung, MaxBeleg),
 		})
 	}
 	return erg, nil
