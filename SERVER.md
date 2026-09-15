@@ -29,7 +29,11 @@ MIMIK_API_KEY=... MIMIK_BASE_URL=https://opencode.ai/zen/go/v1 MIMIK_HEADERS="x-
 
 ## Endpunkte
 
-Alles außer `POST /v1/devices` braucht `Authorization: Bearer <token>`.
+Alles unter `/v1/` außer `POST /v1/devices` braucht `Authorization: Bearer <token>`.
+Ohne Anmeldung erreichbar sind
+`GET /healthz`, die Startseite `GET /` und die Schrift dazu unter
+`GET /schrift/jetbrains-mono.woff2` – beide im Binary eingebettet, damit es
+bei einem Binary und einer SQLite-Datei bleibt.
 
 | Endpunkt | Zweck |
 |---|---|

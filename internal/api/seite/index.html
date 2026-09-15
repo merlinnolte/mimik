@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MIMIK</title>
+<meta name="description" content="Ein rundenbasiertes Ratespiel für genau zwei Personen, die sich gut kennen. Ein Sprachmodell fälscht eure Antworten – findet die echte.">
+<meta property="og:title" content="MIMIK">
+<meta property="og:description" content="Beide beantworten dieselbe Frage. MIMIK schreibt drei Fälschungen. Findet die echte.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mimik.merlinnolte.de/">
+<link rel="preload" href="schrift/jetbrains-mono.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+  /*
+   * Die Schrift wird mitgeliefert, nicht von Google geholt - aus demselben
+   * Grund wie in der App (Theme.kt): Der Google-Fonts-Ausschnitt von JetBrains
+   * Mono enthaelt U+2500-259F nicht. Die Rahmen- und Blockzeichen fielen
+   * deshalb auf eine andere Schrift mit anderer Laufweite zurueck, und MIMIKs
+   * Gesicht zerfiel - das Kaestchen bekam Luecken, weil ║ und ═ breiter liefen
+   * als das Leerzeichen daneben. Die Datei hier ist dieselbe, die die App
+   * buendelt, auf Latin-1 plus U+2500-25FF zusammengeschnitten: 12 kB.
+   */
+  @font-face {
+    font-family: "JetBrains Mono";
+    src: url("schrift/jetbrains-mono.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: block;
+  }
+
+  /* Palette "tokyo-night" aus app/src/main/java/app/mimik/Theme.kt */
+  :root {
+    --bg: #1a1b26;
+    --bg-alt: #24283b;
+    --bg-inset: #16161e;
+    --fg: #c0caf5;
+    --fg-dim: #565f89;
+    --accent: #7aa2f7;
+    --accent2: #bb9af7;
+    --border: #414868;
+    --warn: #e0af68;
+    --error: #f7768e;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 48px 20px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* Das Gesicht bricht NICHT um. Jeder Umbruch zerlegt die Zeichenmatrix in
+     Fragmente - derselbe Grund, aus dem die App die Schrift mitliefert. */
+  #gesicht {
+    margin: 0;
+    font: inherit;
+    font-size: 20px;
+    line-height: 1.18;
+    color: var(--accent);
+    transition: color 90ms linear;
+    white-space: pre;
+    user-select: none;
+  }
+  #gesicht.hell { color: var(--warn); }
+
+  /* Der Schriftzug: dieselbe Bauart wie das Gesicht - ein Pixelraster, mit
+     Halbblockzeichen auf halbe Hoehe gefaltet. 1 Pixel Strich, weit gesperrt,
+     damit Titel und Gesicht dieselbe Strichstaerke haben. */
+  #titel {
+    position: relative;
+    display: inline-block;
+    /* Die Glyphen sitzen randlos in ihrer Box - ohne diese Zugabe klebt der
+       Schriftzug am Kopf darueber und am Satz darunter. */
+    margin: 4px 0 10px;
+    font-size: clamp(7px, 2.7vw, 18px);
+    line-height: 1;
+    user-select: none;
+  }
+  #titel pre {
+    margin: 0;
+    font: inherit;
+    line-height: 1;
+    white-space: pre;
+    color: var(--accent);
+  }
+
+  /* Zwei Geisterlagen liegen deckungsgleich ueber der Schrift und sind
+     unsichtbar, bis es aussetzt. Dann zeigt jede nur einen waagerechten
+     Streifen, um ein paar Pixel verschoben - das ist der Riss. */
+  #titel .geist {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+  #titel .g1 { color: var(--accent2); }
+  #titel .g2 { color: var(--error); }
+
+  /* steps(1, end): ein Aussetzer schneidet hart. Weich ueberblenden wuerde
+     ihn zu einer Animation machen - er soll wie ein Fehler aussehen. */
+  #titel.stoert .basis { animation: ruck 240ms steps(1, end); }
+  #titel.stoert .g1 { animation: riss1 240ms steps(1, end); }
+  #titel.stoert .g2 { animation: riss2 240ms steps(1, end); }
+
+  @keyframes ruck {
+    0%, 74%, 100% { transform: none; }
+    12% { transform: translateX(1px); }
+    30% { transform: translateX(-2px); }
+    52% { transform: translateX(1px); }
+  }
+  @keyframes riss1 {
+    0%, 74%, 100% { opacity: 0; transform: none; }
+    12% { opacity: .85; transform: translateX(-3px); clip-path: inset(8% 0 64% 0); }
+    30% { opacity: .85; transform: translateX(4px);  clip-path: inset(46% 0 30% 0); }
+    52% { opacity: .70; transform: translateX(-2px); clip-path: inset(72% 0 6% 0); }
+  }
+  @keyframes riss2 {
+    0%, 74%, 100% { opacity: 0; transform: none; }
+    12% { opacity: .55; transform: translateX(3px);  clip-path: inset(30% 0 52% 0); }
+    30% { opacity: .55; transform: translateX(-4px); clip-path: inset(0 0 78% 0); }
+    52% { opacity: .45; transform: translateX(2px);  clip-path: inset(58% 0 20% 0); }
+  }
+
+  main {
+    max-width: 50ch;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  main p { margin: 0; text-wrap: balance; }
+  main p.leise { color: var(--fg-dim); font-size: 13px; }
+  .echt { color: var(--accent2); }
+
+  /* button.primary aus app.css: 1px Rahmen, eckig, bgAlt */
+  a.knopf {
+    display: inline-block;
+    padding: 7px 16px;
+    border: 1px solid var(--accent);
+    background: var(--bg-alt);
+    color: var(--accent);
+    font-size: 13px;
+    letter-spacing: 0.4px;
+    text-decoration: none;
+    transition: background 120ms linear;
+  }
+  a.knopf:hover, a.knopf:focus-visible { background: var(--border); }
+
+  footer { color: var(--fg-dim); font-size: 11px; }
+  footer a { color: var(--fg-dim); }
+
+  @media (max-width: 420px) {
+    #gesicht { font-size: 16px; }
+    #titel { font-size: 8px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #gesicht { transition: none; }
+    #titel pre { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+
+
+<pre id="gesicht" aria-hidden="true"></pre>
+
+<div id="titel" role="img" aria-label="MIMIK">
+  <pre class="basis"></pre>
+  <pre class="geist g1" aria-hidden="true"></pre>
+  <pre class="geist g2" aria-hidden="true"></pre>
+</div>
+
+<main>
+  <p>Zwei Menschen, dieselbe Frage. MIMIK liest die echte Antwort und
+     schreibt drei Fälschungen im Stil der schreibenden Person.</p>
+  <p>Vier Karten, <span class="echt">eine ist echt</span>. Wer sie findet, holt
+     einen Punkt für die Menschen – wer danebengreift, gibt einen an MIMIK ab.</p>
+  <p class="leise">Kooperativ, Rundenbasiert, ohne Account.</p>
+  <p class="leise">Tritt einem Server bei oder hoste deinen eigenen.</p>
+</main>
+
+<a class="knopf" href="https://github.com/merlinnolte/mimik">Auf GitHub ansehen</a>
+
+<footer>Android-App und Go-Server, <a href="https://github.com/merlinnolte/mimik">quelloffen</a>.</footer>
+
+<script>
+// Der Leerlauf aus app/src/main/java/app/mimik/Mimik.kt, Bild für Bild
+// übernommen: atmen, blinzeln, und hin und wieder ein Zug um den Mund.
+// Blinzeln und Schmunzeln fallen nie zusammen - sonst sieht es nach einer
+// Schleife aus statt nach jemandem, der wartet.
+const NASE = "    ·    ";
+const NEUTRAL = "─────";
+const SCHMAL = " ─── ";
+const SCHIEF = "──╯  ";
+const SCHIEF2 = "  ╰──";
+const SCHMUNZELN = "╲───╱";
+const SPITZ = "  ·  ";
+
+// [antenne, auge, mund, dauer, hell]
+const LEERLAUF = [
+  ["◦", "▄", NEUTRAL, 900],
+  ["∘", "▄", NEUTRAL, 500],
+  ["·", "▄", SCHMAL, 420],
+  ["∘", "▄", NEUTRAL, 500],
+  ["◦", "▂", NEUTRAL, 70],
+  ["◦", "▁", NEUTRAL, 80],
+  ["◦", "▂", NEUTRAL, 70],
+  ["◦", "▄", NEUTRAL, 1200],
+  ["∘", "▄", SCHIEF, 260],
+  ["∘", "▄", NEUTRAL, 700],
+  ["·", "▖", NEUTRAL, 380],
+  ["·", "▗", SCHIEF2, 380],
+  ["◦", "▄", NEUTRAL, 900],
+  ["◦", "▀", SCHMUNZELN, 420],
+  ["●", "▀", SCHMUNZELN, 240, true],
+  ["◦", "▄", SCHMAL, 300],
+  ["◦", "▄", NEUTRAL, 1100],
+  ["∘", "▂", NEUTRAL, 70],
+  ["∘", "▄", NEUTRAL, 800],
+  ["·", "▄", SPITZ, 300],
+  ["∘", "▄", NEUTRAL, 700],
+];
+
+const zeile = (z, x) => Array.from({ length: 11 }, (_, i) => (i === x ? z : " ")).join("");
+
+function male([antenne, auge, mund]) {
+  return [
+    zeile(antenne, 5),
+    zeile("│", 5),
+    "╔═════════╗",
+    "║ " + auge + "     " + auge + " ║",
+    "║" + NASE + "║",
+    "║  " + mund + "  ║",
+    "╚══╤═══╤══╝",
+  ].join("\n");
+}
+
+const el = document.getElementById("gesicht");
+let i = 0;
+
+function naechstes() {
+  const bild = LEERLAUF[i];
+  el.textContent = male(bild);
+  el.classList.toggle("hell", bild[4] === true);
+  i = (i + 1) % LEERLAUF.length;
+  setTimeout(naechstes, bild[3]);
+}
+
+naechstes();
+
+// Der Schriftzug, gebaut wie das Gesicht: ein Pixelraster, mit
+// Halbblockzeichen auf halbe Hoehe gefaltet.
+const TITEL = [
+  "█▄ ▄█    ▀▀█▀▀    █▄ ▄█    ▀▀█▀▀    █  ▄▀",
+  "█ ▀ █      █      █ ▀ █      █      █▄▀",
+  "█   █      █      █   █      █      ██",
+  "█   █      █      █   █      █      █ ▀▄",
+  "█   █    ▄▄█▄▄    █   █    ▄▄█▄▄    █   ▀▄",
+].join("\n");
+
+const titel = document.getElementById("titel");
+titel.querySelectorAll("pre").forEach((lage) => { lage.textContent = TITEL; });
+
+// Waehrend eines Aussetzers kippen ein paar Zeichen auf ein falsches um. Nur
+// gesetzte Zeichen werden getauscht, nie Leerraum: der Umriss bleibt stehen,
+// es zerfaellt nur die Flaeche. Das passt zu MIMIK - sie faelscht, sie
+// loescht nicht.
+const STOERZEICHEN = "█▀▄▌▐░▒▓";
+const basis = titel.querySelector(".basis");
+const STELLEN = [];
+for (let i = 0; i < TITEL.length; i++) {
+  if (TITEL[i] !== " " && TITEL[i] !== "\n") STELLEN.push(i);
+}
+
+function entstellt(anzahl) {
+  const z = Array.from(TITEL);
+  for (let k = 0; k < anzahl; k++) {
+    const i = STELLEN[(Math.random() * STELLEN.length) | 0];
+    z[i] = STOERZEICHEN[(Math.random() * STOERZEICHEN.length) | 0];
+  }
+  return z.join("");
+}
+
+function aussetzer() {
+  titel.classList.add("stoert");
+  let bild = 0;
+  const takt = setInterval(() => {
+    basis.textContent = entstellt(2 + ((Math.random() * 3) | 0));
+    if (++bild >= 4) {
+      clearInterval(takt);
+      basis.textContent = TITEL;
+    }
+  }, 55);
+  setTimeout(() => titel.classList.remove("stoert"), 240);
+  // Unregelmaessig: ein Aussetzer im festen Takt waere ein Blinker.
+  setTimeout(aussetzer, 4200 + Math.random() * 7000);
+}
+
+if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  setTimeout(aussetzer, 2600);
+}
+</script>
+
+</body>
+</html>

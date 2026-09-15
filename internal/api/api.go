@@ -43,6 +43,9 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	})
+	// "{$}" trifft genau "/" und nichts darunter - siehe seite.go.
+	mux.HandleFunc("GET /{$}", s.startseite)
+	mux.HandleFunc("GET /schrift/jetbrains-mono.woff2", s.schrift)
 	mux.HandleFunc("POST /v1/devices", s.geraetAnlegen)
 
 	geschuetzt := map[string]http.HandlerFunc{
